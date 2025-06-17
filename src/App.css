@@ -26,8 +26,13 @@
   padding-top: 10vh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  align-items: center;
+  justify-content: flex-start;
   text-align: center;
+  height: 100vh;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
 .logo {
@@ -58,6 +63,9 @@ a:hover {
 
 h1 {
   text-align: center;
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 2.5rem;
 }
 
 input,
@@ -95,6 +103,46 @@ button {
   margin-right: 5px;
 }
 
+/* 五子棋游戏相关样式 */
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 600px;
+}
+
+.board-container {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+}
+
+.game-info {
+  margin-top: 30px;
+  padding: 15px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 600px;
+  text-align: left;
+}
+
+.game-info h3 {
+  color: #333;
+  margin-top: 0;
+}
+
+.game-info ul {
+  padding-left: 20px;
+}
+
+.game-info li {
+  margin-bottom: 8px;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     color: #f6f6f6;
@@ -112,5 +160,18 @@ button {
   }
   button:active {
     background-color: #0f0f0f69;
+  }
+  
+  h1 {
+    color: #f6f6f6;
+  }
+  
+  .game-info {
+    background-color: #333;
+    color: #f6f6f6;
+  }
+  
+  .game-info h3 {
+    color: #f6f6f6;
   }
 }

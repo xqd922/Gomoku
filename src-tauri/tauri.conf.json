@@ -12,9 +12,9 @@
   "app": {
     "windows": [
       {
-        "title": "gomoku",
+        "title": "五子棋",
         "width": 800,
-        "height": 600
+        "height": 700
       }
     ],
     "security": {

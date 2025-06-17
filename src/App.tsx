@@ -1,49 +1,47 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
+import Board from "./components/Board";
+import Controls from "./components/Controls";
+import GameStatus from "./components/GameStatus";
+import useGameState from "./hooks/useGameState";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const BOARD_SIZE = 15;
+  const { gameState, placeStone, resetGame, undoMove } = useGameState(BOARD_SIZE);
+  const [title] = useState("五子棋");
 
   return (
     <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+      <h1>{title}</h1>
+      
+      <div className="game-container">
+        <GameStatus gameState={gameState} />
+        
+        <div className="board-container">
+          <Board 
+            board={gameState.board} 
+            onCellClick={placeStone}
+            lastPlaced={gameState.history.length > 0 ? gameState.history[gameState.history.length - 1] : null}
+            disabled={gameState.status !== 'playing'}
+          />
+        </div>
+        
+        <Controls 
+          onReset={resetGame}
+          onUndo={undoMove}
+          canUndo={gameState.history.length > 0}
+          gameStatus={gameState.status}
         />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
+      </div>
+
+      <div className="game-info">
+        <h3>游戏规则</h3>
+        <ul>
+          <li>黑方先行，双方轮流落子</li>
+          <li>先在横、竖或斜方向形成连续五子的一方获胜</li>
+          <li>棋盘大小: {BOARD_SIZE}×{BOARD_SIZE}</li>
+        </ul>
+      </div>
     </main>
   );
 }

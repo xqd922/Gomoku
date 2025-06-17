@@ -22,3 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 构建文件
+*.exe
+*.msi
+*.dmg
+*.app
+*.deb
+*.rpm
+
+# Tauri构建目录
+src-tauri/target
