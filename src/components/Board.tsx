@@ -123,9 +123,12 @@ const Board: React.FC<BoardProps> = ({
             <div
               key={`cell-${rowIndex}-${colIndex}`}
               style={{
-                position: 'relative',
-                width: '100%',
-                height: '100%',
+                position: 'absolute',
+                top: `${(rowIndex * 100) / (boardSize - 1)}%`,
+                left: `${(colIndex * 100) / (boardSize - 1)}%`,
+                width: '6.67%',  // 100% / 15
+                height: '6.67%', // 100% / 15
+                transform: 'translate(-50%, -50%)',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
