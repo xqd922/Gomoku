@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import useGameState from './useGameState';
-import useNetworkGame, { NetworkGameStatus } from './useNetworkGame';
+import useNetworkGame from './useNetworkGame';
 import { Position } from '../types/game';
 
 // 游戏模式
@@ -76,6 +76,42 @@ const useGame = (boardSize: number = 15) => {
     }
   }, [gameMode, isMyTurn, isWaitingForOpponent, networkGame, placeStone]);
   
+  // 连接服务器 - 只连接不创建房间
+  const connectToServer = useCallback(async () => {
+    setNetworkError(null);
+    console.log("正在连接到服务器...");
+    
+    try {
+      const connected = await networkGame.connect();
+      console.log("连接结果:", connected);
+      
+      if (!connected) {
+        console.error("连接服务器失败");
+        setNetworkError('无法连接到服务器，请确保服务器已启动');
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error("连接服务器出错:", err);
+      setNetworkError(`连接出错: ${err instanceof Error ? err.message : String(err)}`);
+      return false;
+    }
+  }, [networkGame]);
+  
+  // 断开连接
+  const disconnectFromServer = useCallback(() => {
+    console.log("断开与服务器的连接");
+    networkGame.disconnect();
+    
+    if (gameMode === 'network') {
+      setGameMode('local');
+      setIsWaitingForOpponent(false);
+      setIsMyTurn(true);
+      resetGame();
+    }
+  }, [networkGame, gameMode, resetGame]);
+  
   // 创建房间
   const createNetworkGame = useCallback(async () => {
     setNetworkError(null);
@@ -93,9 +129,6 @@ const useGame = (boardSize: number = 15) => {
           setNetworkError('无法连接到服务器，请确保服务器已启动');
           return false;
         }
-        
-        // 等待连接建立 (增加一些延迟确保WebSocket完全准备好)
-        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
       if (networkGame.status !== 'connected') {
@@ -106,7 +139,12 @@ const useGame = (boardSize: number = 15) => {
       
       console.log("调用创建房间...");
       // 创建房间
-      networkGame.createRoom();
+      const roomCreated = await networkGame.createRoom();
+      if (!roomCreated) {
+        console.error("创建房间失败");
+        return false;
+      }
+      
       setGameMode('network');
       setIsWaitingForOpponent(true);
       resetGame();
@@ -122,23 +160,45 @@ const useGame = (boardSize: number = 15) => {
   // 加入房间
   const joinNetworkGame = useCallback(async (roomId: string) => {
     setNetworkError(null);
+    console.log("加入房间开始:", roomId);
     
-    // 如果未连接，先连接到服务器
-    if (networkGame.status === 'disconnected') {
-      const connected = await networkGame.connect();
-      if (!connected) {
-        setNetworkError('无法连接到服务器');
+    try {
+      // 如果未连接，先连接到服务器
+      if (networkGame.status === 'disconnected') {
+        console.log("尝试连接到服务器...");
+        const connected = await networkGame.connect();
+        
+        if (!connected) {
+          console.error("连接服务器失败");
+          setNetworkError('无法连接到服务器，请确保服务器已启动');
+          return false;
+        }
+      }
+      
+      if (networkGame.status !== 'connected') {
+        console.error("服务器状态不是connected，当前状态:", networkGame.status);
+        setNetworkError(`服务器状态异常: ${networkGame.status}`);
         return false;
       }
+      
+      console.log("调用加入房间...");
+      // 加入房间
+      const roomJoined = await networkGame.joinRoom(roomId);
+      if (!roomJoined) {
+        console.error("加入房间失败");
+        return false;
+      }
+      
+      setGameMode('network');
+      setIsWaitingForOpponent(false);
+      resetGame();
+      
+      return true;
+    } catch (err) {
+      console.error("加入网络游戏出错:", err);
+      setNetworkError(`加入游戏出错: ${err instanceof Error ? err.message : String(err)}`);
+      return false;
     }
-    
-    // 加入房间
-    networkGame.joinRoom(roomId);
-    setGameMode('network');
-    setIsWaitingForOpponent(false);
-    resetGame();
-    
-    return true;
   }, [networkGame, resetGame]);
   
   // 退出网络游戏
@@ -156,6 +216,13 @@ const useGame = (boardSize: number = 15) => {
       setRoomCode(networkGame.roomId);
     }
   }, [networkGame.roomId]);
+  
+  // 同步网络错误
+  useEffect(() => {
+    if (networkGame.error) {
+      setNetworkError(networkGame.error);
+    }
+  }, [networkGame.error]);
   
   // 显示到界面的网络状态
   const getNetworkStatus = useCallback((): string => {
@@ -186,6 +253,8 @@ const useGame = (boardSize: number = 15) => {
     networkError: networkError || networkGame.error,
     isNetworkConnected: networkGame.status !== 'disconnected' && networkGame.status !== 'connecting',
     isNetworkGameActive: networkGame.status === 'playing',
+    isHost,
+    playerName: networkGame.playerId,
   };
 
   return {
@@ -196,6 +265,8 @@ const useGame = (boardSize: number = 15) => {
     createNetworkGame,
     joinNetworkGame,
     exitNetworkGame,
+    connectToServer,       // 新增：仅连接到服务器
+    disconnectFromServer,  // 新增：断开服务器连接
   };
 };
 

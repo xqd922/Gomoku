@@ -11,9 +11,13 @@ interface ControlsProps {
   onCreateRoom?: () => void;
   onJoinRoom?: (roomId: string) => void;
   onExitNetworkGame?: () => void;
+  onConnect?: () => Promise<boolean>;
+  onDisconnect?: () => void;
   networkStatus?: string;
   roomCode?: string;
   networkError?: string | null;
+  isHost?: boolean;
+  playerName?: string | null;
 }
 
 const Controls: React.FC<ControlsProps> = ({ 
@@ -25,12 +29,17 @@ const Controls: React.FC<ControlsProps> = ({
   onCreateRoom,
   onJoinRoom,
   onExitNetworkGame,
-  networkStatus,
+  onConnect,
+  onDisconnect,
+  networkStatus = '未连接',
   roomCode,
   networkError,
+  isHost,
+  playerName,
 }) => {
   const [joinRoomId, setJoinRoomId] = useState('');
   const [showJoinInput, setShowJoinInput] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
   const buttonStyle: React.CSSProperties = {
     padding: '10px 20px',
@@ -73,6 +82,20 @@ const Controls: React.FC<ControlsProps> = ({
     width: '200px',
   };
 
+  // 处理连接按钮点击
+  const handleConnectClick = async () => {
+    if (!onConnect) return;
+    
+    setConnecting(true);
+    try {
+      await onConnect();
+    } catch (err) {
+      console.error('连接出错:', err);
+    } finally {
+      setConnecting(false);
+    }
+  };
+
   // 渲染本地游戏控制
   const renderLocalControls = () => (
     <>
@@ -92,42 +115,6 @@ const Controls: React.FC<ControlsProps> = ({
         </button>
       )}
     </>
-  );
-
-  // 渲染加入房间表单
-  const renderJoinRoomForm = () => (
-    <div style={{ display: 'flex', alignItems: 'center', marginTop: '10px' }}>
-      <input
-        type="text"
-        style={inputStyle}
-        value={joinRoomId}
-        onChange={(e) => setJoinRoomId(e.target.value)}
-        placeholder="输入房间码"
-      />
-      <button 
-        style={networkButtonStyle} 
-        onClick={() => {
-          if (onJoinRoom && joinRoomId) {
-            onJoinRoom(joinRoomId);
-            setShowJoinInput(false);
-          }
-        }}
-        disabled={!joinRoomId}
-      >
-        加入房间
-      </button>
-      <button 
-        style={{...networkButtonStyle, backgroundColor: '#e67e22'}} 
-        onClick={() => {
-          if (onCreateRoom) {
-            onCreateRoom();
-            setShowJoinInput(false);
-          }
-        }}
-      >
-        创建房间
-      </button>
-    </div>
   );
 
   // 渲染网络游戏控制
@@ -167,6 +154,16 @@ const Controls: React.FC<ControlsProps> = ({
               房间码: <span style={{ fontWeight: 'bold' }}>{roomCode}</span>
             </p>
           )}
+          {isHost !== undefined && (
+            <p style={{ margin: '5px 0 0 0' }}>
+              角色: <span style={{ fontWeight: 'bold' }}>{isHost ? '房主(黑棋)' : '访客(白棋)'}</span>
+            </p>
+          )}
+          {playerName && (
+            <p style={{ margin: '5px 0 0 0' }}>
+              玩家ID: <span style={{ fontWeight: 'bold' }}>{playerName}</span>
+            </p>
+          )}
           {networkError && (
             <p style={{ 
               margin: '5px 0 0 0', 
@@ -184,30 +181,32 @@ const Controls: React.FC<ControlsProps> = ({
 
   // 渲染调试按钮
   const renderDebugButtons = () => {
-    if (process.env.NODE_ENV === 'development' || true) { // 总是显示调试按钮，方便测试
-      return (
-        <div style={{ marginTop: '10px', textAlign: 'center' }}>
-          <button
-            style={{ 
-              padding: '5px 10px', 
-              backgroundColor: '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              margin: '0 5px',
-              cursor: 'pointer',
-              fontSize: '0.8rem'
-            }}
-            onClick={() => {
-              console.log('游戏模式:', gameMode);
-              console.log('房间码:', roomCode);
-              console.log('网络状态:', networkStatus);
-              console.log('错误:', networkError);
-              alert(`模式: ${gameMode}, 状态: ${networkStatus || '无'}, 房间: ${roomCode || '无'}`);
-            }}
-          >
-            调试信息
-          </button>
+    return (
+      <div style={{ marginTop: '10px', textAlign: 'center' }}>
+        <button
+          style={{ 
+            padding: '5px 10px', 
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            margin: '0 5px',
+            cursor: 'pointer',
+            fontSize: '0.8rem'
+          }}
+          onClick={() => {
+            console.log('游戏模式:', gameMode);
+            console.log('房间码:', roomCode);
+            console.log('网络状态:', networkStatus);
+            console.log('错误:', networkError);
+            alert(`模式: ${gameMode}, 状态: ${networkStatus || '无'}, 房间: ${roomCode || '无'}`);
+          }}
+        >
+          调试信息
+        </button>
+        
+        {/* 连接/断开服务器按钮 */}
+        {networkStatus === '未连接' || !networkStatus ? (
           <button
             style={{ 
               padding: '5px 10px', 
@@ -219,20 +218,68 @@ const Controls: React.FC<ControlsProps> = ({
               cursor: 'pointer',
               fontSize: '0.8rem'
             }}
-            onClick={() => {
-              // 测试连接
-              if (onCreateRoom) {
-                // 只测试连接而不真正创建房间
-                onCreateRoom();
-              }
-            }}
+            onClick={handleConnectClick}
+            disabled={connecting}
           >
-            检查连接
+            {connecting ? '连接中...' : '检查连接'}
           </button>
-        </div>
-      );
-    }
-    return null;
+        ) : (
+          <>
+            <button
+              style={{ 
+                padding: '5px 10px', 
+                backgroundColor: '#e74c3c',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                margin: '0 5px',
+                cursor: 'pointer',
+                fontSize: '0.8rem'
+              }}
+              onClick={onDisconnect}
+            >
+              断开连接
+            </button>
+            
+            {networkStatus === '已连接' && (
+              <>
+                <button 
+                  style={{ 
+                    padding: '5px 10px', 
+                    backgroundColor: '#17a2b8',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    margin: '0 5px',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem'
+                  }}
+                  onClick={onCreateRoom}
+                >
+                  创建房间
+                </button>
+                
+                <button 
+                  style={{ 
+                    padding: '5px 10px', 
+                    backgroundColor: '#fd7e14',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    margin: '0 5px',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem'
+                  }}
+                  onClick={() => setShowJoinInput(!showJoinInput)}
+                >
+                  {showJoinInput ? '取消' : '加入房间'}
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -245,7 +292,36 @@ const Controls: React.FC<ControlsProps> = ({
         {gameMode === 'local' ? renderLocalControls() : renderNetworkControls()}
       </div>
       
-      {showJoinInput && gameMode === 'local' && renderJoinRoomForm()}
+      {showJoinInput && (
+        <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center' }}>
+          <input
+            type="text"
+            style={inputStyle}
+            value={joinRoomId}
+            onChange={(e) => setJoinRoomId(e.target.value)}
+            placeholder="输入房间码"
+          />
+          <button 
+            style={{ 
+              padding: '10px 15px', 
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+            onClick={() => {
+              if (onJoinRoom && joinRoomId) {
+                onJoinRoom(joinRoomId);
+                setShowJoinInput(false);
+              }
+            }}
+            disabled={!joinRoomId}
+          >
+            加入
+          </button>
+        </div>
+      )}
       
       {renderNetworkStatus()}
       

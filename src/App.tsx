@@ -14,7 +14,9 @@ function App() {
     undoMove,
     createNetworkGame,
     joinNetworkGame,
-    exitNetworkGame
+    exitNetworkGame,
+    connectToServer,
+    disconnectFromServer
   } = useGame(BOARD_SIZE);
   const [title] = useState("五子棋");
   const [debug, setDebug] = useState(false);
@@ -50,6 +52,8 @@ function App() {
             isMyTurn: gameState.isMyTurn,
             isWaiting: gameState.isWaitingForOpponent,
             currentPlayer: gameState.currentPlayer,
+            isHost: gameState.isHost,
+            playerName: gameState.playerName
           }, null, 2)}
         </pre>
       </div>
@@ -85,9 +89,13 @@ function App() {
           onCreateRoom={createNetworkGame}
           onJoinRoom={joinNetworkGame}
           onExitNetworkGame={exitNetworkGame}
+          onConnect={connectToServer}
+          onDisconnect={disconnectFromServer}
           networkStatus={gameState.networkStatus}
           roomCode={gameState.roomCode}
           networkError={gameState.networkError}
+          isHost={gameState.isHost}
+          playerName={gameState.playerName}
         />
 
         {renderDebugInfo()}
