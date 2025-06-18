@@ -13,6 +13,21 @@ pub struct GameResult {
     pub is_draw: bool,
 }
 
+// 网络对战相关的数据结构
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateRoomResult {
+    pub success: bool,
+    pub room_id: String,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct JoinRoomResult {
+    pub success: bool,
+    pub room_id: Option<String>,
+    pub error: Option<String>,
+}
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -92,6 +107,16 @@ fn check_draw(board: Vec<Vec<Option<StoneType>>>) -> bool {
     true
 }
 
+// 获取WebSocket服务器地址
+#[tauri::command]
+fn get_ws_server_address() -> String {
+    println!("前端请求WebSocket服务器地址");
+    // 使用localhost代替127.0.0.1，可能对某些环境更友好
+    let addr = "ws://localhost:12345";
+    println!("返回WebSocket地址: {}", addr);
+    addr.to_string()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -99,7 +124,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             check_win,
-            check_draw
+            check_draw,
+            get_ws_server_address
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

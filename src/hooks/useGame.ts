@@ -1,44 +1,202 @@
-import { useState, useCallback } from 'react';
-import { StoneType } from '../types/game';
-import { checkWin } from '../utils/gameLogic';
+import { useState, useCallback, useEffect } from 'react';
+import useGameState from './useGameState';
+import useNetworkGame, { NetworkGameStatus } from './useNetworkGame';
+import { Position } from '../types/game';
 
-export const useGame = (boardSize: number = 15) => {
-  const [board, setBoard] = useState<(StoneType | null)[][]>(
-    Array(boardSize).fill(null).map(() => Array(boardSize).fill(null))
-  );
-  const [currentPlayer, setCurrentPlayer] = useState<StoneType>('black');
-  const [lastPlaced, setLastPlaced] = useState<{ row: number; col: number } | null>(null);
-  const [winner, setWinner] = useState<StoneType | null>(null);
+// 游戏模式
+export type GameMode = 'local' | 'network';
 
-  const handleCellClick = useCallback(({ row, col }: { row: number; col: number }) => {
-    if (board[row][col] !== null || winner) return;
+const useGame = (boardSize: number = 15) => {
+  const [gameMode, setGameMode] = useState<GameMode>('local');
+  const [isMyTurn, setIsMyTurn] = useState<boolean>(true);
+  const [isWaitingForOpponent, setIsWaitingForOpponent] = useState<boolean>(false);
+  const [roomCode, setRoomCode] = useState<string>('');
+  const [networkError, setNetworkError] = useState<string | null>(null);
+  const [isHost, setIsHost] = useState<boolean>(false);
+  
+  // 本地游戏状态管理
+  const {
+    gameState,
+    placeStone,
+    resetGame,
+    undoMove
+  } = useGameState(boardSize);
+  
+  // 处理对手落子
+  const handleOpponentMove = useCallback((position: Position) => {
+    placeStone(position);
+    setIsMyTurn(true);
+  }, [placeStone]);
+  
+  // 处理游戏开始
+  const handleGameStart = useCallback(() => {
+    resetGame();
+    setIsWaitingForOpponent(false);
+    // 作为房主(黑子)先行
+    setIsMyTurn(isHost);
+  }, [resetGame, isHost]);
+  
+  // 处理对手断开连接
+  const handleOpponentDisconnect = useCallback(() => {
+    setIsWaitingForOpponent(true);
+    setNetworkError('对手已断开连接');
+  }, []);
+  
+  // 处理重新连接
+  const handleReconnect = useCallback(() => {
+    setNetworkError(null);
+  }, []);
+  
+  // 网络游戏状态管理
+  const networkGame = useNetworkGame({
+    onReceiveMove: handleOpponentMove,
+    onGameStart: handleGameStart,
+    onOpponentDisconnect: handleOpponentDisconnect,
+    onReconnect: handleReconnect
+  });
 
-    const newBoard = board.map(r => [...r]);
-    newBoard[row][col] = currentPlayer;
-    setBoard(newBoard);
-    setLastPlaced({ row, col });
-
-    // 检查是否有赢家
-    if (checkWin(newBoard, { row, col }, currentPlayer)) {
-      setWinner(currentPlayer);
-    } else {
-      setCurrentPlayer(currentPlayer === 'black' ? 'white' : 'black');
+  // 同步网络游戏的主机状态
+  useEffect(() => {
+    setIsHost(networkGame.isHost);
+  }, [networkGame.isHost]);
+  
+  // 处理落子
+  const handlePlaceStone = useCallback((position: Position) => {
+    if (gameMode === 'local') {
+      // 本地模式直接落子
+      placeStone(position);
+    } else if (gameMode === 'network' && isMyTurn && !isWaitingForOpponent) {
+      // 网络模式，如果是我的回合，发送落子消息
+      const success = networkGame.sendMove(position);
+      if (success) {
+        // 本地也执行落子
+        placeStone(position);
+        setIsMyTurn(false);
+      }
     }
-  }, [board, currentPlayer, winner]);
-
-  const resetGame = useCallback(() => {
-    setBoard(Array(boardSize).fill(null).map(() => Array(boardSize).fill(null)));
-    setCurrentPlayer('black');
-    setLastPlaced(null);
-    setWinner(null);
-  }, [boardSize]);
+  }, [gameMode, isMyTurn, isWaitingForOpponent, networkGame, placeStone]);
+  
+  // 创建房间
+  const createNetworkGame = useCallback(async () => {
+    setNetworkError(null);
+    console.log("创建网络游戏开始");
+    
+    try {
+      // 如果未连接，先连接到服务器
+      if (networkGame.status === 'disconnected') {
+        console.log("尝试连接到服务器...");
+        const connected = await networkGame.connect();
+        console.log("连接结果:", connected);
+        
+        if (!connected) {
+          console.error("连接服务器失败");
+          setNetworkError('无法连接到服务器，请确保服务器已启动');
+          return false;
+        }
+        
+        // 等待连接建立 (增加一些延迟确保WebSocket完全准备好)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      if (networkGame.status !== 'connected') {
+        console.error("服务器状态不是connected，当前状态:", networkGame.status);
+        setNetworkError(`服务器状态异常: ${networkGame.status}`);
+        return false;
+      }
+      
+      console.log("调用创建房间...");
+      // 创建房间
+      networkGame.createRoom();
+      setGameMode('network');
+      setIsWaitingForOpponent(true);
+      resetGame();
+      
+      return true;
+    } catch (err) {
+      console.error("创建网络游戏出错:", err);
+      setNetworkError(`创建游戏出错: ${err instanceof Error ? err.message : String(err)}`);
+      return false;
+    }
+  }, [networkGame, resetGame]);
+  
+  // 加入房间
+  const joinNetworkGame = useCallback(async (roomId: string) => {
+    setNetworkError(null);
+    
+    // 如果未连接，先连接到服务器
+    if (networkGame.status === 'disconnected') {
+      const connected = await networkGame.connect();
+      if (!connected) {
+        setNetworkError('无法连接到服务器');
+        return false;
+      }
+    }
+    
+    // 加入房间
+    networkGame.joinRoom(roomId);
+    setGameMode('network');
+    setIsWaitingForOpponent(false);
+    resetGame();
+    
+    return true;
+  }, [networkGame, resetGame]);
+  
+  // 退出网络游戏
+  const exitNetworkGame = useCallback(() => {
+    networkGame.disconnect();
+    setGameMode('local');
+    setIsWaitingForOpponent(false);
+    setIsMyTurn(true);
+    resetGame();
+  }, [networkGame, resetGame]);
+  
+  // 根据房间ID更新可共享的房间代码
+  useEffect(() => {
+    if (networkGame.roomId) {
+      setRoomCode(networkGame.roomId);
+    }
+  }, [networkGame.roomId]);
+  
+  // 显示到界面的网络状态
+  const getNetworkStatus = useCallback((): string => {
+    switch (networkGame.status) {
+      case 'disconnected':
+        return '未连接';
+      case 'connecting':
+        return '正在连接...';
+      case 'connected':
+        return '已连接';
+      case 'waiting':
+        return `等待对手加入 (房间码: ${roomCode})`;
+      case 'playing':
+        return '对战中';
+      default:
+        return '';
+    }
+  }, [networkGame.status, roomCode]);
+  
+  // 附加游戏状态信息
+  const enhancedGameState = {
+    ...gameState,
+    gameMode,
+    isMyTurn,
+    isWaitingForOpponent,
+    networkStatus: getNetworkStatus(),
+    roomCode,
+    networkError: networkError || networkGame.error,
+    isNetworkConnected: networkGame.status !== 'disconnected' && networkGame.status !== 'connecting',
+    isNetworkGameActive: networkGame.status === 'playing',
+  };
 
   return {
-    board,
-    currentPlayer,
-    lastPlaced,
-    winner,
-    handleCellClick,
+    gameState: enhancedGameState,
+    placeStone: handlePlaceStone,
     resetGame,
+    undoMove: gameMode === 'local' ? undoMove : undefined, // 网络模式暂不支持悔棋
+    createNetworkGame,
+    joinNetworkGame,
+    exitNetworkGame,
   };
-}; 
+};
+
+export default useGame; 
