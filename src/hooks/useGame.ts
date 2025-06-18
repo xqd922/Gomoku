@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import useGameState from './useGameState';
-import useNetworkGame from './useNetworkGame';
+import useCloudflareConnection from './useCloudflareConnection';
 import { Position } from '../types/game';
 
 // 游戏模式
@@ -47,8 +47,8 @@ const useGame = (boardSize: number = 15) => {
     setNetworkError(null);
   }, []);
   
-  // 网络游戏状态管理
-  const networkGame = useNetworkGame({
+  // 网络游戏状态管理 - 只使用Cloudflare Worker
+  const networkGame = useCloudflareConnection({
     onReceiveMove: handleOpponentMove,
     onGameStart: handleGameStart,
     onOpponentDisconnect: handleOpponentDisconnect,
@@ -79,7 +79,7 @@ const useGame = (boardSize: number = 15) => {
   // 连接服务器 - 只连接不创建房间
   const connectToServer = useCallback(async () => {
     setNetworkError(null);
-    console.log("正在连接到服务器...");
+    console.log("正在连接到Cloudflare Worker服务器...");
     
     try {
       const connected = await networkGame.connect();
@@ -87,7 +87,7 @@ const useGame = (boardSize: number = 15) => {
       
       if (!connected) {
         console.error("连接服务器失败");
-        setNetworkError('无法连接到服务器，请确保服务器已启动');
+        setNetworkError('无法连接到Cloudflare Worker服务器，请检查网络连接');
         return false;
       }
       
@@ -101,7 +101,7 @@ const useGame = (boardSize: number = 15) => {
   
   // 断开连接
   const disconnectFromServer = useCallback(() => {
-    console.log("断开与服务器的连接");
+    console.log("断开与Cloudflare Worker服务器的连接");
     networkGame.disconnect();
     
     if (gameMode === 'network') {
@@ -120,13 +120,13 @@ const useGame = (boardSize: number = 15) => {
     try {
       // 如果未连接，先连接到服务器
       if (networkGame.status === 'disconnected') {
-        console.log("尝试连接到服务器...");
+        console.log("尝试连接到Cloudflare Worker服务器...");
         const connected = await networkGame.connect();
         console.log("连接结果:", connected);
         
         if (!connected) {
           console.error("连接服务器失败");
-          setNetworkError('无法连接到服务器，请确保服务器已启动');
+          setNetworkError('无法连接到Cloudflare Worker服务器，请检查网络连接');
           return false;
         }
       }
@@ -165,12 +165,12 @@ const useGame = (boardSize: number = 15) => {
     try {
       // 如果未连接，先连接到服务器
       if (networkGame.status === 'disconnected') {
-        console.log("尝试连接到服务器...");
+        console.log("尝试连接到Cloudflare Worker服务器...");
         const connected = await networkGame.connect();
         
         if (!connected) {
           console.error("连接服务器失败");
-          setNetworkError('无法连接到服务器，请确保服务器已启动');
+          setNetworkError('无法连接到Cloudflare Worker服务器，请检查网络连接');
           return false;
         }
       }
@@ -255,6 +255,8 @@ const useGame = (boardSize: number = 15) => {
     isNetworkGameActive: networkGame.status === 'playing',
     isHost,
     playerName: networkGame.playerId,
+    serverAddress: networkGame.serverAddress,
+    connectionType: 'Cloudflare Worker中继服务器',
   };
 
   return {
@@ -265,8 +267,8 @@ const useGame = (boardSize: number = 15) => {
     createNetworkGame,
     joinNetworkGame,
     exitNetworkGame,
-    connectToServer,       // 新增：仅连接到服务器
-    disconnectFromServer,  // 新增：断开服务器连接
+    connectToServer,
+    disconnectFromServer,
   };
 };
 

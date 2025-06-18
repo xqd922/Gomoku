@@ -1,9 +1,13 @@
 [package]
 name = "gomoku"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "A Gomoku game built with Tauri"
+authors = ["Cursor AI"]
+license = ""
+repository = ""
+default-run = "gomoku"
 edition = "2021"
+rust-version = "1.60"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -15,7 +19,7 @@ name = "gomoku_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2.0.0-beta.8", features = [] }
 
 [dependencies]
 tauri = { version = "2.0.0-beta.11", features = [] }
@@ -27,4 +31,12 @@ tokio-tungstenite = "0.21.0"
 futures-util = "0.3.30"
 uuid = { version = "1.7.0", features = ["v4", "serde"] }
 chrono = "0.4.34"
+reqwest = { version = "0.11", features = ["blocking", "json"] }
+
+
+[features]
+# this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
+# If you use cargo directly instead of tauri's cli you can use this feature flag to switch between tauri's `dev` and `build` modes.
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]
 

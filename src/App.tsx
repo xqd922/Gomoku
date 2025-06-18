@@ -83,8 +83,8 @@ function App() {
         
         <Controls 
           onReset={resetGame}
-          onUndo={undoMove}
-          canUndo={gameState.history.length > 0}
+          onUndo={gameState.gameMode === 'local' ? undoMove : undefined}
+          canUndo={gameState.history.length > 1}
           gameStatus={gameState.status}
           gameMode={gameState.gameMode}
           onCreateRoom={createNetworkGame}
@@ -97,6 +97,7 @@ function App() {
           networkError={gameState.networkError}
           isHost={gameState.isHost}
           playerName={gameState.playerName}
+          serverAddress={gameState.serverAddress}
         />
 
         {renderDebugInfo()}

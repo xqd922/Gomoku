@@ -1,0 +1,16 @@
+name = "gomoku-server"
+main = "index.js"
+
+compatibility_date = "2023-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+WORKERS_RS_VERSION = "0.0.12"
+
+# 移除自定义域名配置，使用workers.dev域名
+# [[routes]]
+# pattern = "gomoku-server.example.com/*"
+# zone_name = "example.com"
+
+[triggers]
+crons = [] 

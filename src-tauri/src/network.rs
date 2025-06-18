@@ -235,7 +235,20 @@ async fn handle_connection(stream: TcpStream, addr: SocketAddr,
                                             // 检查是否包含JoinRoom字段
                                             else if let Some(join_data) = json.get("JoinRoom") {
                                                 if let Some(room_id) = join_data.get("room_id").and_then(|v| v.as_str()) {
+                                                    // 清理房间ID，移除可能的空格
+                                                    let room_id = room_id.trim();
                                                     println!("检测到JoinRoom请求，房间ID: {}", room_id);
+                                                    
+                                                    // 记录当前所有房间
+                                                    {
+                                                        let state_guard = state.lock().unwrap();
+                                                        println!("当前活跃房间数: {}", state_guard.rooms.len());
+                                                        for (id, room) in &state_guard.rooms {
+                                                            println!("房间ID: {}, 主机: {}, 客人: {:?}, 状态: {:?}", 
+                                                                    id, room.host_id, room.guest_id, room.status);
+                                                        }
+                                                    }
+                                                    
                                                     process_message(
                                                         GameMessage::JoinRoom { 
                                                             player_id: player_id.clone(),

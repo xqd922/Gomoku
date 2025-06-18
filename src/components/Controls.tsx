@@ -18,6 +18,7 @@ interface ControlsProps {
   networkError?: string | null;
   isHost?: boolean;
   playerName?: string | null;
+  serverAddress?: string;
 }
 
 const Controls: React.FC<ControlsProps> = ({ 
@@ -36,10 +37,12 @@ const Controls: React.FC<ControlsProps> = ({
   networkError,
   isHost,
   playerName,
+  serverAddress,
 }) => {
   const [joinRoomId, setJoinRoomId] = useState('');
   const [showJoinInput, setShowJoinInput] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const buttonStyle: React.CSSProperties = {
     padding: '10px 20px',
@@ -96,6 +99,20 @@ const Controls: React.FC<ControlsProps> = ({
     }
   };
 
+  // 复制房间码到剪贴板
+  const copyRoomCode = () => {
+    if (roomCode) {
+      navigator.clipboard.writeText(roomCode)
+        .then(() => {
+          alert('房间码已复制到剪贴板！');
+        })
+        .catch(err => {
+          console.error('复制失败:', err);
+          alert('复制失败，请手动复制房间码。');
+        });
+    }
+  };
+
   // 渲染本地游戏控制
   const renderLocalControls = () => (
     <>
@@ -131,8 +148,77 @@ const Controls: React.FC<ControlsProps> = ({
           退出联机
         </button>
       )}
+      {roomCode && (
+        <button 
+          style={{...networkButtonStyle, backgroundColor: '#3498db'}} 
+          onClick={copyRoomCode}
+        >
+          复制房间码
+        </button>
+      )}
     </>
   );
+
+  // 渲染连接帮助
+  const renderConnectionHelp = () => {
+    if (!showHelp) return null;
+    
+    return (
+      <div style={{ 
+        marginTop: '10px', 
+        padding: '10px', 
+        backgroundColor: '#f8f9fa', 
+        borderRadius: '4px',
+        border: '1px solid #dee2e6',
+        fontSize: '0.9rem',
+        lineHeight: '1.4'
+      }}>
+        <h4 style={{ margin: '0 0 8px 0' }}>联机对战帮助</h4>
+        <p><strong>步骤1:</strong> 双方都需要点击"检查连接"确保状态变为"已连接"</p>
+        <p><strong>步骤2:</strong> 一方创建房间（点击"创建房间"）</p>
+        <p><strong>步骤3:</strong> 创建者点击"复制房间码"，分享给另一方</p>
+        <p><strong>步骤4:</strong> 另一方粘贴房间码，点击"加入"</p>
+        
+        <hr style={{ margin: '10px 0', borderTop: '1px solid #dee2e6' }} />
+        
+        <h4 style={{ margin: '8px 0' }}>跨网络联机指南</h4>
+        <p>对于不同网络下的连接，游戏会自动尝试以下方法：</p>
+        <ol style={{ margin: '5px 0', paddingLeft: '20px' }}>
+          <li><strong>WebRTC直连</strong> - 通过STUN服务器进行NAT穿透</li>
+          <li><strong>中继服务器</strong> - 如果直连失败，通过TURN服务器中继</li>
+          <li><strong>公共WebSocket服务器</strong> - 使用云服务器中转连接</li>
+        </ol>
+        <p>这些技术可以绕过大多数网络限制，不需要手动设置端口转发。</p>
+        
+        <h4 style={{ margin: '8px 0' }}>常见问题解决</h4>
+        <p><strong>无法连接/房间不存在错误:</strong></p>
+        <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
+          <li>确保双方都已更新到最新版本的游戏</li>
+          <li>检查您的网络连接是否稳定</li>
+          <li>确保房间码输入正确（避免多余空格）</li>
+          <li>某些极端的网络环境（如学校、企业网络）可能会阻止所有连接</li>
+          <li>尝试使用手机热点连接，许多移动网络对P2P连接更友好</li>
+          <li>如果通过代理或VPN连接，尝试临时关闭它们</li>
+        </ul>
+        
+        <button 
+          style={{ 
+            padding: '5px 10px', 
+            marginTop: '5px',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '0.8rem'
+          }}
+          onClick={() => setShowHelp(false)}
+        >
+          关闭帮助
+        </button>
+      </div>
+    );
+  };
 
   // 渲染网络状态信息
   const renderNetworkStatus = () => {
@@ -149,9 +235,29 @@ const Controls: React.FC<ControlsProps> = ({
           border: '1px solid #dee2e6'
         }}>
           <p style={{ margin: 0, fontWeight: 'bold' }}>状态: {showStatus}</p>
+          {serverAddress && (
+            <p style={{ margin: '5px 0 0 0', fontSize: '0.9rem' }}>
+              服务器: <span style={{ fontFamily: 'monospace' }}>{serverAddress}</span>
+            </p>
+          )}
           {roomCode && (
             <p style={{ margin: '5px 0 0 0' }}>
-              房间码: <span style={{ fontWeight: 'bold' }}>{roomCode}</span>
+              房间码: <span style={{ fontWeight: 'bold', fontFamily: 'monospace' }}>{roomCode}</span>
+              <button 
+                style={{ 
+                  marginLeft: '5px',
+                  padding: '2px 5px',
+                  backgroundColor: '#3498db',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  fontSize: '0.7rem'
+                }}
+                onClick={copyRoomCode}
+              >
+                复制
+              </button>
             </p>
           )}
           {isHost !== undefined && (
@@ -161,7 +267,7 @@ const Controls: React.FC<ControlsProps> = ({
           )}
           {playerName && (
             <p style={{ margin: '5px 0 0 0' }}>
-              玩家ID: <span style={{ fontWeight: 'bold' }}>{playerName}</span>
+              玩家ID: <span style={{ fontWeight: 'bold', fontSize: '0.9rem', fontFamily: 'monospace' }}>{playerName}</span>
             </p>
           )}
           {networkError && (
@@ -199,10 +305,27 @@ const Controls: React.FC<ControlsProps> = ({
             console.log('房间码:', roomCode);
             console.log('网络状态:', networkStatus);
             console.log('错误:', networkError);
-            alert(`模式: ${gameMode}, 状态: ${networkStatus || '无'}, 房间: ${roomCode || '无'}`);
+            console.log('服务器地址:', serverAddress);
+            alert(`模式: ${gameMode}, 状态: ${networkStatus || '无'}, 房间: ${roomCode || '无'}, 服务器: ${serverAddress || '无'}`);
           }}
         >
           调试信息
+        </button>
+        
+        <button
+          style={{ 
+            padding: '5px 10px', 
+            backgroundColor: '#17a2b8',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            margin: '0 5px',
+            cursor: 'pointer',
+            fontSize: '0.8rem'
+          }}
+          onClick={() => setShowHelp(!showHelp)}
+        >
+          {showHelp ? '隐藏帮助' : '联机帮助'}
         </button>
         
         {/* 连接/断开服务器按钮 */}
@@ -323,8 +446,8 @@ const Controls: React.FC<ControlsProps> = ({
         </div>
       )}
       
+      {renderConnectionHelp()}
       {renderNetworkStatus()}
-      
       {renderDebugButtons()}
     </div>
   );

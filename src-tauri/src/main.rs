@@ -14,6 +14,7 @@ async fn main() {
     let ws_addr = format!("0.0.0.0:{}", ws_port);
     
     println!("正在尝试启动WebSocket服务器在 {}", ws_addr);
+    println!("如果要进行跨网络联机，请确保端口 {} 已在路由器上设置端口转发", ws_port);
     
     // 尝试绑定端口以检查是否可用
     match TcpListener::bind(&ws_addr) {
@@ -31,6 +32,7 @@ async fn main() {
         },
         Err(e) => {
             eprintln!("端口 {} 不可用: {}，网络对战功能可能无法使用", ws_port, e);
+            eprintln!("请检查是否有其他应用程序占用了该端口，或尝试关闭防火墙");
             // 可以尝试其他端口...
         }
     }
