@@ -77,6 +77,7 @@ function App() {
               (gameState.gameMode === 'network' && !gameState.isMyTurn) ||
               (gameState.gameMode === 'network' && gameState.isWaitingForOpponent)
             }
+            gameStatus={gameState.status}
           />
         </div>
         

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { BoardState, Position } from '../types/game';
+import { BoardState, Position, GameStatus } from '../types/game';
 import Stone from './Stone';
 import WinnerEffect from './WinnerEffect';
 
@@ -8,13 +8,15 @@ interface BoardProps {
   onCellClick: (position: Position) => void;
   lastPlaced?: Position | null;
   disabled?: boolean;
+  gameStatus?: GameStatus;
 }
 
 const Board: React.FC<BoardProps> = ({ 
   board, 
   onCellClick, 
   lastPlaced = null,
-  disabled = false 
+  disabled = false,
+  gameStatus = 'playing'
 }) => {
   const boardSize = board.length;
 
@@ -154,8 +156,8 @@ const Board: React.FC<BoardProps> = ({
           ))
         )}
 
-        {/* 添加胜利特效 */}
-        <WinnerEffect isVisible={disabled} />
+        {/* 添加胜利特效，只在游戏结束且有胜利者时显示 */}
+        <WinnerEffect isVisible={gameStatus === 'black-win' || gameStatus === 'white-win'} />
       </div>
     </div>
   );
