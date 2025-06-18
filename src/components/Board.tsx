@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { BoardState, Position } from '../types/game';
 import Stone from './Stone';
+import WinnerEffect from './WinnerEffect';
 
 interface BoardProps {
   board: BoardState;
@@ -76,15 +77,15 @@ const Board: React.FC<BoardProps> = ({
     return lines;
   }, [boardSize]);
 
-  // 绘制棋盘上的星位点
+  // 创建星位点
   const starPoints = useMemo(() => {
     const stars: React.ReactNode[] = [];
     // 只对15x15以上的棋盘添加星位点
     if (boardSize >= 15) {
       const positions = [3, Math.floor(boardSize / 2), boardSize - 4];
       
-      positions.forEach(row => {
-        positions.forEach(col => {
+      for (const row of positions) {
+        for (const col of positions) {
           stars.push(
             <div
               key={`star-${row}-${col}`}
@@ -101,8 +102,8 @@ const Board: React.FC<BoardProps> = ({
               }}
             />
           );
-        });
-      });
+        }
+      }
     }
     
     return stars;
@@ -141,13 +142,20 @@ const Board: React.FC<BoardProps> = ({
                 }
               }}
             >
-              <Stone 
-                type={cell} 
-                isLastPlaced={!!(lastPlaced && lastPlaced.row === rowIndex && lastPlaced.col === colIndex)}
-              />
+              {cell !== null && (
+                <Stone
+                  type={cell}
+                  isLastPlaced={
+                    lastPlaced?.row === rowIndex && lastPlaced?.col === colIndex
+                  }
+                />
+              )}
             </div>
           ))
         )}
+
+        {/* 添加胜利特效 */}
+        <WinnerEffect isVisible={disabled} />
       </div>
     </div>
   );

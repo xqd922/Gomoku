@@ -7,43 +7,50 @@ export const createEmptyBoard = (size: number = 15): BoardState => {
 
 // 检查是否获胜
 export const checkWin = (board: BoardState, position: Position, stoneType: StoneType): boolean => {
-  if (!position || !stoneType) return false;
-  
-  const { row, col } = position;
   const directions = [
-    [0, 1],   // 横向
-    [1, 0],   // 纵向
-    [1, 1],   // 左上到右下
-    [1, -1],  // 右上到左下
+    [1, 0],   // 水平
+    [0, 1],   // 垂直
+    [1, 1],   // 对角线
+    [1, -1],  // 反对角线
   ];
-  
-  return directions.some(([dr, dc]) => {
-    let count = 1;  // 当前位置已有一个棋子
-    
+
+  for (const [dx, dy] of directions) {
+    let count = 1;  // 包含当前位置
+
     // 正向检查
     for (let i = 1; i < 5; i++) {
-      const r = row + dr * i;
-      const c = col + dc * i;
-      
-      if (r < 0 || r >= board.length || c < 0 || c >= board[0].length || board[r][c] !== stoneType) {
+      const newRow = position.row + dx * i;
+      const newCol = position.col + dy * i;
+      if (
+        newRow < 0 || newRow >= board.length ||
+        newCol < 0 || newCol >= board[0].length ||
+        board[newRow][newCol] !== stoneType
+      ) {
         break;
       }
       count++;
     }
-    
+
     // 反向检查
     for (let i = 1; i < 5; i++) {
-      const r = row - dr * i;
-      const c = col - dc * i;
-      
-      if (r < 0 || r >= board.length || c < 0 || c >= board[0].length || board[r][c] !== stoneType) {
+      const newRow = position.row - dx * i;
+      const newCol = position.col - dy * i;
+      if (
+        newRow < 0 || newRow >= board.length ||
+        newCol < 0 || newCol >= board[0].length ||
+        board[newRow][newCol] !== stoneType
+      ) {
         break;
       }
       count++;
     }
-    
-    return count >= 5;
-  });
+
+    if (count >= 5) {
+      return true;
+    }
+  }
+
+  return false;
 };
 
 // 检查是否平局
