@@ -15,7 +15,7 @@ interface UseNetworkGameProps {
  * 此钩子已被弃用，仅保留为了兼容性。
  * 请使用useCloudflareConnection代替。
  */
-const useNetworkGame = (props: UseNetworkGameProps) => {
+const useNetworkGame = (_props: UseNetworkGameProps) => {
   const [status] = useState<NetworkGameStatus>('disconnected');
   const [error] = useState<string | null>('本地WebSocket服务器已禁用，请使用Cloudflare Worker中继服务器');
 

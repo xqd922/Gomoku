@@ -407,7 +407,7 @@ const useCloudflareConnection = ({
         }, 2000);
         
         // 设置一个超时检查，确保我们收到了roomCreated消息
-        const waitForRoomId = await new Promise<boolean>(resolve => {
+        await new Promise<boolean>(resolve => {
           let attempts = 0;
           const startTime = Date.now();
           // 每500毫秒检查一次是否有房间ID
