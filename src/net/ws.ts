@@ -14,6 +14,7 @@ export interface ConnectOptions {
   url: string
   room: string
   name?: string
+  autoReconnect?: boolean
 }
 
 export class NetClient extends EventTarget {
@@ -21,15 +22,22 @@ export class NetClient extends EventTarget {
   url = ''
   room = ''
   name?: string
+  autoReconnect = true
+  private reconnectTimer: number | null = null
+  private backoff = 1000
+  private maxBackoff = 10000
 
   connect(opts: ConnectOptions) {
     this.url = opts.url
     this.room = opts.room
     this.name = opts.name
+    if (typeof opts.autoReconnect === 'boolean') this.autoReconnect = opts.autoReconnect
     this.ws = new WebSocket(this.url)
     this.ws.addEventListener('open', () => {
       this.send({ type: 'join', room: this.room, name: this.name })
       this.dispatchEvent(new Event('open'))
+      // reset backoff on successful open
+      this.backoff = 1000
     })
     this.ws.addEventListener('message', (ev) => {
       try {
@@ -40,6 +48,7 @@ export class NetClient extends EventTarget {
     this.ws.addEventListener('close', () => {
       this.dispatchEvent(new Event('close'))
       this.ws = null
+      if (this.autoReconnect) this.scheduleReconnect()
     })
     this.ws.addEventListener('error', () => {
       this.dispatchEvent(new Event('error'))
@@ -54,6 +63,21 @@ export class NetClient extends EventTarget {
   disconnect() {
     if (this.ws) this.ws.close()
     this.ws = null
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
+  }
+
+  private scheduleReconnect() {
+    if (this.reconnectTimer) return
+    const delay = Math.min(this.backoff, this.maxBackoff)
+    this.dispatchEvent(new CustomEvent('reconnecting', { detail: { delay } }))
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      this.backoff = Math.min(this.backoff * 2, this.maxBackoff)
+      this.connect({ url: this.url, room: this.room, name: this.name, autoReconnect: this.autoReconnect })
+      this.dispatchEvent(new Event('reconnected'))
+    }, delay) as unknown as number
   }
 }
-

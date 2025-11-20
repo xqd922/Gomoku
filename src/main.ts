@@ -88,18 +88,21 @@ newBtn.addEventListener('click', () => {
   if (isOnline && online) online.send({ type: 'reset' })
   requestUpdate()
 })
+// 悔棋/重做：离线直接执行，在线发出请求
 undoBtn.addEventListener('click', () => {
-  if (isOnline) return
-  if (undo(state)) {
-    log('悔棋')
-    requestUpdate()
+  if (!isOnline) {
+    if (undo(state)) { log('悔棋'); requestUpdate() }
+  } else if (online) {
+    online.send({ type: 'undo_request' } as unknown as NetMessage)
+    showToast('已发送悔棋请求')
   }
 })
 redoBtn.addEventListener('click', () => {
-  if (isOnline) return
-  if (redo(state)) {
-    log('重做')
-    requestUpdate()
+  if (!isOnline) {
+    if (redo(state)) { log('重做'); requestUpdate() }
+  } else if (online) {
+    online.send({ type: 'redo_request' } as unknown as NetMessage)
+    showToast('已发送重做请求')
   }
 })
 
@@ -128,9 +131,19 @@ window.addEventListener('keydown', (e) => {
     return
   }
   if (k === 'z') {
-    if (!isOnline && undo(state)) { log('悔棋'); requestUpdate() }
+    if (!isOnline) {
+      if (undo(state)) { log('悔棋'); requestUpdate() }
+    } else if (online) {
+      online.send({ type: 'undo_request' } as unknown as NetMessage)
+      showToast('已发送悔棋请求')
+    }
   } else if (k === 'y') {
-    if (!isOnline && redo(state)) { log('重做'); requestUpdate() }
+    if (!isOnline) {
+      if (redo(state)) { log('重做'); requestUpdate() }
+    } else if (online) {
+      online.send({ type: 'redo_request' } as unknown as NetMessage)
+      showToast('已发送重做请求')
+    }
   } else if (k === 'r') {
     state = createState(15)
     log('— 新局 —')
@@ -166,7 +179,7 @@ connectBtn.addEventListener('click', () => {
   const room = roomInput.value || 'test'
   const name = nameInput.value || ''
   const client = new NetClient()
-  client.connect({ url, room, name })
+  client.connect({ url, room, name, autoReconnect: true })
   client.addEventListener('message', (ev: MessageEvent<NetMessage>) => {
     const msg = ev.data
     if (msg.type === 'welcome') {
@@ -196,6 +209,36 @@ connectBtn.addEventListener('click', () => {
         tryPlaceStone(state, msg.r, msg.c)
         requestUpdate()
       }
+    } else if ((msg as any).type === 'undo_request') {
+      const ok = window.confirm('对方请求悔棋，是否同意？')
+      if (ok) {
+        if (undo(state)) requestUpdate()
+        client.send({ type: 'undo_reply', accepted: true } as unknown as NetMessage)
+      } else {
+        client.send({ type: 'undo_reply', accepted: false } as unknown as NetMessage)
+      }
+    } else if ((msg as any).type === 'undo_reply') {
+      const { accepted } = msg as any
+      if (accepted) {
+        if (undo(state)) requestUpdate()
+      } else {
+        showToast('对方拒绝了悔棋')
+      }
+    } else if ((msg as any).type === 'redo_request') {
+      const ok = window.confirm('对方请求重做，是否同意？')
+      if (ok) {
+        if (redo(state)) requestUpdate()
+        client.send({ type: 'redo_reply', accepted: true } as unknown as NetMessage)
+      } else {
+        client.send({ type: 'redo_reply', accepted: false } as unknown as NetMessage)
+      }
+    } else if ((msg as any).type === 'redo_reply') {
+      const { accepted } = msg as any
+      if (accepted) {
+        if (redo(state)) requestUpdate()
+      } else {
+        showToast('对方拒绝了重做')
+      }
     } else if (msg.type === 'reset') {
       state = createState(15)
       requestUpdate()
@@ -212,6 +255,12 @@ connectBtn.addEventListener('click', () => {
     undoBtn.disabled = false
     redoBtn.disabled = false
     requestUpdate()
+  })
+  client.addEventListener('reconnecting', (e: any) => {
+    netStatus.textContent = `重连中... ${e.detail?.delay ?? ''}ms`
+  })
+  client.addEventListener('reconnected', () => {
+    netStatus.textContent = '已尝试重连'
   })
   online = client
 })
