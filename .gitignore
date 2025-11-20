@@ -1,0 +1,13 @@
+﻿node_modules/
+dist/
+dist-electron/
+out/
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.cache/
+**/.vite/
+**/.turbo/
+**/.eslintcache
