@@ -12,3 +12,7 @@ export interface GameState {
   history: Move[]
   redo: Move[]
 }
+
+export type PlaceError = 'game_over' | 'out_of_bounds' | 'occupied'
+
+export type Result<T, E> = { ok: true; value: T } | { ok: false; error: E }

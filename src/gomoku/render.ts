@@ -8,6 +8,64 @@ export interface RenderOptions {
   whiteColor?: string
 }
 
+const gridCache = new WeakMap<HTMLCanvasElement, { key: string; canvas: HTMLCanvasElement }>()
+
+function getGridLayer(
+  canvas: HTMLCanvasElement,
+  n: number,
+  pad: number,
+  lineColor: string,
+  starColor: string,
+) {
+  const width = canvas.width
+  const height = canvas.height
+  const key = `${width}x${height}:${n}:${pad}:${lineColor}:${starColor}`
+  const cached = gridCache.get(canvas)
+  if (cached && cached.key === key) return cached.canvas
+
+  const off = document.createElement('canvas')
+  off.width = width
+  off.height = height
+  const g = off.getContext('2d')!
+  const cell = (width - pad * 2) / (n - 1)
+
+  // 网格
+  g.strokeStyle = lineColor
+  g.lineWidth = 1
+  for (let i = 0; i < n; i++) {
+    const y = pad + i * cell
+    g.beginPath()
+    g.moveTo(pad, y)
+    g.lineTo(width - pad, y)
+    g.stroke()
+  }
+  for (let j = 0; j < n; j++) {
+    const x = pad + j * cell
+    g.beginPath()
+    g.moveTo(x, pad)
+    g.lineTo(x, height - pad)
+    g.stroke()
+  }
+
+  // 星位（15×15）
+  if (n === 15) {
+    const stars = [
+      [3, 3], [3, 11], [7, 7], [11, 3], [11, 11],
+    ]
+    g.fillStyle = starColor
+    for (const [r, c] of stars) {
+      const x = pad + c * cell
+      const y = pad + r * cell
+      g.beginPath()
+      g.arc(x, y, 3, 0, Math.PI * 2)
+      g.fill()
+    }
+  }
+
+  gridCache.set(canvas, { key, canvas: off })
+  return off
+}
+
 export function renderAll(ctx: CanvasRenderingContext2D, s: GameState, opts: RenderOptions = {}) {
   const { width, height } = ctx.canvas
   ctx.clearRect(0, 0, width, height)

@@ -1,4 +1,4 @@
-import type { GameState, Move, Player } from './types'
+import type { GameState, Move, Player, PlaceError, Result } from './types'
 
 export function createState(n = 15): GameState {
   const board = Array.from({ length: n }, () => Array(n).fill(0))
@@ -9,10 +9,10 @@ export function inBounds(s: GameState, r: number, c: number) {
   return r >= 0 && r < s.n && c >= 0 && c < s.n
 }
 
-export function placeStone(s: GameState, r: number, c: number): boolean {
-  if (s.winner) return false
-  if (!inBounds(s, r, c)) return false
-  if (s.board[r][c] !== 0) return false
+export function tryPlaceStone(s: GameState, r: number, c: number): Result<Move, PlaceError> {
+  if (s.winner) return { ok: false, error: 'game_over' }
+  if (!inBounds(s, r, c)) return { ok: false, error: 'out_of_bounds' }
+  if (s.board[r][c] !== 0) return { ok: false, error: 'occupied' }
   const p = s.turn
   s.board[r][c] = p
   const m: Move = { r, c, p }
@@ -26,7 +26,12 @@ export function placeStone(s: GameState, r: number, c: number): boolean {
   } else {
     s.turn = p === 1 ? 2 : 1
   }
-  return true
+  return { ok: true, value: m }
+}
+
+export function placeStone(s: GameState, r: number, c: number): boolean {
+  const res = tryPlaceStone(s, r, c)
+  return res.ok
 }
 
 export function undo(s: GameState): boolean {

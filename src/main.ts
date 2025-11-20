@@ -1,4 +1,4 @@
-import { createState, placeStone, undo, redo } from './gomoku/engine'
+import { createState, tryPlaceStone, undo, redo } from './gomoku/engine'
 import type { GameState } from './gomoku/types'
 import { renderAll, pixelToGrid } from './gomoku/render'
 
@@ -37,24 +37,31 @@ function log(msg: string) {
 canvas.addEventListener('click', (e) => {
   if (state.winner) return
   const rect = canvas.getBoundingClientRect()
-  const x = e.clientX - rect.left
-  const y = e.clientY - rect.top
+  const scaleX = canvas.width / rect.width
+  const scaleY = canvas.height / rect.height
+  const x = (e.clientX - rect.left) * scaleX
+  const y = (e.clientY - rect.top) * scaleY
   const { r, c } = pixelToGrid(canvas, state.n, 32, x, y)
-  const ok = placeStone(state, r, c)
-  if (ok) {
-    log(`${state.last?.p === 1 ? '黑' : '白'} 落子: (${r + 1}, ${c + 1})`)
-    if (state.winner) {
-      const msg = `${state.winner === 1 ? '黑子' : '白子'} 获胜！`
-      log(msg)
-      showToast(msg)
-    }
-    updateUI()
+  const res = tryPlaceStone(state, r, c)
+  if (!res.ok) {
+    if (res.error === 'out_of_bounds') showToast('越界：请点击有效交点')
+    else if (res.error === 'occupied') showToast('该位置已有棋子')
+    else if (res.error === 'game_over') showToast('当前对局已结束')
+    return
   }
+  const m = res.value
+  log(`${m.p === 1 ? '黑' : '白'} 落子: (${m.r + 1}, ${m.c + 1})`)
+  if (state.winner) {
+    const msg = `${state.winner === 1 ? '黑子' : '白子'} 获胜！`
+    log(msg)
+    showToast(msg)
+  }
+  updateUI()
 })
 
 newBtn.addEventListener('click', () => {
   state = createState(15)
-  log('—— 新局 ——')
+  log('— 新局 —')
   updateUI()
 })
 undoBtn.addEventListener('click', () => {
@@ -70,13 +77,45 @@ redoBtn.addEventListener('click', () => {
   }
 })
 
+function fitCanvasToDPR() {
+  const ratio = Math.max(1, Math.floor(window.devicePixelRatio || 1))
+  const rect = canvas.getBoundingClientRect()
+  const cssW = Math.max(320, Math.floor(rect.width))
+  const cssH = Math.max(320, Math.floor(rect.height))
+  canvas.width = Math.round(cssW * ratio)
+  canvas.height = Math.round(cssH * ratio)
+  updateUI()
+}
+
 updateUI()
+fitCanvasToDPR()
+window.addEventListener('resize', fitCanvasToDPR)
+
+window.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase()
+  if (e.ctrlKey && k === 'n') {
+    e.preventDefault()
+    state = createState(15)
+    log('— 新局 —')
+    updateUI()
+    return
+  }
+  if (k === 'z') {
+    if (undo(state)) { log('悔棋'); updateUI() }
+  } else if (k === 'y') {
+    if (redo(state)) { log('重做'); updateUI() }
+  } else if (k === 'r') {
+    state = createState(15)
+    log('— 新局 —')
+    updateUI()
+  }
+})
 
 declare global {
   interface Window { api: unknown }
 }
 
-// 简单 Toast 提示（非阻塞，无弹窗）
+// 简易 Toast 提示（非阻塞）
 let toastTimer: number | null = null
 function showToast(text: string) {
   const el = document.getElementById('toast') as HTMLDivElement | null
@@ -91,3 +130,4 @@ function showToast(text: string) {
     el.classList.remove('show')
   }, 2200)
 }
+
