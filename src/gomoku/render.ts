@@ -71,44 +71,17 @@ export function renderAll(ctx: CanvasRenderingContext2D, s: GameState, opts: Ren
   ctx.clearRect(0, 0, width, height)
   const pad = opts.padding ?? 32
   const n = s.n
-  const cell = (width - pad * 2) / (n - 1)
-
-  // 棋盘格
-  ctx.strokeStyle = opts.lineColor ?? '#6b4f2d'
-  ctx.lineWidth = 1
-  for (let i = 0; i < n; i++) {
-    const y = pad + i * cell
-    ctx.beginPath()
-    ctx.moveTo(pad, y)
-    ctx.lineTo(width - pad, y)
-    ctx.stroke()
-  }
-  for (let j = 0; j < n; j++) {
-    const x = pad + j * cell
-    ctx.beginPath()
-    ctx.moveTo(x, pad)
-    ctx.lineTo(x, height - pad)
-    ctx.stroke()
-  }
-
-  // 星位（15×15 常见位置）
-  if (n === 15) {
-    const stars = [
-      [3, 3], [3, 11], [7, 7], [11, 3], [11, 11],
-    ]
-    ctx.fillStyle = opts.starColor ?? '#333'
-    for (const [r, c] of stars) {
-      const x = pad + c * cell
-      const y = pad + r * cell
-      ctx.beginPath()
-      ctx.arc(x, y, 3, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  }
-
-  // 棋子
+  const lineColor = opts.lineColor ?? '#6b4f2d'
+  const starColor = opts.starColor ?? '#333'
   const black = opts.blackColor ?? '#222'
   const white = opts.whiteColor ?? '#fff'
+
+  // 离屏网格
+  const grid = getGridLayer(ctx.canvas, n, pad, lineColor, starColor)
+  ctx.drawImage(grid, 0, 0)
+
+  // 棋子
+  const cell = (width - pad * 2) / (n - 1)
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
       const v = s.board[r][c]
@@ -160,3 +133,4 @@ export function pixelToGrid(canvas: HTMLCanvasElement, n: number, pad = 32, x: n
   const cy = Math.round((y - pad) / cell)
   return { r: cy, c: cx }
 }
+

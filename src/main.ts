@@ -27,6 +27,16 @@ function updateUI() {
   }
 }
 
+let rafPending = false
+function requestUpdate() {
+  if (rafPending) return
+  rafPending = true
+  requestAnimationFrame(() => {
+    rafPending = false
+    updateUI()
+  })
+}
+
 function log(msg: string) {
   const d = document.createElement('div')
   d.textContent = msg
@@ -56,24 +66,24 @@ canvas.addEventListener('click', (e) => {
     log(msg)
     showToast(msg)
   }
-  updateUI()
+  requestUpdate()
 })
 
 newBtn.addEventListener('click', () => {
   state = createState(15)
   log('— 新局 —')
-  updateUI()
+  requestUpdate()
 })
 undoBtn.addEventListener('click', () => {
   if (undo(state)) {
     log('悔棋')
-    updateUI()
+    requestUpdate()
   }
 })
 redoBtn.addEventListener('click', () => {
   if (redo(state)) {
     log('重做')
-    updateUI()
+    requestUpdate()
   }
 })
 
@@ -84,11 +94,11 @@ function fitCanvasToDPR() {
   const cssH = Math.max(320, Math.floor(rect.height))
   canvas.width = Math.round(cssW * ratio)
   canvas.height = Math.round(cssH * ratio)
-  updateUI()
+  requestUpdate()
 }
 
-updateUI()
 fitCanvasToDPR()
+requestUpdate()
 window.addEventListener('resize', fitCanvasToDPR)
 
 window.addEventListener('keydown', (e) => {
@@ -97,17 +107,17 @@ window.addEventListener('keydown', (e) => {
     e.preventDefault()
     state = createState(15)
     log('— 新局 —')
-    updateUI()
+    requestUpdate()
     return
   }
   if (k === 'z') {
-    if (undo(state)) { log('悔棋'); updateUI() }
+    if (undo(state)) { log('悔棋'); requestUpdate() }
   } else if (k === 'y') {
-    if (redo(state)) { log('重做'); updateUI() }
+    if (redo(state)) { log('重做'); requestUpdate() }
   } else if (k === 'r') {
     state = createState(15)
     log('— 新局 —')
-    updateUI()
+    requestUpdate()
   }
 })
 
