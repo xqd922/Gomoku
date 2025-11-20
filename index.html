@@ -34,6 +34,15 @@
             <span class="dot" id="turnDot"></span>
             <span id="turnText"></span>
           </div>
+          <div class="tag">联机</div>
+          <div class="row" style="flex-wrap:wrap; gap:6px; align-items:center">
+            <input id="roomInput" placeholder="房间代码" style="width:96px; padding:6px;" />
+            <input id="nameInput" placeholder="昵称" style="width:96px; padding:6px;" />
+            <input id="urlInput" placeholder="ws://localhost:8787" style="width:140px; padding:6px;" />
+            <button id="connectBtn">连接</button>
+            <button id="disconnectBtn" disabled>断开</button>
+          </div>
+          <div class="tag" id="netStatus">离线</div>
           <div class="row">
             <button id="newBtn">新局</button>
             <button id="undoBtn">悔棋</button>
@@ -48,4 +57,3 @@
     <script type="module" src="/src/main.ts"></script>
   </body>
   </html>
-
