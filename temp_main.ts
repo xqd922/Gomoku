@@ -1,4 +1,4 @@
-ï»¿import { createState, tryPlaceStone, undo } from './gomoku/engine'
+import { createState, tryPlaceStone, undo, redo } from './gomoku/engine'
 import type { GameState } from './gomoku/types'
 import { renderAll, pixelToGrid } from './gomoku/render'
 import { NetClient, type NetMessage } from '@/net/ws'
@@ -12,6 +12,7 @@ const logEl = document.getElementById('log') as HTMLDivElement
 
 const newBtn = document.getElementById('newBtn') as HTMLButtonElement
 const undoBtn = document.getElementById('undoBtn') as HTMLButtonElement
+const redoBtn = document.getElementById('redoBtn') as HTMLButtonElement
 const connectBtn = document.getElementById('connectBtn') as HTMLButtonElement
 const disconnectBtn = document.getElementById('disconnectBtn') as HTMLButtonElement
 const netStatus = document.getElementById('netStatus') as HTMLDivElement
@@ -28,11 +29,11 @@ function updateUI() {
   renderAll(ctx, state)
   const p = state.turn
   turnDot.className = 'dot ' + (p === 1 ? 'black' : 'white')
-  turnText.textContent = p === 1 ? 'é»‘å­' : 'ç™½å­'
+  turnText.textContent = p === 1 ? 'ºÚ×Ó' : '°××Ó'
   statusEl.textContent = state.winner
-    ? (state.winner === 1 ? 'é»‘å­' : 'ç™½å­') + ' è·èƒœ'
-    : 'è¿›è¡Œä¸­'
-  netStatus.textContent = isOnline ? `åœ¨çº¿ - ç©å®¶${mePlayer}` : 'ç¦»çº¿'
+    ? (state.winner === 1 ? 'ºÚ×Ó' : '°××Ó') + ' »ñÊ¤'
+    : '½øĞĞÖĞ'
+  netStatus.textContent = isOnline ? `ÔÚÏß - Íæ¼Ò${mePlayer}` : 'ÀëÏß'
 }
 
 let rafPending = false
@@ -63,16 +64,16 @@ canvas.addEventListener('click', (e) => {
   const { r, c } = pixelToGrid(canvas, state.n, 32, x, y)
   const res = tryPlaceStone(state, r, c)
   if (!res.ok) {
-    if (res.error === 'out_of_bounds') showToast('è¶Šç•Œï¼šè¯·ç‚¹å‡»æœ‰æ•ˆäº¤ç‚¹')
-    else if (res.error === 'occupied') showToast('è¯¥ä½ç½®å·²æœ‰æ£‹å­')
-    else if (res.error === 'game_over') showToast('å½“å‰å¯¹å±€å·²ç»“æŸ')
+    if (res.error === 'out_of_bounds') showToast('Ô½½ç£ºÇëµã»÷ÓĞĞ§½»µã')
+    else if (res.error === 'occupied') showToast('¸ÃÎ»ÖÃÒÑÓĞÆå×Ó')
+    else if (res.error === 'game_over') showToast('µ±Ç°¶Ô¾ÖÒÑ½áÊø')
     return
   }
   const m = res.value
-  log(`${m.p === 1 ? 'é»‘' : 'ç™½'} è½å­: (${m.r + 1}, ${m.c + 1})`)
+  log(`${m.p === 1 ? 'ºÚ' : '°×'} Âä×Ó: (${m.r + 1}, ${m.c + 1})`)
   if (isOnline && online) online.send({ type: 'move', r: m.r, c: m.c, p: m.p } as any)
   if (state.winner) {
-    const msg = `${state.winner === 1 ? 'é»‘å­' : 'ç™½å­'} è·èƒœï¼`
+    const msg = `${state.winner === 1 ? 'ºÚ×Ó' : '°××Ó'} »ñÊ¤£¡`
     log(msg)
     showToast(msg)
   }
@@ -81,18 +82,26 @@ canvas.addEventListener('click', (e) => {
 
 newBtn.addEventListener('click', () => {
   state = createState(15)
-  log('â€” æ–°å±€ â€”')
+  log('¡ª ĞÂ¾Ö ¡ª')
   if (isOnline && online) online.send({ type: 'reset' } as any)
   requestUpdate()
 })
 
-// æ‚”æ£‹ï¼šç¦»çº¿ç›´æ¥æ‰§è¡Œï¼Œåœ¨çº¿éœ€å¯¹æ–¹åŒæ„
+// »ÚÆå/ÖØ×ö£ºÀëÏßÖ±½ÓÖ´ĞĞ£¬ÔÚÏß·¢³öÇëÇó
 undoBtn.addEventListener('click', () => {
   if (!isOnline) {
-    if (undo(state)) { log('æ‚”æ£‹'); requestUpdate() }
+    if (undo(state)) { log('»ÚÆå'); requestUpdate() }
   } else if (online) {
     online.send({ type: 'undo_request' } as any)
-    showToast('å·²å‘é€æ‚”æ£‹è¯·æ±‚')
+    showToast('ÒÑ·¢ËÍ»ÚÆåÇëÇó')
+  }
+})
+redoBtn.addEventListener('click', () => {
+  if (!isOnline) {
+    if (redo(state)) { log('ÖØ×ö'); requestUpdate() }
+  } else if (online) {
+    online.send({ type: 'redo_request' } as any)
+    showToast('ÒÑ·¢ËÍÖØ×öÇëÇó')
   }
 })
 
@@ -115,21 +124,28 @@ window.addEventListener('keydown', (e) => {
   if (e.ctrlKey && k === 'n') {
     e.preventDefault()
     state = createState(15)
-    log('â€” æ–°å±€ â€”')
+    log('¡ª ĞÂ¾Ö ¡ª')
     if (isOnline && online) online.send({ type: 'reset' } as any)
     requestUpdate()
     return
   }
   if (k === 'z') {
     if (!isOnline) {
-      if (undo(state)) { log('æ‚”æ£‹'); requestUpdate() }
+      if (undo(state)) { log('»ÚÆå'); requestUpdate() }
     } else if (online) {
       online.send({ type: 'undo_request' } as any)
-      showToast('å·²å‘é€æ‚”æ£‹è¯·æ±‚')
+      showToast('ÒÑ·¢ËÍ»ÚÆåÇëÇó')
+    }
+  } else if (k === 'y') {
+    if (!isOnline) {
+      if (redo(state)) { log('ÖØ×ö'); requestUpdate() }
+    } else if (online) {
+      online.send({ type: 'redo_request' } as any)
+      showToast('ÒÑ·¢ËÍÖØ×öÇëÇó')
     }
   } else if (k === 'r') {
     state = createState(15)
-    log('â€” æ–°å±€ â€”')
+    log('¡ª ĞÂ¾Ö ¡ª')
     if (isOnline && online) online.send({ type: 'reset' } as any)
     requestUpdate()
   }
@@ -139,7 +155,7 @@ declare global {
   interface Window { api: unknown }
 }
 
-// ç®€æ˜“ Toast æç¤ºï¼ˆéé˜»å¡ï¼‰
+// ¼òÒ× Toast ÌáÊ¾£¨·Ç×èÈû£©
 let toastTimer: number | null = null
 function showToast(text: string) {
   const el = document.getElementById('toast') as HTMLDivElement | null
@@ -155,7 +171,7 @@ function showToast(text: string) {
   }, 2200)
 }
 
-// åœ¨çº¿è”æœº
+// ÔÚÏßÁª»ú
 connectBtn.addEventListener('click', () => {
   if (isOnline) return
   const url = urlInput.value || 'ws://localhost:8787'
@@ -170,6 +186,9 @@ connectBtn.addEventListener('click', () => {
       isOnline = true
       connectBtn.disabled = true
       disconnectBtn.disabled = false
+      // Áª»úÏÂÔÊĞíÍ¨¹ı°´Å¥·¢ÆğĞ­ÉÌ
+      undoBtn.disabled = false
+      redoBtn.disabled = false
       requestUpdate()
     } else if (msg.type === 'ready') {
       if (mePlayer === 1) {
@@ -191,7 +210,7 @@ connectBtn.addEventListener('click', () => {
         requestUpdate()
       }
     } else if ((msg as any).type === 'undo_request') {
-      const ok = window.confirm('å¯¹æ–¹è¯·æ±‚æ‚”æ£‹ï¼Œæ˜¯å¦åŒæ„ï¼Ÿ')
+      const ok = window.confirm('¶Ô·½ÇëÇó»ÚÆå£¬ÊÇ·ñÍ¬Òâ£¿')
       if (ok) {
         if (undo(state)) requestUpdate()
         client.send({ type: 'undo_reply', accepted: true } as any)
@@ -203,28 +222,45 @@ connectBtn.addEventListener('click', () => {
       if (accepted) {
         if (undo(state)) requestUpdate()
       } else {
-        showToast('å¯¹æ–¹æ‹’ç»äº†æ‚”æ£‹')
+        showToast('¶Ô·½¾Ü¾øÁË»ÚÆå')
+      }
+    } else if ((msg as any).type === 'redo_request') {
+      const ok = window.confirm('¶Ô·½ÇëÇóÖØ×ö£¬ÊÇ·ñÍ¬Òâ£¿')
+      if (ok) {
+        if (redo(state)) requestUpdate()
+        client.send({ type: 'redo_reply', accepted: true } as any)
+      } else {
+        client.send({ type: 'redo_reply', accepted: false } as any)
+      }
+    } else if ((msg as any).type === 'redo_reply') {
+      const { accepted } = msg as any
+      if (accepted) {
+        if (redo(state)) requestUpdate()
+      } else {
+        showToast('¶Ô·½¾Ü¾øÁËÖØ×ö')
       }
     } else if (msg.type === 'reset') {
       state = createState(15)
       requestUpdate()
     } else if (msg.type === 'peer_leave') {
-      showToast('å¯¹æ–¹å·²ç¦»å¼€æˆ¿é—´')
+      showToast('¶Ô·½ÒÑÀë¿ª·¿¼ä')
     } else if (msg.type === 'error') {
-      showToast('è¿æ¥é”™è¯¯: ' + (msg as any).message)
+      showToast('Á¬½Ó´íÎó: ' + (msg as any).message)
     }
   })
   client.addEventListener('close', () => {
     isOnline = false
     connectBtn.disabled = false
     disconnectBtn.disabled = true
+    undoBtn.disabled = false
+    redoBtn.disabled = false
     requestUpdate()
   })
   client.addEventListener('reconnecting', (e: any) => {
-    netStatus.textContent = `é‡è¿ä¸­... ${e.detail?.delay ?? ''}ms`
+    netStatus.textContent = `ÖØÁ¬ÖĞ... ${e.detail?.delay ?? ''}ms`
   })
   client.addEventListener('reconnected', () => {
-    netStatus.textContent = 'å·²å°è¯•é‡è¿'
+    netStatus.textContent = 'ÒÑ³¢ÊÔÖØÁ¬'
   })
   online = client
 })
