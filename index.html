@@ -2,57 +2,54 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>五子棋 - 本地双人</title>
-    <style>
-      :root { --bg: #f7f7f7; --text:#222; --accent:#3f51b5; }
-      html, body { height:100%; margin:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
-      #app { display:flex; height:100%; align-items:center; justify-content:center; }
-      .panel { display:flex; gap:16px; align-items:flex-start; padding:16px; }
-      canvas { background:#e8cfae; border:1px solid #b58e5a; box-shadow:0 2px 10px rgba(0,0,0,.08); }
-      .side { min-width: 220px; display:flex; flex-direction:column; gap:12px; }
-      .row { display:flex; gap:8px; }
-      button { padding:8px 12px; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; }
-      button:hover { border-color: var(--accent); }
-      .tag { padding:4px 8px; border-radius:999px; background:#fff; border:1px solid #ddd; font-size:12px; }
-      .stat { display:flex; gap:8px; align-items:center; }
-      .dot { width:12px; height:12px; border-radius:50%; display:inline-block; }
-      .dot.black { background:#222; }
-      .dot.white { background:#fff; border:1px solid #bbb; }
-      .log { height:260px; overflow:auto; background:#fff; border:1px solid #ddd; padding:8px; border-radius:6px; font-size:12px; }
-      .toast { position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-8px); background:#323232; color:#fff; padding:10px 16px; border-radius:999px; box-shadow:0 6px 20px rgba(0,0,0,.2); opacity:0; pointer-events:none; transition: opacity .18s ease, transform .18s ease; }
-      .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#111827" />
+    <title>五子棋</title>
+    <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
-    <div id="app">
-      <div class="panel">
-        <canvas id="board" width="640" height="640"></canvas>
-        <div class="side">
-          <div class="stat">
-            <span>当前手方</span>
-            <span class="dot" id="turnDot"></span>
-            <span id="turnText"></span>
-          </div>
-          <div class="tag">联机</div>
-          <div class="row" style="flex-wrap:wrap; gap:6px; align-items:center">
-            <input id="roomInput" placeholder="房间代码" style="width:96px; padding:6px;" />
-            <input id="nameInput" placeholder="昵称" style="width:96px; padding:6px;" />
-            <input id="urlInput" placeholder="ws://localhost:8787" style="width:140px; padding:6px;" />
-            <button id="connectBtn">连接</button>
-            <button id="disconnectBtn" disabled>断开</button>
-          </div>
-          <div class="tag" id="netStatus">离线</div>
-          <div class="row">
-            <button id="newBtn">新局</button>
-            <button id="undoBtn">悔棋</button>
-          </div>
-          <div class="tag" id="status">就绪</div>
-          <div class="log" id="log"></div>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <h1>五子棋</h1>
+          <p class="hint">Tauri 桌面与 Android 双端</p>
         </div>
-      </div>
-    </div>
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="/src/main.ts"></script>
+        <div class="mode-switch" aria-label="对战模式">
+          <button id="local-mode" type="button">同机双人</button>
+          <button id="online-mode" type="button">在线房间</button>
+        </div>
+      </header>
+
+      <section class="layout">
+        <div class="board-shell">
+          <canvas id="board" tabindex="0" role="application" aria-label="五子棋棋盘"></canvas>
+        </div>
+
+        <aside class="panel">
+          <div class="status-card" aria-live="polite">
+            <p id="identity">同机双人</p>
+            <p id="status">轮到黑方</p>
+          </div>
+
+          <div id="online-panel" hidden>
+            <label class="field">
+              服务器地址
+              <input id="server-url" value="ws://127.0.0.1:8787" inputmode="url" autocomplete="url" />
+            </label>
+            <label class="field">
+              房间号
+              <input id="room-code" value="GOMOKU" maxlength="20" autocomplete="off" />
+            </label>
+            <div class="actions">
+              <button id="connect" class="primary" type="button">连接</button>
+              <button id="disconnect" type="button" disabled>断开</button>
+            </div>
+          </div>
+
+          <button id="reset" type="button">重新开局</button>
+          <p class="hint">触屏或鼠标点击落子；键盘可用方向键选择，空格或回车落子。Android 真机联机时填写服务器的局域网或公网 WSS 地址。</p>
+        </aside>
+      </section>
+    </main>
   </body>
-  </html>
+</html>

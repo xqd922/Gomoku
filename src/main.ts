@@ -1,234 +1,280 @@
-﻿import { createState, tryPlaceStone, undo } from './gomoku/engine'
-import type { GameState } from './gomoku/types'
-import { renderAll, pixelToGrid } from './gomoku/render'
-import { NetClient, type NetMessage } from '@/net/ws'
+import './styles.css'
+import {
+  BOARD_SIZE,
+  createGame,
+  isGameState,
+  playMove,
+  type GameState,
+  type Player,
+} from './game'
 
-const canvas = document.getElementById('board') as HTMLCanvasElement
-const ctx = canvas.getContext('2d')!
-const turnDot = document.getElementById('turnDot') as HTMLSpanElement
-const turnText = document.getElementById('turnText') as HTMLSpanElement
-const statusEl = document.getElementById('status') as HTMLDivElement
-const logEl = document.getElementById('log') as HTMLDivElement
+type ServerMessage =
+  | { type: 'welcome'; player: Player }
+  | { type: 'state'; state: GameState; players: number }
+  | { type: 'error'; message: string }
 
-const newBtn = document.getElementById('newBtn') as HTMLButtonElement
-const undoBtn = document.getElementById('undoBtn') as HTMLButtonElement
-const connectBtn = document.getElementById('connectBtn') as HTMLButtonElement
-const disconnectBtn = document.getElementById('disconnectBtn') as HTMLButtonElement
-const netStatus = document.getElementById('netStatus') as HTMLDivElement
-const roomInput = document.getElementById('roomInput') as HTMLInputElement
-const nameInput = document.getElementById('nameInput') as HTMLInputElement
-const urlInput = document.getElementById('urlInput') as HTMLInputElement
+const canvas = document.querySelector<HTMLCanvasElement>('#board')!
+const context = canvas.getContext('2d')!
+const status = document.querySelector<HTMLElement>('#status')!
+const identity = document.querySelector<HTMLElement>('#identity')!
+const localModeButton = document.querySelector<HTMLButtonElement>('#local-mode')!
+const onlineModeButton = document.querySelector<HTMLButtonElement>('#online-mode')!
+const onlinePanel = document.querySelector<HTMLElement>('#online-panel')!
+const serverInput = document.querySelector<HTMLInputElement>('#server-url')!
+const roomInput = document.querySelector<HTMLInputElement>('#room-code')!
+const connectButton = document.querySelector<HTMLButtonElement>('#connect')!
+const disconnectButton = document.querySelector<HTMLButtonElement>('#disconnect')!
+const resetButton = document.querySelector<HTMLButtonElement>('#reset')!
 
-let state: GameState = createState(15)
-let online: NetClient | null = null
-let mePlayer: 1 | 2 = 1
-let isOnline = false
+let game = createGame()
+let mode: 'local' | 'online' = 'local'
+let socket: WebSocket | null = null
+let myPlayer: Player | null = null
+let playerCount = 0
+let cursor = { row: 7, col: 7 }
 
-function updateUI() {
-  renderAll(ctx, state)
-  const p = state.turn
-  turnDot.className = 'dot ' + (p === 1 ? 'black' : 'white')
-  turnText.textContent = p === 1 ? '黑子' : '白子'
-  statusEl.textContent = state.winner
-    ? (state.winner === 1 ? '黑子' : '白子') + ' 获胜'
-    : '进行中'
-  netStatus.textContent = isOnline ? `在线 - 玩家${mePlayer}` : '离线'
+function playerName(player: Player) {
+  return player === 1 ? '黑方' : '白方'
 }
 
-let rafPending = false
-function requestUpdate() {
-  if (rafPending) return
-  rafPending = true
-  requestAnimationFrame(() => {
-    rafPending = false
-    updateUI()
-  })
+function updateStatus(message?: string) {
+  if (message) status.textContent = message
+  else if (game.winner) status.textContent = `${playerName(game.winner)}获胜`
+  else if (mode === 'online' && playerCount < 2) status.textContent = '等待另一位玩家加入'
+  else status.textContent = `轮到${playerName(game.turn)}`
+
+  identity.textContent = mode === 'local'
+    ? '同机双人'
+    : myPlayer
+      ? `你是${playerName(myPlayer)}`
+      : '尚未连接'
+  canvas.setAttribute('aria-label', `${status.textContent}，当前选择第 ${cursor.row + 1} 行第 ${cursor.col + 1} 列`)
 }
 
-function log(msg: string) {
-  const d = document.createElement('div')
-  d.textContent = msg
-  logEl.appendChild(d)
-  logEl.scrollTop = logEl.scrollHeight
+function resizeCanvas() {
+  const size = Math.floor(canvas.getBoundingClientRect().width)
+  const ratio = window.devicePixelRatio || 1
+  canvas.width = size * ratio
+  canvas.height = size * ratio
+  context.setTransform(ratio, 0, 0, ratio, 0, 0)
+  render(size)
 }
 
-canvas.addEventListener('click', (e) => {
-  if (state.winner) return
-  if (isOnline && state.turn !== mePlayer) return
-  const rect = canvas.getBoundingClientRect()
-  const scaleX = canvas.width / rect.width
-  const scaleY = canvas.height / rect.height
-  const x = (e.clientX - rect.left) * scaleX
-  const y = (e.clientY - rect.top) * scaleY
-  const { r, c } = pixelToGrid(canvas, state.n, 32, x, y)
-  const res = tryPlaceStone(state, r, c)
-  if (!res.ok) {
-    if (res.error === 'out_of_bounds') showToast('越界：请点击有效交点')
-    else if (res.error === 'occupied') showToast('该位置已有棋子')
-    else if (res.error === 'game_over') showToast('当前对局已结束')
+function render(size = canvas.getBoundingClientRect().width) {
+  const padding = Math.max(20, size * 0.055)
+  const cell = (size - padding * 2) / (BOARD_SIZE - 1)
+  context.clearRect(0, 0, size, size)
+  context.fillStyle = '#d8a85f'
+  context.fillRect(0, 0, size, size)
+  context.strokeStyle = 'rgba(62, 36, 18, 0.74)'
+  context.lineWidth = 1
+
+  for (let index = 0; index < BOARD_SIZE; index++) {
+    const point = padding + index * cell
+    context.beginPath()
+    context.moveTo(padding, point)
+    context.lineTo(size - padding, point)
+    context.moveTo(point, padding)
+    context.lineTo(point, size - padding)
+    context.stroke()
+  }
+
+  context.fillStyle = '#4a2c17'
+  for (const row of [3, 7, 11]) {
+    for (const col of [3, 7, 11]) {
+      context.beginPath()
+      context.arc(padding + col * cell, padding + row * cell, Math.max(2.4, cell * 0.08), 0, Math.PI * 2)
+      context.fill()
+    }
+  }
+
+  for (let row = 0; row < BOARD_SIZE; row++) {
+    for (let col = 0; col < BOARD_SIZE; col++) {
+      const player = game.board[row][col]
+      if (!player) continue
+      const x = padding + col * cell
+      const y = padding + row * cell
+      const gradient = context.createRadialGradient(x - cell * 0.12, y - cell * 0.15, cell * 0.04, x, y, cell * 0.44)
+      if (player === 1) {
+        gradient.addColorStop(0, '#555')
+        gradient.addColorStop(1, '#080808')
+      } else {
+        gradient.addColorStop(0, '#fff')
+        gradient.addColorStop(1, '#cfcfcf')
+      }
+      context.fillStyle = gradient
+      context.beginPath()
+      context.arc(x, y, cell * 0.42, 0, Math.PI * 2)
+      context.fill()
+    }
+  }
+
+  if (game.winLine) {
+    context.strokeStyle = '#ef4444'
+    context.lineWidth = Math.max(3, cell * 0.1)
+    context.lineCap = 'round'
+    context.beginPath()
+    context.moveTo(padding + game.winLine.start.col * cell, padding + game.winLine.start.row * cell)
+    context.lineTo(padding + game.winLine.end.col * cell, padding + game.winLine.end.row * cell)
+    context.stroke()
+  }
+
+  if (document.activeElement === canvas && !game.winner) {
+    context.strokeStyle = '#2563eb'
+    context.lineWidth = 2
+    context.strokeRect(
+      padding + cursor.col * cell - cell * 0.45,
+      padding + cursor.row * cell - cell * 0.45,
+      cell * 0.9,
+      cell * 0.9,
+    )
+  }
+}
+
+function selectCell(clientX: number, clientY: number) {
+  const bounds = canvas.getBoundingClientRect()
+  const size = bounds.width
+  const padding = Math.max(20, size * 0.055)
+  const cell = (size - padding * 2) / (BOARD_SIZE - 1)
+  const col = Math.round((clientX - bounds.left - padding) / cell)
+  const row = Math.round((clientY - bounds.top - padding) / cell)
+  if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return
+  cursor = { row, col }
+  placeSelectedStone()
+}
+
+function placeSelectedStone() {
+  if (mode === 'online') {
+    if (!socket || socket.readyState !== WebSocket.OPEN || !myPlayer) return updateStatus('请先连接房间')
+    if (playerCount < 2) return updateStatus('等待另一位玩家加入')
+    if (game.turn !== myPlayer) return updateStatus('现在是对方回合')
+    socket.send(JSON.stringify({ type: 'move', row: cursor.row, col: cursor.col }))
     return
   }
-  const m = res.value
-  log(`${m.p === 1 ? '黑' : '白'} 落子: (${m.r + 1}, ${m.c + 1})`)
-  if (isOnline && online) online.send({ type: 'move', r: m.r, c: m.c, p: m.p } as any)
-  if (state.winner) {
-    const msg = `${state.winner === 1 ? '黑子' : '白子'} 获胜！`
-    log(msg)
-    showToast(msg)
-  }
-  requestUpdate()
-})
 
-newBtn.addEventListener('click', () => {
-  state = createState(15)
-  log('— 新局 —')
-  if (isOnline && online) online.send({ type: 'reset' } as any)
-  requestUpdate()
-})
-
-// 悔棋：离线直接执行，在线需对方同意
-undoBtn.addEventListener('click', () => {
-  if (!isOnline) {
-    if (undo(state)) { log('悔棋'); requestUpdate() }
-  } else if (online) {
-    online.send({ type: 'undo_request' } as any)
-    showToast('已发送悔棋请求')
-  }
-})
-
-function fitCanvasToDPR() {
-  const ratio = Math.max(1, Math.floor(window.devicePixelRatio || 1))
-  const rect = canvas.getBoundingClientRect()
-  const cssW = Math.max(320, Math.floor(rect.width))
-  const cssH = Math.max(320, Math.floor(rect.height))
-  canvas.width = Math.round(cssW * ratio)
-  canvas.height = Math.round(cssH * ratio)
-  requestUpdate()
+  const result = playMove(game, cursor.row, cursor.col)
+  if (!result.ok) updateStatus(result.error === 'occupied' ? '这个位置已有棋子' : '本局已经结束')
+  else updateStatus()
+  render()
 }
 
-fitCanvasToDPR()
-requestUpdate()
-window.addEventListener('resize', fitCanvasToDPR)
+function setMode(nextMode: 'local' | 'online') {
+  mode = nextMode
+  localModeButton.classList.toggle('active', mode === 'local')
+  onlineModeButton.classList.toggle('active', mode === 'online')
+  onlinePanel.hidden = mode !== 'online'
+  if (mode === 'local') disconnect()
+  game = createGame()
+  playerCount = mode === 'local' ? 2 : 0
+  updateStatus()
+  render()
+}
 
-window.addEventListener('keydown', (e) => {
-  const k = e.key.toLowerCase()
-  if (e.ctrlKey && k === 'n') {
-    e.preventDefault()
-    state = createState(15)
-    log('— 新局 —')
-    if (isOnline && online) online.send({ type: 'reset' } as any)
-    requestUpdate()
+function isServerMessage(value: unknown): value is ServerMessage {
+  if (!value || typeof value !== 'object' || !('type' in value)) return false
+  const message = value as Record<string, unknown>
+  if (message.type === 'welcome') return message.player === 1 || message.player === 2
+  if (message.type === 'error') return typeof message.message === 'string'
+  return message.type === 'state'
+    && typeof message.players === 'number'
+    && isGameState(message.state)
+}
+
+function connect() {
+  disconnect()
+  let url: URL
+  try {
+    url = new URL(serverInput.value.trim())
+    if (url.protocol !== 'ws:' && url.protocol !== 'wss:') throw new Error()
+  } catch {
+    updateStatus('服务器地址必须以 ws:// 或 wss:// 开头')
     return
   }
-  if (k === 'z') {
-    if (!isOnline) {
-      if (undo(state)) { log('悔棋'); requestUpdate() }
-    } else if (online) {
-      online.send({ type: 'undo_request' } as any)
-      showToast('已发送悔棋请求')
+
+  const room = roomInput.value.trim().toUpperCase()
+  if (!/^[A-Z0-9_-]{2,20}$/.test(room)) {
+    updateStatus('房间号需要 2–20 位字母或数字')
+    return
+  }
+
+  socket = new WebSocket(url)
+  updateStatus('正在连接服务器…')
+  connectButton.disabled = true
+  disconnectButton.disabled = false
+
+  socket.addEventListener('open', () => socket?.send(JSON.stringify({ type: 'join', room })))
+  socket.addEventListener('message', event => {
+    try {
+      const message: unknown = JSON.parse(String(event.data))
+      if (!isServerMessage(message)) return
+      if (message.type === 'welcome') myPlayer = message.player
+      if (message.type === 'state') {
+        game = message.state
+        playerCount = message.players
+      }
+      if (message.type === 'error') updateStatus(message.message)
+      else updateStatus()
+      render()
+    } catch {
+      updateStatus('服务器返回了无效数据')
     }
-  } else if (k === 'r') {
-    state = createState(15)
-    log('— 新局 —')
-    if (isOnline && online) online.send({ type: 'reset' } as any)
-    requestUpdate()
+  })
+  socket.addEventListener('close', () => {
+    socket = null
+    myPlayer = null
+    playerCount = 0
+    connectButton.disabled = false
+    disconnectButton.disabled = true
+    updateStatus('连接已断开')
+  })
+  socket.addEventListener('error', () => updateStatus('无法连接服务器'))
+}
+
+function disconnect() {
+  socket?.close()
+  socket = null
+  myPlayer = null
+  playerCount = 0
+  connectButton.disabled = false
+  disconnectButton.disabled = true
+}
+
+canvas.addEventListener('pointerdown', event => selectCell(event.clientX, event.clientY))
+canvas.addEventListener('focus', () => render())
+canvas.addEventListener('blur', () => render())
+canvas.addEventListener('keydown', event => {
+  const movement: Record<string, [number, number]> = {
+    ArrowUp: [-1, 0],
+    ArrowDown: [1, 0],
+    ArrowLeft: [0, -1],
+    ArrowRight: [0, 1],
+  }
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    placeSelectedStone()
+    return
+  }
+  const delta = movement[event.key]
+  if (!delta) return
+  event.preventDefault()
+  cursor.row = Math.max(0, Math.min(BOARD_SIZE - 1, cursor.row + delta[0]))
+  cursor.col = Math.max(0, Math.min(BOARD_SIZE - 1, cursor.col + delta[1]))
+  updateStatus()
+  render()
+})
+
+localModeButton.addEventListener('click', () => setMode('local'))
+onlineModeButton.addEventListener('click', () => setMode('online'))
+connectButton.addEventListener('click', connect)
+disconnectButton.addEventListener('click', disconnect)
+resetButton.addEventListener('click', () => {
+  if (mode === 'online') socket?.send(JSON.stringify({ type: 'reset' }))
+  else {
+    game = createGame()
+    updateStatus()
+    render()
   }
 })
 
-declare global {
-  interface Window { api: unknown }
-}
-
-// 简易 Toast 提示（非阻塞）
-let toastTimer: number | null = null
-function showToast(text: string) {
-  const el = document.getElementById('toast') as HTMLDivElement | null
-  if (!el) return
-  el.textContent = text
-  el.classList.add('show')
-  if (toastTimer) {
-    window.clearTimeout(toastTimer)
-    toastTimer = null
-  }
-  toastTimer = window.setTimeout(() => {
-    el.classList.remove('show')
-  }, 2200)
-}
-
-// 在线联机
-connectBtn.addEventListener('click', () => {
-  if (isOnline) return
-  const url = urlInput.value || 'ws://localhost:8787'
-  const room = roomInput.value || 'test'
-  const name = nameInput.value || ''
-  const client = new NetClient()
-  client.connect({ url, room, name, autoReconnect: true })
-  client.addEventListener('message', (ev: MessageEvent<NetMessage>) => {
-    const msg = ev.data
-    if (msg.type === 'welcome') {
-      mePlayer = msg.player
-      isOnline = true
-      connectBtn.disabled = true
-      disconnectBtn.disabled = false
-      requestUpdate()
-    } else if (msg.type === 'ready') {
-      if (mePlayer === 1) {
-        client.send({ type: 'state', snapshot: state } as any)
-      } else {
-        client.send({ type: 'request_state' } as any)
-      }
-    } else if (msg.type === 'state') {
-      try {
-        const snap = msg.snapshot as GameState
-        state = snap
-        requestUpdate()
-      } catch {}
-    } else if (msg.type === 'request_state') {
-      if (mePlayer === 1) client.send({ type: 'state', snapshot: state } as any)
-    } else if (msg.type === 'move') {
-      if (state.turn === msg.p) {
-        tryPlaceStone(state, msg.r, msg.c)
-        requestUpdate()
-      }
-    } else if ((msg as any).type === 'undo_request') {
-      const ok = window.confirm('对方请求悔棋，是否同意？')
-      if (ok) {
-        if (undo(state)) requestUpdate()
-        client.send({ type: 'undo_reply', accepted: true } as any)
-      } else {
-        client.send({ type: 'undo_reply', accepted: false } as any)
-      }
-    } else if ((msg as any).type === 'undo_reply') {
-      const { accepted } = msg as any
-      if (accepted) {
-        if (undo(state)) requestUpdate()
-      } else {
-        showToast('对方拒绝了悔棋')
-      }
-    } else if (msg.type === 'reset') {
-      state = createState(15)
-      requestUpdate()
-    } else if (msg.type === 'peer_leave') {
-      showToast('对方已离开房间')
-    } else if (msg.type === 'error') {
-      showToast('连接错误: ' + (msg as any).message)
-    }
-  })
-  client.addEventListener('close', () => {
-    isOnline = false
-    connectBtn.disabled = false
-    disconnectBtn.disabled = true
-    requestUpdate()
-  })
-  client.addEventListener('reconnecting', (e: any) => {
-    netStatus.textContent = `重连中... ${e.detail?.delay ?? ''}ms`
-  })
-  client.addEventListener('reconnected', () => {
-    netStatus.textContent = '已尝试重连'
-  })
-  online = client
-})
-
-disconnectBtn.addEventListener('click', () => {
-  if (online) online.disconnect()
-})
+new ResizeObserver(resizeCanvas).observe(canvas)
+setMode('local')

@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">"Gomoku"</string>
+    <string name="main_activity_title">"Gomoku"</string>
+</resources>
