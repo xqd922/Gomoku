@@ -33,3 +33,7 @@ bun test
 bun run build
 bun run tauri build
 ```
+
+## 云端构建
+
+GitHub Actions 的 `Build installers` 工作流支持手动运行，也会在推送 `v*` Tag 时运行。完成后可在该次 Actions 任务的 Artifacts 中下载 Windows `.exe` 和 Android Debug `.apk`。
