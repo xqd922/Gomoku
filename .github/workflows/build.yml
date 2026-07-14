@@ -65,3 +65,30 @@ jobs:
           name: gomoku-android-apk
           path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
+
+  release:
+    name: Publish Release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [windows, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: gomoku-windows-exe
+          path: release-assets/windows
+      - uses: actions/download-artifact@v8
+        with:
+          name: gomoku-android-apk
+          path: release-assets/android
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          release-assets/windows/*.exe
+          release-assets/android/*.apk
+          --verify-tag
+          --generate-notes
+          --title "Gomoku $GITHUB_REF_NAME"
