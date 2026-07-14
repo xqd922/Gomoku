@@ -90,6 +90,7 @@ jobs:
           mapfile -t assets < <(find release-assets -type f \( -name '*.exe' -o -name '*.apk' \))
           test "${#assets[@]}" -gt 0
           gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             --generate-notes \
             --title "Gomoku $GITHUB_REF_NAME"
