@@ -49,7 +49,7 @@ jobs:
       - uses: android-actions/setup-android@v3
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+          targets: aarch64-linux-android
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -59,11 +59,18 @@ jobs:
           sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
           echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
       - run: bun install --frozen-lockfile
-      - run: bun run android:build -- --debug --apk
+      - run: bun run android:build -- --debug --apk --target aarch64
+      - name: Prepare ARM64 APK
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          apk="$(find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' -print -quit)"
+          test -n "$apk"
+          cp "$apk" release-assets/Gomoku_arm64-v8a-debug.apk
       - uses: actions/upload-artifact@v7
         with:
           name: gomoku-android-apk
-          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          path: release-assets/Gomoku_arm64-v8a-debug.apk
           if-no-files-found: error
 
   release:
