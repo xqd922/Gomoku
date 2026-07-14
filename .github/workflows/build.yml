@@ -85,10 +85,11 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "$GITHUB_REF_NAME"
-          release-assets/windows/*.exe
-          release-assets/android/*.apk
-          --verify-tag
-          --generate-notes
-          --title "Gomoku $GITHUB_REF_NAME"
+        shell: bash
+        run: |
+          mapfile -t assets < <(find release-assets -type f \( -name '*.exe' -o -name '*.apk' \))
+          test "${#assets[@]}" -gt 0
+          gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
+            --verify-tag \
+            --generate-notes \
+            --title "Gomoku $GITHUB_REF_NAME"
