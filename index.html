@@ -3,53 +3,98 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#111827" />
+    <meta name="theme-color" content="#f4f0e8" />
     <title>五子棋</title>
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
-    <main class="app">
-      <header class="topbar">
-        <div>
-          <h1>五子棋</h1>
-          <p class="hint">Tauri 桌面与 Android 双端</p>
+    <div class="app-shell">
+      <header class="app-bar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <div>
+            <h1>五子棋</h1>
+            <p>GOMOKU</p>
+          </div>
         </div>
-        <div class="mode-switch" aria-label="对战模式">
-          <button id="local-mode" type="button">同机双人</button>
-          <button id="online-mode" type="button">在线房间</button>
-        </div>
+        <span class="platform-badge">桌面 · Android</span>
       </header>
 
-      <section class="layout">
-        <div class="board-shell">
-          <canvas id="board" tabindex="0" role="application" aria-label="五子棋棋盘"></canvas>
-        </div>
-
-        <aside class="panel">
-          <div class="status-card" aria-live="polite">
-            <p id="identity">同机双人</p>
-            <p id="status">轮到黑方</p>
+      <main class="game-layout">
+        <section class="game-stage" aria-label="对局区域">
+          <div class="game-toolbar">
+            <div class="mode-switch" aria-label="对战模式">
+              <button id="local-mode" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                同机双人
+              </button>
+              <button id="online-mode" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20"/></svg>
+                在线房间
+              </button>
+            </div>
+            <button id="reset" class="reset-button" type="button" title="重新开局">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>
+              <span>重新开局</span>
+            </button>
           </div>
 
-          <div id="online-panel" hidden>
+          <div class="board-card">
+            <div class="board-frame">
+              <canvas id="board" tabindex="0" role="application" aria-label="五子棋棋盘"></canvas>
+            </div>
+            <div class="board-meta">
+              <span>15 × 15 标准棋盘</span>
+              <span>五子连珠获胜</span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="control-panel">
+          <section class="status-card" aria-live="polite">
+            <div id="status-stone" class="status-stone black" aria-hidden="true"></div>
+            <div class="status-copy">
+              <p id="identity" class="eyebrow">同机双人</p>
+              <p id="status">轮到黑方</p>
+            </div>
+            <span class="live-indicator"><i></i> 对局中</span>
+          </section>
+
+          <section id="online-panel" class="online-card" hidden>
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">ONLINE MATCH</p>
+                <h2>加入在线房间</h2>
+              </div>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12h8M12 8v8"/><circle cx="12" cy="12" r="9"/></svg>
+            </div>
             <label class="field">
-              服务器地址
+              <span>服务器地址</span>
               <input id="server-url" value="ws://127.0.0.1:8787" inputmode="url" autocomplete="url" />
             </label>
             <label class="field">
-              房间号
+              <span>房间代码</span>
               <input id="room-code" value="GOMOKU" maxlength="20" autocomplete="off" />
             </label>
             <div class="actions">
-              <button id="connect" class="primary" type="button">连接</button>
+              <button id="connect" class="primary" type="button">连接房间</button>
               <button id="disconnect" type="button" disabled>断开</button>
             </div>
-          </div>
+          </section>
 
-          <button id="reset" type="button">重新开局</button>
-          <p class="hint">触屏或鼠标点击落子；键盘可用方向键选择，空格或回车落子。Android 真机联机时填写服务器的局域网或公网 WSS 地址。</p>
+          <section class="guide-card">
+            <div class="guide-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 18h.01M9.1 9a3 3 0 1 1 5.3 1.9c-1.3 1.2-2.4 1.7-2.4 3.1"/><circle cx="12" cy="12" r="10"/></svg>
+            </div>
+            <div>
+              <h2>操作提示</h2>
+              <p>点击交点落子。键盘可用方向键选择，空格或回车确认。</p>
+            </div>
+          </section>
         </aside>
-      </section>
-    </main>
+      </main>
+    </div>
   </body>
 </html>

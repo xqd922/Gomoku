@@ -17,6 +17,7 @@ const canvas = document.querySelector<HTMLCanvasElement>('#board')!
 const context = canvas.getContext('2d')!
 const status = document.querySelector<HTMLElement>('#status')!
 const identity = document.querySelector<HTMLElement>('#identity')!
+const statusStone = document.querySelector<HTMLElement>('#status-stone')!
 const localModeButton = document.querySelector<HTMLButtonElement>('#local-mode')!
 const onlineModeButton = document.querySelector<HTMLButtonElement>('#online-mode')!
 const onlinePanel = document.querySelector<HTMLElement>('#online-panel')!
@@ -48,6 +49,8 @@ function updateStatus(message?: string) {
     : myPlayer
       ? `你是${playerName(myPlayer)}`
       : '尚未连接'
+  const activePlayer = game.winner ?? game.turn
+  statusStone.className = `status-stone ${activePlayer === 1 ? 'black' : 'white'}`
   canvas.setAttribute('aria-label', `${status.textContent}，当前选择第 ${cursor.row + 1} 行第 ${cursor.col + 1} 列`)
 }
 
@@ -64,9 +67,13 @@ function render(size = canvas.getBoundingClientRect().width) {
   const padding = Math.max(20, size * 0.055)
   const cell = (size - padding * 2) / (BOARD_SIZE - 1)
   context.clearRect(0, 0, size, size)
-  context.fillStyle = '#d8a85f'
+  const wood = context.createLinearGradient(0, 0, size, size)
+  wood.addColorStop(0, '#e2bd80')
+  wood.addColorStop(0.48, '#d7a865')
+  wood.addColorStop(1, '#c88f4b')
+  context.fillStyle = wood
   context.fillRect(0, 0, size, size)
-  context.strokeStyle = 'rgba(62, 36, 18, 0.74)'
+  context.strokeStyle = 'rgba(70, 42, 20, 0.68)'
   context.lineWidth = 1
 
   for (let index = 0; index < BOARD_SIZE; index++) {
@@ -103,9 +110,13 @@ function render(size = canvas.getBoundingClientRect().width) {
         gradient.addColorStop(1, '#cfcfcf')
       }
       context.fillStyle = gradient
+      context.shadowColor = 'rgba(42, 25, 11, 0.28)'
+      context.shadowBlur = cell * 0.14
+      context.shadowOffsetY = cell * 0.1
       context.beginPath()
       context.arc(x, y, cell * 0.42, 0, Math.PI * 2)
       context.fill()
+      context.shadowColor = 'transparent'
     }
   }
 
