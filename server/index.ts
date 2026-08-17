@@ -64,7 +64,11 @@ Bun.serve<ClientData>({
         if (!/^[A-Z0-9_-]{2,20}$/.test(roomCode)) return send(socket, { type: 'error', message: '房间号格式错误' })
         const room = rooms.get(roomCode) ?? { game: createGame(), players: [null, null] }
         const slot = room.players.findIndex(value => !value)
-        if (slot === -1) return send(socket, { type: 'error', message: '房间已满' })
+        if (slot === -1) {
+          send(socket, { type: 'error', message: '房间已满' })
+          socket.close(1008, 'room full')
+          return
+        }
         const player = (slot + 1) as Player
         room.players[slot] = socket
         rooms.set(roomCode, room)

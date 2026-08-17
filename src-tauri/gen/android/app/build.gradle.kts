@@ -13,6 +13,13 @@ val tauriProperties = Properties().apply {
     }
 }
 
+// Release signing is supplied by the build environment. The keystore never
+// lives in the repository, so local debug builds remain zero-configuration.
+val releaseKeystorePath = System.getenv("GOMOKU_ANDROID_KEYSTORE_PATH")
+val releaseKeystorePassword = System.getenv("GOMOKU_ANDROID_KEYSTORE_PASSWORD")
+val releaseKeyAlias = System.getenv("GOMOKU_ANDROID_KEY_ALIAS")
+val releaseKeyPassword = System.getenv("GOMOKU_ANDROID_KEY_PASSWORD")
+
 android {
     compileSdk = 36
     namespace = "com.xqd922.gomoku"
@@ -23,6 +30,16 @@ android {
         targetSdk = 36
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
+    }
+    signingConfigs {
+        if (releaseKeystorePath != null && releaseKeystorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null) {
+            create("gomokuRelease") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
     }
     buildTypes {
         getByName("debug") {
@@ -37,7 +54,10 @@ android {
             }
         }
         getByName("release") {
+            // Players may explicitly connect to a self-hosted LAN ws:// server.
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
             isMinifyEnabled = true
+            signingConfig = signingConfigs.findByName("gomokuRelease")
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }
                     .plus(getDefaultProguardFile("proguard-android-optimize.txt"))

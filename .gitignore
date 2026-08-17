@@ -11,6 +11,16 @@ node_modules
 dist
 dist-ssr
 *.local
+*.jks
+*.keystore
+playwright-report/
+test-results/
+.android-*.png
+.android-ui.xml
+.desktop-*.png
+.landscape-*.png
+.mobile-*.png
+.windows-packaged*.png
 
 # Editor directories and files
 .vscode/*
