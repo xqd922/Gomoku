@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import { dirname } from 'node:path'
 
 type ServerMessage =
   | { type: 'welcome'; player: 1 | 2 }
@@ -61,7 +62,7 @@ class TestClient {
 
 beforeAll(async () => {
   serverProcess = Bun.spawn(['bun', 'run', 'server/index.ts'], {
-    cwd: import.meta.dir.replace(/\\server$/, ''),
+    cwd: dirname(import.meta.dir),
     env: { ...Bun.env, PORT: String(port) },
     stdout: 'pipe',
     stderr: 'pipe',
@@ -77,7 +78,7 @@ beforeAll(async () => {
     }
   }
   throw new Error('Gomoku server did not start')
-})
+}, 15_000)
 
 afterAll(async () => {
   serverProcess.kill()
