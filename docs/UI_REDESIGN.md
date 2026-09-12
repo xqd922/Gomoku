@@ -36,6 +36,8 @@
 
 “改版前”来自 v1.0.0 的浏览器验收截图，“改版后”来自本次发布模式 Web 和真实后端的浏览器运行。对比图片使用相同窗口尺寸，棋局内容可不同。
 
+[手机对局并排对比](images/ui-redesign/comparison-phone.png)。
+
 | 页面 | 改版前 | 改版后 |
 | --- | --- | --- |
 | 桌面首页 | ![原首页](images/ui-redesign/before-home-desktop.png) | ![新首页](images/ui-redesign/after-home-desktop.png) |

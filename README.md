@@ -112,6 +112,6 @@ flutter build apk --release --no-pub
 
 Web 构建后从根目录执行 `dart tool/prepare_web.dart`。Windows 分发必须保留整个 `build/windows/x64/runner/Release` 目录中的 DLL 和 `data`。本地 Android 构建使用 debug key，Actions 发布前使用仓库已有正式证书重新签名并验证；包名沿用 `com.xqd922.gomoku`，v1.0.0 的 versionCode 为 10000。
 
-六端构建和完整自动验收已在 [GitHub Actions](https://github.com/xqd922/Gomoku/actions/runs/34669116772) 实际通过，其中 iOS 使用 `--no-codesign`，macOS 为 Intel / Apple Silicon 通用构建。生产地址、SMTP、HTTPS、备份及升级步骤见 [部署说明](docs/DEPLOYMENT.md)；一致性协议见 [架构说明](docs/ARCHITECTURE.md)。
+本次界面改版的六端构建和完整自动验收已在 [GitHub Actions](https://github.com/xqd922/Gomoku/actions/runs/34677414905) 实际通过，构建产物可在该运行的 Artifacts 下载；其中 iOS 使用 `--no-codesign`，macOS 为 Intel / Apple Silicon 通用构建。生产地址、SMTP、HTTPS、备份及升级步骤见 [部署说明](docs/DEPLOYMENT.md)；一致性协议见 [架构说明](docs/ARCHITECTURE.md)。
 
 推送 `main` 或打开 PR 执行验收和六端构建；推送与 pubspec.yaml 匹配的 `v*` 标签会在所有检查通过后自动发布 Release。发行文件通过 `tool/package_release.py` 归档，macOS 保留 app 内符号链接，Linux 保留可执行权限。发布工作流不会覆盖已经公开的 Release。

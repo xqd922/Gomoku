@@ -25,7 +25,20 @@
 
 ### 六端构建与实机范围
 
-六端 Actions 运行链接在本次主线推送完成后补录。Windows 已进行本机发布程序启动检查；浏览器已完成桌面和触屏模拟自动运行。Android、Linux、macOS、iOS 尚无本轮真人实机操作结论；iOS 构建使用 `--no-codesign`。Android 本机样本使用测试签名，Actions 使用已有仓库正式证书。
+本轮构建对应源码提交 [c3749d0](https://github.com/xqd922/Gomoku/commit/c3749d08eb307a59f934731335b836e14d61e3cc)，[Actions 34677414905](https://github.com/xqd922/Gomoku/actions/runs/34677414905) **全部通过**。CI 再次通过 12 项规则、39 项 Flutter／SQLite、11 项真实后端测试和 9 组 Chrome 场景，运行时异常为 0；生产后端与 Web Docker 镜像也已构建成功。
+
+| 平台 | 本轮构建产物 | 自动运行／实机结论 |
+| --- | --- | --- |
+| Web | [distribution-web](https://github.com/xqd922/Gomoku/actions/runs/34677414905/artifacts/10292693873)，构建和归档通过 | 本机及 Ubuntu Chrome 完整场景通过，包括触屏模拟、断网、多标签页 |
+| Windows x64 | [distribution-windows](https://github.com/xqd922/Gomoku/actions/runs/34677414905/artifacts/10292903088)，构建和完整运行目录归档通过 | 本机发布程序启动检查通过；未进行完整真人操作验收 |
+| Android | [distribution-apk](https://github.com/xqd922/Gomoku/actions/runs/34677414905/artifacts/10293045005)，正式签名和归档通过 | 未连接真机或模拟器，本轮无实机／覆盖安装结论 |
+| Linux x64 | [distribution-linux](https://github.com/xqd922/Gomoku/actions/runs/34677414905/artifacts/10292888117)，构建和归档通过 | 未运行 Linux GUI |
+| macOS | [distribution-macos](https://github.com/xqd922/Gomoku/actions/runs/34677414905/artifacts/10292228896)，arm64／x86_64 通用包构建及归档通过 | 未在 Mac 实机操作，未公证 |
+| iOS | [distribution-ios](https://github.com/xqd922/Gomoku/actions/runs/34677414905/artifacts/10292980356)，`--no-codesign` 构建和归档通过 | 未在模拟器或 iPhone 运行；安装需要签名 |
+
+Android 本机样本使用测试签名；Actions 使用已有仓库正式证书，v2／v3 签名、包标识、版本与 16 KB ZIP 对齐检查通过。主线本轮产物保留 `1.0.0+10000` 版本号，按以上运行链接与源码提交识别，未替换 v1.0.0 的公开发行文件。
+
+CI 浏览器报告与截图保存在 [verification](https://github.com/xqd922/Gomoku/actions/runs/34677414905/artifacts/10292429135)。下载该 artifact 后已核对 `results.json` 中的 9 项通过记录和空的 `runtimeErrors`。这些自动化证据不代表真人屏幕阅读器或六平台全部实体设备验收。
 
 ## v1.0.0 历史：GitHub Actions 实际验收
 
