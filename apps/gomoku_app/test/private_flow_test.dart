@@ -33,13 +33,14 @@ void main() {
       );
       expect(find.text('Register'), findsNothing);
       expect(find.text('Forgot password?'), findsNothing);
+      expect(find.text('Enter 1 or 2, or use your email'), findsOneWidget);
       await tester.enterText(
         find.byKey(const ValueKey('account-email')),
-        'player1@example.test',
+        '1',
       );
       await tester.enterText(
         find.byKey(const ValueKey('account-password')),
-        'test-password',
+        '48271635',
       );
       await tester.ensureVisible(find.byKey(const ValueKey('account-submit')));
       await tester.tap(find.byKey(const ValueKey('account-submit')));
@@ -82,6 +83,29 @@ void main() {
         isNull,
       );
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'a room without a session provides sign-in instead of a spinner',
+    (tester) async {
+      final app = await pumpGomoku(tester, serviceConfig: private);
+      await openRoute(tester, app, '/room/expired-session-room');
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      final login = find.widgetWithText(FilledButton, 'Sign in');
+      await tester.ensureVisible(login);
+      await tester.tap(login);
+      await tester.pumpAndSettle();
+      expect(app.router.routeInformationProvider.value.uri.path, '/account');
+      expect(
+        app
+            .router
+            .routeInformationProvider
+            .value
+            .uri
+            .queryParameters['returnTo'],
+        '/lobby',
+      );
     },
   );
 

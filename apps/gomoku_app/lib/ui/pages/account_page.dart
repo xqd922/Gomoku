@@ -162,6 +162,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     final auth = ref.watch(authProvider);
     final capabilities = ref.watch(serviceConfigProvider);
     final allowEmail = capabilities.asData?.value.authMode == 'email';
+    final privateLogin = capabilities.asData?.value.privateAccounts == true;
     final profile = auth.profile;
     final signedIn = profile != null && !profile.isGuest;
     final sync = ref.watch(syncProvider);
@@ -385,19 +386,39 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                         key: const ValueKey('account-email'),
                         controller: _email,
                         enabled: !_busy && !verify && !blocked,
-                        autofillHints: const [AutofillHints.email],
-                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: [
+                          privateLogin
+                              ? AutofillHints.username
+                              : AutofillHints.email,
+                        ],
+                        keyboardType: privateLogin
+                            ? TextInputType.text
+                            : TextInputType.emailAddress,
+                        autocorrect: false,
                         textInputAction: TextInputAction.next,
                         decoration: InputDecoration(
-                          labelText: s.t('email'),
-                          prefixIcon: const Icon(Icons.alternate_email_rounded),
+                          labelText: s.t(privateLogin ? 'loginName' : 'email'),
+                          helperText: privateLogin
+                              ? s.t('privateLoginHint')
+                              : null,
+                          prefixIcon: Icon(
+                            privateLogin
+                                ? Icons.person_outline_rounded
+                                : Icons.alternate_email_rounded,
+                          ),
                         ),
                         validator: (value) =>
                             value != null &&
-                                RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
-                                    .hasMatch(value.trim())
+                                ((privateLogin &&
+                                        {'1', '2'}.contains(value.trim())) ||
+                                    RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+                                        .hasMatch(value.trim()))
                             ? null
-                            : s.t('emailError'),
+                            : s.t(
+                                privateLogin
+                                    ? 'privateLoginError'
+                                    : 'emailError',
+                              ),
                       ),
                       if (verify) ...[
                         const SizedBox(height: 18),

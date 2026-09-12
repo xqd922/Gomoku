@@ -7,6 +7,7 @@ import 'package:serverpod_auth_idp_server/providers/email.dart';
 import '../../auth/session_auth.dart';
 import '../../generated/protocol.dart';
 import '../../services/app_config.dart';
+import '../../services/database.dart';
 import '../../services/players.dart';
 import '../../services/rate_limiter.dart';
 import '../../services/private_accounts.dart';
@@ -25,6 +26,9 @@ final class AuthRoute extends Route {
         header(request, 'sec-fetch-site') != null;
     try {
       verifyOrigin(request, config, required: isWeb);
+      if (!applicationDatabaseReady) {
+        throw AppException(code: 'service_unavailable');
+      }
       if (!(header(request, 'content-type') ?? '').startsWith(
         'application/json',
       )) {
@@ -114,9 +118,14 @@ final class AuthRoute extends Route {
         case 'login':
           final result = await session.db.transaction((transaction) async {
             await _preventIdentitySwitch(session, previous, transaction);
+            final email = await PrivateAccounts.resolveEmail(
+              session,
+              _string(body, 'email'),
+              transaction: transaction,
+            );
             final auth = await emailIdp.login(
               session,
-              email: _string(body, 'email'),
+              email: email,
               password: _string(body, 'password'),
               transaction: transaction,
             );
@@ -188,10 +197,11 @@ final class AuthRoute extends Route {
       }
     } on AppException catch (error) {
       final status = switch (error.code) {
-        'unauthenticated' => 401,
+        'unauthenticated' || 'invalid_credentials' => 401,
         'origin_rejected' => 403,
         'account_not_allowed' || 'feature_disabled' => 403,
         'rate_limited' => 429,
+        'service_unavailable' => 503,
         _ => 400,
       };
       return _json({'error': error.code}, status: status);

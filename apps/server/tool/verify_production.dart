@@ -10,6 +10,61 @@ import 'package:http/http.dart' as http;
 // Credentials are read from a private file and are never written to the report.
 const ids = Uuid();
 
+// A diagnostic DNS override avoids a workstation's synthetic proxy DNS while
+// retaining the HTTPS hostname, SNI, certificate verification and public route.
+class ValidationDns extends HttpOverrides {
+  ValidationDns(this.host, this.address);
+  final String host, address;
+
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    final client = super.createHttpClient(context);
+    client.connectionFactory = (url, proxyHost, proxyPort) async {
+      // dart:io converts an implicit wss port to HTTPS port 0 before calling
+      // a custom connection factory. Its default connector resolves that to
+      // 443; a diagnostic factory must perform the same normalization.
+      final port = url.port == 0
+          ? (url.scheme == 'https' ? 443 : 80)
+          : url.port;
+      final task = await Socket.startConnect(
+        proxyHost ?? (url.host == host ? address : url.host),
+        proxyPort ?? port,
+      );
+      Socket? active;
+      final socket = task.socket.then<Socket>((raw) async {
+        active = raw;
+        if (url.scheme == 'https' && proxyHost == null) {
+          active = await SecureSocket.secure(
+            raw,
+            host: url.host,
+            context: context,
+          );
+        }
+        return active!;
+      });
+      return ConnectionTask.fromSocket(socket, () {
+        task.cancel();
+        active?.destroy();
+      });
+    };
+    return client;
+  }
+}
+
+final _secrets = <String>{};
+
+String safeIssue(Object? error) {
+  var message = error?.toString() ?? 'stream_closed';
+  for (final secret in _secrets) {
+    message = message.replaceAll(secret, '[redacted]');
+  }
+  message = message.replaceAll(
+    RegExp(r'Bearer\s+[^\s,;"}]+', caseSensitive: false),
+    'Bearer [redacted]',
+  );
+  return message.length <= 500 ? message : message.substring(0, 500);
+}
+
 void require(bool condition, String reason) {
   if (!condition) throw StateError(reason);
 }
@@ -35,11 +90,19 @@ class Device implements ClientAuthKeyProvider {
   String? roomId;
   RoomSnapshot? latest;
   Object? streamError;
-  final connectionId = ids.v4();
+  String connectionId = ids.v4();
   StreamSubscription<RoomSnapshot>? subscription;
   Timer? timer;
   bool heartbeatBusy = false;
   int transportRetries = 0;
+  int streamReconnects = 0;
+  bool connected = false;
+  bool _closing = false;
+  int _generation = 0, _attempt = 0;
+  Timer? _reconnect;
+  DateTime? lastSnapshotAt;
+  String? lastStreamIssue;
+  final streamEvents = <Map<String, Object?>>[];
 
   Future<T> request<T>(Future<T> Function() send) async {
     try {
@@ -84,26 +147,95 @@ class Device implements ClientAuthKeyProvider {
       'Authentication failed (${data['error']}).',
     );
     token = data['token'] as String? ?? token;
+    if (token != null) _secrets.add(token!);
     if (data['profile'] != null) {
       profile = PlayerProfile.fromJson(data['profile'] as Map<String, dynamic>);
     }
     return data;
   }
 
-  void watch(String id) {
+  Future<void> watch(String id) async {
     roomId = id;
-    subscription = rpc.room.watch(id, connectionId).listen((value) {
-      if (latest == null || value.revision >= latest!.revision) latest = value;
-    }, onError: (Object error) => streamError = error);
+    await _attach();
+  }
+
+  Future<void> _attach() async {
+    final generation = ++_generation;
+    connected = false;
+    timer?.cancel();
+    _reconnect?.cancel();
+    unawaited(subscription?.cancel());
+    final id = roomId!;
+    final connection = connectionId = ids.v4();
+    // Match the app: restore the session, fetch the authoritative snapshot,
+    // then establish a new streaming method and a fresh presence lease.
+    await auth('session', {});
+    final snapshot = await request(() => rpc.room.snapshot(id));
+    if (_closing || generation != _generation) return;
+    latest = snapshot;
+    subscription = rpc.room
+        .watch(id, connection)
+        .listen(
+          (value) {
+            if (_closing || generation != _generation) return;
+            if (latest == null || value.revision >= latest!.revision) {
+              latest = value;
+            }
+            lastSnapshotAt = DateTime.now().toUtc();
+            connected = true;
+            _attempt = 0;
+          },
+          onError: (Object error) {
+            if (!_closing && generation == _generation) _lost(error);
+          },
+          onDone: () {
+            if (!_closing &&
+                generation == _generation &&
+                latest?.status != RoomStatus.closed) {
+              _lost(null);
+            }
+          },
+        );
     timer = Timer.periodic(const Duration(seconds: 8), (_) async {
-      if (heartbeatBusy) return;
+      if (_closing || generation != _generation || heartbeatBusy) return;
       heartbeatBusy = true;
       try {
-        await request(() => rpc.room.heartbeat(id, connectionId));
+        await request(() => rpc.room.heartbeat(id, connection));
       } catch (error) {
-        streamError = error;
+        if (!_closing && generation == _generation) _lost(error);
       } finally {
         heartbeatBusy = false;
+      }
+    });
+  }
+
+  void _lost(Object? error) {
+    if (_closing || (_reconnect?.isActive ?? false)) return;
+    connected = false;
+    timer?.cancel();
+    lastStreamIssue = error is AppException
+        ? error.code
+        : error?.runtimeType.toString() ?? 'stream_closed';
+    streamEvents.add({
+      'at': DateTime.now().toUtc().toIso8601String(),
+      'issue': lastStreamIssue,
+      'detail': safeIssue(error),
+      'revision': latest?.revision,
+    });
+    if (error is AppException ||
+        error is ServerpodClientUnauthorized ||
+        error is StateError) {
+      streamError = error;
+      return;
+    }
+    final seconds = [1, 2, 4, 8, 10][_attempt.clamp(0, 4)];
+    _attempt++;
+    _reconnect = Timer(Duration(seconds: seconds), () async {
+      streamReconnects++;
+      try {
+        await _attach();
+      } catch (error) {
+        if (!_closing) _lost(error);
       }
     });
   }
@@ -133,7 +265,10 @@ class Device implements ClientAuthKeyProvider {
   }
 
   Future<void> close() async {
+    _closing = true;
+    _generation++;
     timer?.cancel();
+    _reconnect?.cancel();
     await subscription?.cancel();
     rpc.close();
     httpClient.close();
@@ -179,12 +314,26 @@ Future<void> main(List<String> args) async {
   require(path != null, 'Set GOMOKU_ACCOUNTS_FILE to a private account file.');
   final accounts = jsonDecode(await File(path!).readAsString()) as List;
   require(accounts.length == 2, 'Two provisioned accounts are required.');
+  for (final account in accounts) {
+    _secrets.add((account as Map)['password'] as String);
+  }
   final origin =
       Platform.environment['GOMOKU_WEB_URL'] ?? 'https://gomoku.xqd.pp.ua';
   require(
     Uri.parse(origin).scheme == 'https',
     'Public validation requires HTTPS.',
   );
+  final connectionAddress = Platform.environment['GOMOKU_CONNECT_IP'];
+  if (connectionAddress != null) {
+    require(
+      InternetAddress.tryParse(connectionAddress) != null,
+      'Use an IP address for the diagnostic DNS override.',
+    );
+    HttpOverrides.global = ValidationDns(
+      Uri.parse(origin).host,
+      connectionAddress,
+    );
+  }
   final folder = Directory('artifacts/production')..createSync(recursive: true);
   final reportFile = File(
     '${folder.path}/capacity-${DateTime.now().millisecondsSinceEpoch}.json',
@@ -194,6 +343,7 @@ Future<void> main(List<String> args) async {
   final report = <String, Object?>{
     'startedAt': DateTime.now().toUtc().toIso8601String(),
     'origin': origin,
+    'connectionAddress': connectionAddress ?? 'system DNS',
     'clients': 10,
     'accounts': 2,
     'requestedMinutes': minutes,
@@ -219,6 +369,10 @@ Future<void> main(List<String> args) async {
       'transportRetries': devices.fold<int>(
         0,
         (count, device) => count + device.transportRetries,
+      ),
+      'streamReconnects': devices.fold<int>(
+        0,
+        (count, device) => count + device.streamReconnects,
       ),
     });
     await reportFile.writeAsString(
@@ -266,7 +420,7 @@ Future<void> main(List<String> args) async {
       devices.add(device);
       final account = accounts[i % 2] as Map;
       await device.auth('login', {
-        'email': account['email'],
+        'email': account['login'] ?? account['email'],
         'password': account['password'],
       });
       await device.auth('session', {});
@@ -313,13 +467,13 @@ Future<void> main(List<String> args) async {
     final joinId = ids.v4();
     await b.rpc.room.joinRoom(room.code, joinId);
     await b.rpc.room.joinRoom(room.code, joinId);
-    for (final device in devices) {
-      device.watch(room.roomId);
-    }
+    await Future.wait(devices.map((device) => device.watch(room.roomId)));
     await until(
       () => devices.every(
         (d) =>
-            d.latest?.hostConnected == true && d.latest?.guestConnected == true,
+            d.connected &&
+            d.latest?.hostConnected == true &&
+            d.latest?.guestConnected == true,
       ),
       'Ten clients did not receive the occupied room.',
     );
@@ -382,6 +536,17 @@ Future<void> main(List<String> args) async {
       room.blackPlayerId == b.profile.playerId,
       'Rematch did not exchange colors.',
     );
+    // Exercise the same onError/onDone restoration used by the real app before
+    // the timed run. This intentional closure is reported separately.
+    await devices.last.rpc.closeStreamingMethodConnections();
+    await until(
+      () =>
+          devices.last.streamReconnects > 0 &&
+          devices.last.connected &&
+          devices.last.latest?.gameJson == room.gameJson,
+      'The validation client did not recover its closed stream.',
+    );
+    report['intentionalStreamClosures'] = 1;
     report['protocolChecks'] = 'passed';
     elapsed.start();
     var lastMinute = -1;
@@ -397,7 +562,9 @@ Future<void> main(List<String> args) async {
           moves++;
           final expected = room.gameJson;
           await until(
-            () => devices.every((d) => d.latest?.gameJson == expected),
+            () => devices.every(
+              (d) => d.connected && d.latest?.gameJson == expected,
+            ),
             'The ten clients disagreed about the board.',
           );
           require(
@@ -445,6 +612,31 @@ Future<void> main(List<String> args) async {
         : error.runtimeType.toString();
     if (error is StateError) report['detail'] = error.message;
     if (error is HandshakeException) report['tlsError'] = error.message;
+    report['clientStates'] = [
+      for (var i = 0; i < devices.length; i++)
+        {
+          'index': i,
+          'connected': devices[i].connected,
+          'revision': devices[i].latest?.revision,
+          'lastSnapshotAt': devices[i].lastSnapshotAt?.toIso8601String(),
+          'terminalError': devices[i].streamError?.runtimeType.toString(),
+          'streamEvents': [...devices[i].streamEvents],
+        },
+    ];
+    if (devices.isNotEmpty && devices.first.roomId != null) {
+      try {
+        final authoritative = await devices.first.request(
+          () => devices.first.rpc.room.snapshot(devices.first.roomId!),
+        );
+        report['serverRevisionAtFailure'] = authoritative.revision;
+        report['clientBoardsMatchServer'] = [
+          for (final device in devices)
+            device.latest?.gameJson == authoritative.gameJson,
+        ];
+      } catch (_) {
+        /* The original failure remains authoritative. */
+      }
+    }
     exitCode = 1;
   } finally {
     elapsed.stop();

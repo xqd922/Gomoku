@@ -1,11 +1,17 @@
 {
   "version": "1.2.0+10200",
-  "builds": {"status": "passed", "evidence": "https://github.com/xqd922/Gomoku/actions/runs/34685058715 — e3bb090: all six client builds, backend/browser checks and Debian 12 AOT build passed. Release publication requires a retry after making the tagged workflow reachable from main."},
-  "online": {"status": "pending", "evidence": ""},
-  "capacity60Minutes": {"status": "pending", "evidence": ""},
-  "backupRestore": {"status": "pending", "evidence": ""},
-  "existingServices": {"status": "pending", "evidence": ""},
-  "androidManual": {"status": "pending", "evidence": "用户将安装候选 APK，按清单手动验收。"},
-  "windowsRuntime": {"status": "pending", "evidence": ""},
-  "webRuntime": {"status": "pending", "evidence": ""}
+  "releaseDecision": {
+    "authorizedBy": "user",
+    "date": "2026-09-12",
+    "instruction": "用户报告候选版手动测试没有问题，要求简化账号密码，并明确要求修改后直接发正式版。构建和自动测试仍须全部通过；未完成的扩展验收不阻塞本次发行，不记为已通过。",
+    "waivedChecks": ["online", "capacity60Minutes", "windowsRuntime", "webRuntime"]
+  },
+  "builds": {"status": "passed", "evidence": "RC2 deeb136: https://github.com/xqd922/Gomoku/actions/runs/34689136303 — all six clients, Debian 12 server and automated checks passed. The stable tag rebuilds and must pass all jobs before publishing."},
+  "online": {"status": "waived", "evidence": "RC1 public two-client suite passed all seven groups. RC2 HTTPS, private sign-in, invitation, moves and undo passed; its restart run exposed a readiness race, fixed with startup authentication gating and a regression test in this release. Updated production verification follows deployment of the Actions bundle."},
+  "capacity60Minutes": {"status": "waived", "evidence": "10 clients / two accounts: direct-public-IP diagnostic run on RC2 has reached 2354 seconds, 1287 moves, P95 530 ms, zero transport retries; the one stream reconnection was deliberately injected. Full 60-minute completion has not yet been recorded. Earlier failed runs are retained separately."},
+  "backupRestore": {"status": "passed", "evidence": "2026-09-12T13:57Z: production dump restored into an isolated local PostgreSQL 17 database, all 44 tables and row counts verified. SHA256 69614d3b3f17616aa880855157b1d177543bc839aa0dfd95760b70b71fac989b. Private dump retained locally."},
+  "existingServices": {"status": "passed", "evidence": "Public HTTPS and original REALITY proxy passed cutover probes. RC2 installation retained Xray, HAProxy, Caddy, Redis and PostgreSQL PIDs; current and previous app releases retained, 1446 MiB free disk."},
+  "androidManual": {"status": "passed", "evidence": "2026-09-12: user reported ‘我测试过了 没啥问题了’ after agreeing to install and manually test the candidate APK. Device model and Android version were not supplied. This is user-reported acceptance, separate from CI."},
+  "windowsRuntime": {"status": "waived", "evidence": "Official RC2 executable passed actual Windows 11 launch, v1.1 data/settings preservation, six-move resume, accessibility/keyboard/mouse moves and undo, resize and return/resume. Full Windows-versus-Web game has not yet been recorded."},
+  "webRuntime": {"status": "waived", "evidence": "Production RC1 completed full gameplay/replay/rematch, restart, offline and multi-tab checks. RC2 passed the first three public groups; final-bundle repeat remains pending. Startup readiness and signed-out room recovery fixes have targeted regression coverage."}
 }

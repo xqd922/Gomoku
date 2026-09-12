@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -8,6 +9,12 @@ typedef Row = Map<String, dynamic>;
 
 bool _applicationDatabaseReady = false;
 bool get applicationDatabaseReady => _applicationDatabaseReady;
+final _ready = Completer<void>();
+
+/// Framework listeners may open before application migrations finish. Hold
+/// authenticated RPCs until readiness so startup never looks like revocation.
+Future<void> waitForApplicationDatabase() =>
+    _ready.future.timeout(const Duration(seconds: 15));
 
 Future<List<Row>> rows(
   Session session,
@@ -95,4 +102,5 @@ Future<void> migrateApplication(Session session) async {
     }
   });
   _applicationDatabaseReady = true;
+  if (!_ready.isCompleted) _ready.complete();
 }

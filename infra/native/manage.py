@@ -148,9 +148,12 @@ def bootstrap(domain):
     if env['GOMOKU_DOMAIN'] != domain:
         raise RuntimeError('The existing deployment uses a different domain.')
     if not (ETC / 'initial-accounts.json').exists():
-        alphabet = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@%-_'
-        accounts = [{'email': f'player{i}@{domain}', 'nickname': '玩家一' if i == 1 else '玩家二',
-                     'password': ''.join(secrets.choice(alphabet) for _ in range(20))} for i in (1, 2)]
+        passwords = set()
+        while len(passwords) < 2:
+            passwords.add(str(secrets.randbelow(90_000_000) + 10_000_000))
+        accounts = [{'login': str(i), 'email': f'player{i}@{domain}',
+                     'nickname': '玩家一' if i == 1 else '玩家二',
+                     'password': passwords.pop()} for i in (1, 2)]
         write(ETC / 'initial-accounts.json', json.dumps(accounts, ensure_ascii=False, indent=2), 0o600)
     write('/etc/postgresql/17/main/conf.d/gomoku.conf',
           "listen_addresses = '127.0.0.1'\nshared_buffers = '16MB'\nmax_connections = 16\nwork_mem = '1MB'\nmaintenance_work_mem = '16MB'\nmax_wal_size = '128MB'\nmin_wal_size = '32MB'\n")
@@ -484,7 +487,7 @@ def gateway():
 
 def reset_password(email):
     import getpass
-    password = getpass.getpass('New password (20–128 characters): ')
+    password = getpass.getpass('New password (8–128 characters): ')
     if password != getpass.getpass('Confirm password: '):
         raise ValueError('Passwords do not match.')
     with tempfile.TemporaryDirectory(prefix='gomoku-reset-') as temporary:

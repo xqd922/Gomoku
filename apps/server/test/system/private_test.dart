@@ -17,7 +17,7 @@ void main() {
   late File accountsFile;
   final firstEmail = 'private-${ids.v4()}@example.test';
   final secondEmail = 'private-${ids.v4()}@example.test';
-  const initialPassword = 'Gomoku-private-test!48271';
+  const initialPassword = '48271635';
   final accounts = <Map<String, String>>[];
   final clients = <TestPlayer>[];
 
@@ -142,6 +142,14 @@ void main() {
         }),
         authError('invalid_credentials'),
       );
+      await expectLater(
+        anonymous.auth('login', {'email': '3', 'password': initialPassword}),
+        authError('invalid_credentials'),
+      );
+      await expectLater(
+        outsider.auth('login', {'email': '1', 'password': initialPassword}),
+        authError('invalid_credentials'),
+      );
     },
   );
 
@@ -152,10 +160,16 @@ void main() {
     final record = localRecord();
     await a.client.profile.syncRecords([jsonEncode(record.toJson())], '');
     expect((await b.client.profile.syncRecords([], '')).records, isEmpty);
+    // Simulate the added, nullable alias column on an existing deployment.
+    final db = await testDatabase();
+    await db.execute('UPDATE gm_private_accounts SET login_name=NULL');
+    await db.close();
     final result = await admin('provision');
     expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
-    final again = await login(firstEmail);
+    final again = await login('1');
     expect(again.profile!.playerId, id);
+    expect((await login('2')).profile!.playerId, b.profile!.playerId);
+    expect((await login(firstEmail)).profile!.playerId, id);
     expect(
       (await again.client.profile.syncRecords([], '')).records.single,
       contains(record.id),
@@ -177,16 +191,70 @@ void main() {
   });
 
   test(
+    'pending application migrations do not invalidate private sessions',
+    () async {
+      final signedIn = await login('1');
+      final restarting = TestServer(
+        9480,
+        environment: {'GOMOKU_AUTH_MODE': 'private'},
+      );
+      final db = await testDatabase();
+      await db.execute('SELECT pg_advisory_lock(7744112200)');
+      final started = restarting.start();
+      addTearDown(() async {
+        await started;
+        await restarting.stop();
+      });
+      final client = TestPlayer(restarting, 'Restart')..token = signedIn.token;
+      clients.add(client);
+      Future<RoomSnapshot?>? pendingRpc;
+      Future<Map<String, dynamic>>? pendingSession;
+      try {
+        await eventually(() async {
+          try {
+            return (await http.get(Uri.parse('${restarting.web}app-config')))
+                    .statusCode ==
+                200;
+          } catch (_) {
+            return false;
+          }
+        }, timeout: const Duration(seconds: 45));
+        pendingSession = client.auth('session', {});
+        pendingRpc = client.client.room.activeRoom();
+        final web = await http.post(
+          Uri.parse('${restarting.web}auth/session'),
+          headers: {
+            'content-type': 'application/json',
+            'x-gomoku-client': 'web',
+            'origin': 'http://localhost:4280',
+            'cookie': 'gomoku_session=${signedIn.token}',
+          },
+          body: '{}',
+        );
+        expect(web.statusCode, 503);
+        expect(jsonDecode(web.body)['error'], 'service_unavailable');
+      } finally {
+        await db.execute('SELECT pg_advisory_unlock(7744112200)');
+        await db.close();
+      }
+      await started;
+      expect(await pendingRpc, isNull);
+      await pendingSession;
+      expect(client.profile!.playerId, signedIn.profile!.playerId);
+    },
+  );
+
+  test(
     'admin password reset revokes sessions and provisioning does not reset it',
     () async {
       final host = await login(firstEmail);
       final previous = await login(secondEmail);
       final room = await TestRoom.open(host, previous);
       addTearDown(room.close);
-      const nextPassword = 'Gomoku-private-reset!93751';
+      const nextPassword = '93751628';
       final file = File('${temporary.path}/reset.json');
       await file.writeAsString(
-        jsonEncode({'email': secondEmail, 'password': nextPassword}),
+        jsonEncode({'email': '2', 'password': nextPassword}),
       );
       final reset = await admin('reset-password', reset: file);
       expect(reset.exitCode, 0, reason: '${reset.stdout}\n${reset.stderr}');
@@ -202,8 +270,12 @@ void main() {
       );
       final seeded = await admin('provision');
       expect(seeded.exitCode, 0, reason: '${seeded.stdout}\n${seeded.stderr}');
-      final fresh = await login(secondEmail, password: nextPassword);
+      final fresh = await login('2', password: nextPassword);
       expect(fresh.profile!.playerId, previous.profile!.playerId);
+      expect(
+        (await login(secondEmail, password: nextPassword)).profile!.playerId,
+        previous.profile!.playerId,
+      );
       await expectLater(
         previous.auth('login', {
           'email': secondEmail,

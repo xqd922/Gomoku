@@ -5,6 +5,7 @@ import 'package:serverpod_auth_idp_server/core.dart';
 
 import '../generated/protocol.dart';
 import '../services/app_config.dart';
+import '../services/database.dart';
 import '../services/private_accounts.dart';
 
 String? header(Request? request, String name) =>
@@ -52,6 +53,7 @@ Future<AuthenticationInfo?> authenticateSession(
   String credential,
   AppConfig config,
 ) async {
+  await waitForApplicationDatabase();
   var token = credential;
   if (token.startsWith('Bearer ')) token = token.substring(7);
   if (token == 'web-session') {

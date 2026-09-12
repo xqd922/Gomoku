@@ -18,6 +18,7 @@ const chrome = process.env.GOMOKU_CHROME_PATH ||
 const browser = await chromium.launch({ headless: true,
   ...(chrome && existsSync(chrome) ? { executablePath: chrome } : {}) });
 const pages = [], passed = [], errors = [];
+const network = [];
 let stage = 'public configuration';
 const report = { startedAt: new Date().toISOString(), origin, passed, status: 'running' };
 async function until(check, reason, timeout = 40000) {
@@ -38,6 +39,16 @@ async function boot(context, path = '/') {
   const page = await context.newPage();
   page.setDefaultTimeout(20000);
   page.on('pageerror', error => errors.push(error.name));
+  const index = pages.length;
+  page.on('response', response => {
+    const path = new URL(response.url()).pathname;
+    if (path.startsWith('/auth/')) {
+      network.push({ at: new Date().toISOString(), page: index, path, status: response.status() });
+    }
+  });
+  page.on('websocket', socket => socket.on('close', () => {
+    network.push({ at: new Date().toISOString(), page: index, event: 'websocket_closed' });
+  }));
   pages.push(page);
   await navigate(page, path);
   return page;
@@ -60,7 +71,8 @@ async function signIn(page, account) {
   await page.waitForURL(url => url.pathname === '/account');
   assert.equal(await page.getByText('注册', { exact: true }).count(), 0);
   assert.equal(await page.getByText('忘记密码', { exact: true }).count(), 0);
-  await fill(page, '邮箱地址', account.email);
+  const shortLogin = await page.getByRole('textbox', { name: '账号', exact: true }).count();
+  await fill(page, shortLogin ? '账号' : '邮箱地址', shortLogin ? account.login ?? account.email : account.email);
   await fill(page, '密码', account.password);
   await click(page, '登录');
 }
@@ -219,6 +231,7 @@ try {
   process.exitCode = 1;
 } finally {
   report.finishedAt = new Date().toISOString();
+  report.network = network;
   await writeFile(resolve(output, 'results.json'), JSON.stringify(report, null, 2));
   await browser.close();
 }

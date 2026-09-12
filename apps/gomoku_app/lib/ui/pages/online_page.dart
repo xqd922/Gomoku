@@ -147,21 +147,32 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
     final s = context.strings;
     final colors = Theme.of(context).colorScheme;
     if (room == null) {
+      final auth = ref.watch(authProvider);
+      final needsLogin =
+          !auth.resolving && !auth.hasSession && auth.profile == null;
+      final error =
+          _error ?? (needsLogin ? const ApiFailure('login_required') : null);
       return SectionScaffold(
         title: s.t('friendMatch'),
         compact: true,
-        child: _error == null
+        child: error == null
             ? const Center(child: CircularProgressIndicator())
             : PageFrame(
                 children: [
                   InlineNotice(
-                    message: s.error(errorCode(_error!)),
+                    message: s.error(errorCode(error)),
                     error: true,
                     action: TextButton(
                       onPressed: _load,
                       child: Text(s.t('retry')),
                     ),
                   ),
+                  if (needsLogin)
+                    FilledButton.icon(
+                      onPressed: () => context.go('/account?returnTo=%2Flobby'),
+                      icon: const Icon(Icons.login_rounded),
+                      label: Text(s.t('login')),
+                    ),
                   TextButton(
                     onPressed: () => context.go('/lobby'),
                     child: Text(s.t('joinRoom')),
