@@ -50,11 +50,22 @@ jobs:
           mkdir -p .local
           (cd apps/server && dart bin/main.dart --apply-migrations --server-id ci-web) >.local/web-server.log 2>&1 &
           dart tool/dev_gateway.dart >.local/web-gateway.log 2>&1 &
-      - name: Browser verification
+      - name: Prepare browser
+        timeout-minutes: 4
         run: |
           cd tool/browser
           npm ci
-          npx playwright install --with-deps chromium
+          chrome="$(command -v google-chrome || command -v google-chrome-stable || true)"
+          if [[ -n "$chrome" ]]; then
+            "$chrome" --version
+            echo "GOMOKU_CHROME_PATH=$chrome" >> "$GITHUB_ENV"
+          else
+            timeout 180s npx playwright install --with-deps --only-shell chromium
+          fi
+      - name: Browser verification
+        timeout-minutes: 10
+        run: |
+          cd tool/browser
           npm test
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
@@ -64,6 +75,7 @@ jobs:
             artifacts/browser
             .local/*.log
           if-no-files-found: ignore
+          include-hidden-files: true
           retention-days: 14
       - name: Check deployment images
         run: |

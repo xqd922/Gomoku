@@ -26,7 +26,13 @@ test -x "$build_tools/apksigner"
   --out "$signed" "$apk"
 "$build_tools/zipalign" -c -P 16 4 "$signed"
 "$build_tools/apksigner" verify --verbose --print-certs "$signed" | tee "$(dirname "$apk")/android-signature.txt"
-grep -F 'Signer #1 certificate SHA-256 digest: c5bbb8806b7034dbc4ab65652c3f89839f057d782df31ece4e8125f5792e5333' "$(dirname "$apk")/android-signature.txt"
+signature_report="$(dirname "$apk")/android-signature.txt"
+grep -Fx 'Number of signers: 1' "$signature_report"
+# Build Tools 37 uses "V3.0 Signer:" where older versions used "Signer #1".
+# Compare certificate digests independently of that display label, and reject
+# any additional certificate instead of accepting the first matching line.
+certificates="$(sed -nE 's/^.*certificate SHA-256 digest: ([0-9a-f]{64})$/\1/p' "$signature_report" | sort -u)"
+test "$certificates" = 'c5bbb8806b7034dbc4ab65652c3f89839f057d782df31ece4e8125f5792e5333'
 badging="$("$build_tools/aapt2" dump badging "$signed")"
 version="$(sed -n 's/^version: \([^+]*\)+.*/\1/p' apps/gomoku_app/pubspec.yaml | tr -d '\r')"
 build="$(sed -n 's/^version: [^+]*+\([0-9]*\).*/\1/p' apps/gomoku_app/pubspec.yaml | tr -d '\r')"
