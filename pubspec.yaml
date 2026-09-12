@@ -1,0 +1,12 @@
+name: gomoku_workspace
+publish_to: none
+environment:
+  sdk: ^3.13.0
+workspace:
+  - packages/gomoku_core
+  - packages/gomoku_client
+  - apps/server
+  - apps/gomoku_app
+dev_dependencies:
+  yaml: 3.1.4
+  lints: 6.1.0

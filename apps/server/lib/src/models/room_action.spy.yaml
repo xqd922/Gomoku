@@ -1,0 +1,11 @@
+enum: RoomAction
+serialized: byName
+values:
+  - ready
+  - move
+  - requestUndo
+  - acceptUndo
+  - rejectUndo
+  - resign
+  - rematch
+  - leave

@@ -1,0 +1,32 @@
+{$GOMOKU_DOMAIN} {
+	encode zstd gzip
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+	}
+	handle_path /api/* {
+		reverse_proxy server:8080
+	}
+	handle /v1/websocket {
+		reverse_proxy server:8080
+	}
+	handle /auth/* {
+		reverse_proxy server:8082 {
+			header_up X-Real-IP {remote_host}
+		}
+	}
+	handle /health {
+		reverse_proxy server:8082
+	}
+	handle {
+		root * /srv/gomoku
+		header {
+			Cross-Origin-Opener-Policy same-origin
+			Cross-Origin-Embedder-Policy require-corp
+			Cross-Origin-Resource-Policy same-origin
+			Cache-Control no-cache
+		}
+		try_files {path} /index.html
+		file_server
+	}
+}

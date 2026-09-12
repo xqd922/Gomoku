@@ -1,0 +1,36 @@
+name: gomoku
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.1-pg17
+    environment:
+      POSTGRES_DB: gomoku
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Run dart tool/bootstrap.dart first}
+    ports:
+      - "${GOMOKU_BIND_ADDRESS:-127.0.0.1}:8090:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/init.sql:/docker-entrypoint-initdb.d/10-gomoku.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gomoku"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Run dart tool/bootstrap.dart first}"]
+    ports:
+      - "${GOMOKU_BIND_ADDRESS:-127.0.0.1}:8091:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+  mailpit:
+    image: axllent/mailpit:v1.31.1
+    ports:
+      - "${GOMOKU_BIND_ADDRESS:-127.0.0.1}:1025:1025"
+      - "${GOMOKU_BIND_ADDRESS:-127.0.0.1}:8025:8025"
+    restart: unless-stopped
+volumes:
+  postgres_data:
+  redis_data:

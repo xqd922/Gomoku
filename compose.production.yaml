@@ -1,0 +1,70 @@
+name: gomoku-production
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.1-pg17
+    environment:
+      POSTGRES_DB: gomoku
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gomoku"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?}"]
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+  server:
+    build:
+      context: .
+      dockerfile: infra/server.Dockerfile
+    environment:
+      SERVERPOD_PASSWORD_database: ${DATABASE_PASSWORD:?}
+      SERVERPOD_PASSWORD_redis: ${REDIS_PASSWORD:?}
+      SERVERPOD_PASSWORD_emailSecretHashPepper: ${EMAIL_SECRET_PEPPER:?}
+      SERVERPOD_PASSWORD_serverSideSessionKeyHashPepper: ${SESSION_SECRET_PEPPER:?}
+      SERVERPOD_API_SERVER_PUBLIC_HOST: ${GOMOKU_DOMAIN:?}
+      SERVERPOD_WEB_SERVER_PUBLIC_HOST: ${GOMOKU_DOMAIN:?}
+      ALLOWED_ORIGINS: https://${GOMOKU_DOMAIN:?}
+      COOKIE_SECURE: "true"
+      TRUST_PROXY: "true"
+      SMTP_HOST: ${SMTP_HOST:?}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SSL: ${SMTP_SSL:-false}
+      SMTP_USERNAME: ${SMTP_USERNAME:?}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:?}
+      SMTP_FROM: ${SMTP_FROM:?}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+  web:
+    build:
+      context: .
+      dockerfile: infra/web.Dockerfile
+    environment:
+      GOMOKU_DOMAIN: ${GOMOKU_DOMAIN:?}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

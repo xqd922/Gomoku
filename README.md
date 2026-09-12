@@ -1,54 +1,115 @@
-# 五子棋（Tauri 2）
+# Gomoku / 五子棋
 
-跨平台双人五子棋，提供 Windows 桌面版和 Android ARM64 版。支持同机双人、基于 WebSocket 房间的在线双人、悔棋/重做、键盘导航和触控操作。
+使用 Flutter 和 Serverpod 构建的六端五子棋。界面采用 [Material 3 Expressive](https://m3.material.io/blog/building-with-m3-expressive) 的配色、形状、字体层级和动效理念，默认紫色主题，支持浅色、深色及 Android 动态配色。
 
-## 开发
+## 功能
 
-```bash
-bun install
-bun run server
-bun run tauri dev
+- **本地双人**：15×15 无禁手五子棋，黑先，五颗或更多连成一线获胜；自动保存、悔棋、重新开局、终局复盘。
+- **好友联机**：六位房间码和网页邀请链接、双方准备、服务端裁定、认输、协商悔棋、换色再来一局。
+- **断线恢复**：暂停对局并保留座位 120 秒，重连恢复快照；等待房间空闲 30 分钟过期。
+- **身份与同步**：游客直接游玩；邮箱注册、验证码、密码找回、事务式游客归并；正式账号同步已结束棋谱。
+- **多种输入**：触屏预选与确认、鼠标预览、方向键与 Enter/空格落子、屏幕阅读器逐交叉点操作。
+- **适配**：手机底部导航，平板与桌面侧栏；中英文、系统语言回退、大字体、减少动画、声音和触感开关。
+- **离线 Web**：本地字体、CanvasKit、数据库 Wasm/worker 和离线静态缓存；同一浏览器的多标签页共享棋局并检查写入冲突。
+
+首版范围不包含 AI、在线匹配、排行榜和商店上架。平台构建与实机验收情况见 [验证记录](docs/VALIDATION.md)。
+
+## 下载
+
+[GitHub Releases](https://github.com/xqd922/Gomoku/releases) 提供由 Actions 构建的六端发行文件、SHA-256 校验和及源码版本记录。v1.0.0 是 Flutter / Serverpod 架构的首个版本；旧版 Tauri 源码仍可通过 v0.3.0 等标签查看。
+
+本地双人无需后端。发布包未接入公共服务器，账号、联机和云端同步需按 [部署说明](docs/DEPLOYMENT.md) 自建服务并配置客户端地址。iOS 文件为无签名构建，不能直接安装；其余使用条件见 [发行说明](docs/releases/v1.0.0.md)。
+
+## 本机启动
+
+固定使用 **Flutter 3.47.1 / Dart 3.13.1**，Serverpod **3.4.13**。Flutter 版本也记录在 `.fvmrc`。依赖通过根 `pubspec.lock` 锁定，包源使用 `https://pub.dev`。
+
+需要 Flutter 对应的平台工具链，以及 Docker Compose。Windows 可使用 Docker Desktop，或在 Ubuntu-22.04 WSL 中安装 Docker Engine 与 Compose；当前开发环境采用后者。脚本会生成本地随机密钥，并启动 PostgreSQL、Redis 和 Mailpit。
+
+PowerShell：
+
+```powershell
+cd D:\Seven_code\Gomoku
+.\tool\dev.ps1
 ```
 
-`server/index.ts` 是轻量级房间服务器，不会被打进客户端安装包。在线对局的两台客户端填写相同的服务器地址和房间号即可。应用每次启动会生成新的 6 位房号；房号相当于邀请凭证，不要在公开场合复用或使用容易猜测的房号。
-
-## Android 联机
-
-Android 模拟器访问开发机通常填写 `ws://10.0.2.2:8787`，真机填写电脑局域网地址，例如 `ws://192.168.1.10:8787`。正式公网部署必须使用 `wss://`，并在反向代理或 WebSocket 服务端启用 TLS。正式 APK 为兼容用户明确填写的局域网 `ws://` 地址而允许明文 WebSocket；请不要在不可信网络中使用明文连接。
-
-## Android 构建
-
-先安装 Android Studio，并通过 SDK Manager 安装 Android SDK Platform、Platform-Tools、NDK 和 Command-line Tools，然后配置 `JAVA_HOME`、`ANDROID_HOME` 和 `NDK_HOME`。
+macOS / Linux：
 
 ```bash
-bun run android:init
-bun run android:dev
-bun run android:build -- --apk --target aarch64
+bash tool/dev.sh
 ```
 
-Windows 构建 Android 时，Tauri 需要创建符号链接。如果提示 `Creation symbolic link is not allowed`，请在 Windows 设置中开启“系统 → 开发者选项 → 开发人员模式”，然后重新运行构建。Linux CI runner 不受此限制。
+打开 [本地游戏](http://localhost:4280)；开发验证码在 [Mailpit](http://localhost:8025) 查看。第一次构建需要下载依赖。已有 Web 构建时可使用 `.\tool\dev.ps1 -SkipWebBuild` 或 `bash tool/dev.sh --skip-web-build`。
 
-## Windows 构建
+Ctrl+C 停止脚本启动的应用进程。数据库容器和命名卷保留，便于下次继续开发。运行日志位于 `.local/`；`.env` 和 `apps/server/config/passwords.yaml` 含本地密钥，已经加入忽略列表。
+
+Windows 可使用 `.\tool\dev.ps1 -SkipWebBuild -CheckStartup` 验证启动后自动退出，检查脚本会释放自己创建的进程与端口。
+
+| 用途 | 本机端口 |
+| --- | --- |
+| 同源 Web 网关 | 4280 |
+| Serverpod API / WebSocket | 8080 |
+| 认证与健康检查 | 8082 |
+| PostgreSQL / Redis | 8090 / 8091 |
+| Mailpit 网页 / SMTP | 8025 / 1025 |
+
+WSL Docker 模式由脚本启动保活进程和 Windows 回环转发；不用手动填写每次启动变化的 WSL 地址。
+
+## 客户端开发
+
+从根目录获取依赖后，在 `apps/gomoku_app` 执行：
+
+```powershell
+flutter run -d windows
+```
+
+Android 模拟器使用宿主机地址：
+
+```powershell
+flutter run -d <device-id> --dart-define=GOMOKU_API_URL=http://10.0.2.2:8080/ --dart-define=GOMOKU_AUTH_URL=http://10.0.2.2:8082/auth/ --dart-define=GOMOKU_WEB_URL=http://localhost:4280
+```
+
+无后端时可以直接玩本地双人。Web 开发需保留同源网关和隔离响应头，常规验收使用 `tool/dev` 生成的发布构建。
+
+## 工程结构
+
+| 目录 | 职责 |
+| --- | --- |
+| `packages/gomoku_core` | 无 Flutter / 网络 / 数据库依赖的规则与棋谱验证 |
+| `packages/gomoku_client` | Serverpod 生成的类型化协议与客户端 |
+| `apps/gomoku_app` | Flutter UI、Riverpod 状态、Drift、本地与云端同步 |
+| `apps/server` | 房间、身份、记录、持久化事件、认证适配 |
+| `apps/server/db` | 应用 SQL 迁移，带版本连续性与校验和检查 |
+| `apps/server/migrations` | Serverpod 认证与会话表迁移 |
+| `tool` | 启动、检查、离线资源、浏览器验收与资产生成脚本 |
+| `infra` | 生产镜像、反向代理、独立后端依赖锁 |
+| `.github/workflows` | 六端构建和自动验收 CI |
+
+## 检查与构建
+
+```powershell
+.\tool\check.ps1 -WithBackend
+node tool/browser/verify.mjs
+```
+
+浏览器验收前需启动开发服务，并在 `tool/browser` 执行一次 `npm ci`。Windows 默认使用本机 Chrome；其他系统执行 `npx playwright install --with-deps chromium`。可通过 `GOMOKU_CHROME_PATH` 和 `GOMOKU_WEB_URL` 指定浏览器与网关。
 
 ```bash
-bun run tauri build --bundles nsis
+bash tool/check.sh --with-backend
 ```
 
-安装包位于 `src-tauri/target/release/bundle/nsis/`。当前仓库没有 Windows 代码签名证书，因此 NSIS 安装程序会显示未签名提示；发布前可在 CI 中接入组织自己的 Authenticode 证书。
+服务端集成测试使用真实 PostgreSQL、Redis、Mailpit，专用数据库 `gomoku_test` 会被测试重置；不可将测试配置指向需要保留的数据库。
 
-## 验证
+发布构建（在 `apps/gomoku_app`）：
 
 ```bash
-bun run test:unit
-bun run build
-bun run test:e2e
-bun audit
+flutter build web --release --no-web-resources-cdn --no-pub
+flutter build windows --release --no-pub
+flutter build apk --release --no-pub
 ```
 
-E2E 覆盖 Windows、Android 竖屏/横屏、Canvas 非空与无越界、Axe 可访问性、键盘/真实触控落子、胜负、悔棋/重做、在线同步和满房重试。在线服务器也有独立的 Bun WebSocket 测试。
+Web 构建后从根目录执行 `dart tool/prepare_web.dart`。Windows 分发必须保留整个 `build/windows/x64/runner/Release` 目录中的 DLL 和 `data`。本地 Android 构建使用 debug key，Actions 发布前使用仓库已有正式证书重新签名并验证；包名沿用 `com.xqd922.gomoku`，v1.0.0 的 versionCode 为 10000。
 
-## GitHub Actions 与发布
+Linux、macOS 和 iOS 构建在对应 CI 主机上配置，其中 iOS 使用 `--no-codesign`。生产地址、SMTP、HTTPS、备份及升级步骤见 [部署说明](docs/DEPLOYMENT.md)；一致性协议见 [架构说明](docs/ARCHITECTURE.md)。
 
-`.github/workflows/build.yml` 支持手动运行 `Build installers`，以及推送 `v*` Tag 时构建并发布。工作流会先跑单元测试、构建、浏览器测试和依赖审计，再生成 Windows x64 NSIS 安装包和签名 Android `arm64-v8a` Release APK，并上传 SHA-256 校验文件。
-
-正式 Release 资产名称为 `Gomoku_windows_x64_setup.exe` 和 `Gomoku_android_arm64_release.apk`。Android Release 使用仓库外的签名密钥；本版本证书 SHA-256 指纹为 `c5bbb8806b7034dbc4ab65652c3f89839f057d782df31ece4e8125f5792e5333`。从旧版 debug APK 升级时因签名不同，可能需要先卸载旧包再安装 Release APK；卸载会清除应用数据。
+推送 `main` 或打开 PR 执行验收和六端构建；推送与 pubspec.yaml 匹配的 `v*` 标签会在所有检查通过后自动发布 Release。发行文件通过 `tool/package_release.py` 归档，macOS 保留 app 内符号链接，Linux 保留可执行权限。发布工作流不会覆盖已经公开的 Release。

@@ -1,0 +1,30 @@
+apiServer:
+  port: 8080
+  publicHost: localhost
+  publicPort: 8080
+  publicScheme: http
+insightsServer:
+  port: 8081
+  publicHost: localhost
+  publicPort: 8081
+  publicScheme: http
+webServer:
+  port: 8082
+  publicHost: localhost
+  publicPort: 8082
+  publicScheme: http
+database:
+  host: 127.0.0.1
+  port: 8090
+  name: gomoku
+  user: postgres
+  maxConnectionCount: 20
+redis:
+  enabled: true
+  host: 127.0.0.1
+  port: 8091
+maxRequestSize: 1048576
+sessionLogs:
+  persistentEnabled: false
+  consoleEnabled: true
+  consoleLogFormat: json

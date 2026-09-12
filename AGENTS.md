@@ -1,40 +1,32 @@
 # Repository Guidelines
 
-## 项目结构与模块
-- `src/` — UI 与游戏逻辑
-  - `src/gomoku/engine.ts` — 规则/轮转/悔棋重做/胜负判断
-  - `src/gomoku/render.ts` — Canvas 渲染工具
-  - `src/gomoku/types.ts` — 共享类型
-  - `src/main.ts` — 应用事件与 DOM 交互
-- `electron/` — 主进程与预加载（`main.ts`, `preload.ts`）
-- `index.html` — 渲染进程入口
-- `vite.config.ts` — Vite + `vite-plugin-electron` 配置（别名 `@ -> src`）
-- 构建产物：`dist/`（渲染）、`dist-electron/`（主/预加载）
+## 工程与约束
 
-## 构建、测试与本地开发
-- 安装依赖：`bun i`
-- 开发（Vite+Electron）：`bun run dev`
-- 备用端口 5174：`bun run dev:5174`
-- 构建（渲染+Electron）：`bun run build`
-- 预览（Electron 载入构建）：`bun run start`
-- 仅 Vite/仅 Electron（少用）：`bun run dev:vite`、`bun run dev:electron`
+当前主线是 Flutter / Serverpod 的 Dart workspace；v0.3.0 及更早的 Tauri / TypeScript 工程保留在 Git 历史与 Release 中。
 
-## 编码风格与命名
-- TypeScript（ESM）；缩进 2 空格；单引号；无分号。
-- 命名：类型/接口用 `PascalCase`，变量/函数用 `camelCase`。
-- 导入：优先使用 `@/` 别名；引擎逻辑保持与渲染解耦、偏向纯函数。
-- 渲染进程仅用 DOM/Canvas，避免直接使用 Node API。
+- `packages/gomoku_core`：纯 Dart 规则，不依赖 UI、数据库或网络。
+- `apps/gomoku_app`：Flutter 界面、Riverpod、Drift 和同步。
+- `apps/server`：服务端裁定、身份、房间、棋谱与事务事件。
+- `packages/gomoku_client`：Serverpod 生成的协议；修改模型后使用匹配版本的生成器更新，不手改生成代码。
+- `tool`、`infra`、`.github/workflows`：开发、部署、验收与六端发行。
 
-## 测试指南
-- 目前未集成测试。新增测试建议：Vitest。
-- 放置位置：与源文件同层的 `*.test.ts`（例：`src/gomoku/engine.test.ts`）。
-- 关注点：`engine.ts` 的纯函数（胜负连线、悔棋/重做、越界判断）。
+固定 Flutter 3.47.1、Dart 3.13.1、Serverpod 3.4.13；依赖使用根 workspace lockfile。独立后端镜像另有经过一致性检查的锁文件。
 
-## 提交与 Pull Request
-- 遵循 Conventional Commits：`feat(ui): ...`、`fix(engine): ...`、`docs: ...`。
-- PR 需包含：变更说明、UI 截图（如有）、验证步骤（dev/build）、关联 issue。
-- 基本校验：`bun run dev` 可启动且无报错。
+## 开发与验证
 
-## 安全与配置
-- Electron：`contextIsolation: true`、`nodeIntegration: false`、`sandbox: true`。
-- 仅通过 `preload.ts` 的 `contextBridge` 暴露受控 API，避免泄露 Node 对象。
+- Windows：`./tool/dev.ps1`；macOS / Linux：`bash tool/dev.sh`。
+- 检查：`./tool/check.ps1 -WithBackend` 或 `bash tool/check.sh --with-backend`。
+- 浏览器：先启动开发服务，在 `tool/browser` 执行 `npm ci`，再执行 `node tool/browser/verify.mjs`。
+- 规则和服务端行为变更应增加相应测试；小型文档和打包改动使用针对性的验证即可。
+- 保持 Dart format 与静态分析通过。UI 兼顾中英文、键盘、触屏、大字体及深浅色。
+- 必须区分编译通过、自动运行验证与真人实机验收，不能把 CI 配置当成已经执行的证据。
+
+## 数据与配置
+
+不提交 `.env`、Serverpod passwords 文件、签名密钥、会话凭证或本机日志。服务端检查每次房间和棋谱操作权限；不要以客户端规则替代事务裁定。数据库迁移只追加，不修改已应用的迁移。
+
+Android 正式发布沿用 `com.xqd922.gomoku`、已有仓库签名证书和递增 versionCode；本地 debug-key 构建不能当成正式签名发行包。
+
+## 提交与发布
+
+遵循 Conventional Commits，例如 `feat(game): ...`、`fix(sync): ...`、`ci: ...`。PR 描述包含行为变化、验证结果及必要截图。保留远端历史，不 force push。`v*` 标签触发六端构建和测试，全部成功后才由 Actions 发布 Release。

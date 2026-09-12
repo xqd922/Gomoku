@@ -1,0 +1,25 @@
+class: RoomSnapshot
+fields:
+  roomId: String
+  code: String
+  revision: int
+  status: RoomStatus
+  hostPlayerId: String
+  hostName: String
+  guestPlayerId: String?
+  guestName: String?
+  hostReady: bool
+  guestReady: bool
+  blackPlayerId: String
+  whitePlayerId: String?
+  gameId: String
+  gameJson: String
+  round: int
+  undoRequestedBy: String?
+  resumeDeadline: DateTime?
+  hostConnected: bool
+  guestConnected: bool
+  createdAt: DateTime
+  updatedAt: DateTime
+  gameStartedAt: DateTime
+  serverTime: DateTime

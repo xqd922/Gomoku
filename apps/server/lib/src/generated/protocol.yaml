@@ -1,0 +1,12 @@
+profile:
+  - me:
+  - rename:
+  - syncRecords:
+room:
+  - createRoom:
+  - joinRoom:
+  - activeRoom:
+  - snapshot:
+  - command:
+  - heartbeat:
+  - watch:

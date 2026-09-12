@@ -1,0 +1,5 @@
+class: PlayerProfile
+fields:
+  playerId: String
+  nickname: String
+  isGuest: bool

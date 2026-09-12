@@ -1,0 +1,8 @@
+enum: RoomStatus
+serialized: byName
+values:
+  - waiting
+  - playing
+  - paused
+  - finished
+  - closed

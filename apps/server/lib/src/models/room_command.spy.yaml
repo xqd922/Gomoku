@@ -1,0 +1,7 @@
+class: RoomCommand
+fields:
+  commandId: String
+  expectedRevision: int
+  action: RoomAction
+  row: int?
+  col: int?

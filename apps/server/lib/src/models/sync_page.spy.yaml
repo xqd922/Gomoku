@@ -1,0 +1,5 @@
+class: SyncPage
+fields:
+  records: List<String>
+  cursor: String
+  hasMore: bool

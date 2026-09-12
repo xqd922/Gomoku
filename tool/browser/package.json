@@ -1,0 +1,7 @@
+{
+  "name": "gomoku-browser-checks",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node verify.mjs" },
+  "devDependencies": { "playwright": "1.58.2" }
+}
