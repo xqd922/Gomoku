@@ -1,6 +1,6 @@
 {
   "version": "1.2.0+10200",
-  "builds": {"status": "pending", "evidence": ""},
+  "builds": {"status": "passed", "evidence": "https://github.com/xqd922/Gomoku/actions/runs/34685058715 — e3bb090: all six client builds, backend/browser checks and Debian 12 AOT build passed. Release publication requires a retry after making the tagged workflow reachable from main."},
   "online": {"status": "pending", "evidence": ""},
   "capacity60Minutes": {"status": "pending", "evidence": ""},
   "backupRestore": {"status": "pending", "evidence": ""},
