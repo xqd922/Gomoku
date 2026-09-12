@@ -3,6 +3,17 @@ import 'dart:io';
 final class AppConfig {
   AppConfig._(this.values);
   final Map<String, String> values;
+  static late AppConfig current;
+
+  bool get privateAccounts => get('GOMOKU_AUTH_MODE', 'email') == 'private';
+  String get version => get(
+    'GOMOKU_VERSION',
+    const String.fromEnvironment('GOMOKU_VERSION', defaultValue: '1.2.0'),
+  );
+  String get commit => get(
+    'GOMOKU_COMMIT',
+    const String.fromEnvironment('GOMOKU_COMMIT', defaultValue: 'development'),
+  );
 
   factory AppConfig.load() {
     final result = <String, String>{};
@@ -16,6 +27,9 @@ final class AppConfig {
       }
     }
     result.addAll(Platform.environment);
+    if (!{'email', 'private'}.contains(result['GOMOKU_AUTH_MODE'] ?? 'email')) {
+      throw StateError('GOMOKU_AUTH_MODE must be email or private.');
+    }
     return AppConfig._(result);
   }
 

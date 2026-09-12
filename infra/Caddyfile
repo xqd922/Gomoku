@@ -18,6 +18,9 @@
 	handle /health {
 		reverse_proxy server:8082
 	}
+	handle /app-config {
+		reverse_proxy server:8082
+	}
 	handle {
 		root * /srv/gomoku
 		header {

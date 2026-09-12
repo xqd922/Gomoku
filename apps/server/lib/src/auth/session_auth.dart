@@ -5,6 +5,7 @@ import 'package:serverpod_auth_idp_server/core.dart';
 
 import '../generated/protocol.dart';
 import '../services/app_config.dart';
+import '../services/private_accounts.dart';
 
 String? header(Request? request, String name) =>
     request?.headers[name]?.firstOrNull;
@@ -62,5 +63,13 @@ Future<AuthenticationInfo?> authenticateSession(
     // Browsers may never use a native bearer token to bypass origin checks.
     verifyOrigin(session.request, config);
   }
-  return AuthServices.instance.authenticationHandler(session, token);
+  final auth = await AuthServices.instance.authenticationHandler(
+    session,
+    token,
+  );
+  if (auth != null &&
+      !await PrivateAccounts.allowed(session, auth.userIdentifier)) {
+    return null;
+  }
+  return auth;
 }

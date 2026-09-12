@@ -1,0 +1,59 @@
+{
+    https_port 9443
+    auto_https disable_redirects
+    admin 127.0.0.1:2019
+    servers 127.0.0.1:9443 {
+        protocols h1 h2
+        listener_wrappers {
+            proxy_protocol {
+                allow 127.0.0.1/32
+                timeout 2s
+                fallback_policy REJECT
+            }
+            tls
+        }
+    }
+}
+http://@DOMAIN@ {
+    redir https://@DOMAIN@{uri} 308
+}
+https://@DOMAIN@ {
+    bind 127.0.0.1
+    @TLS@
+    encode gzip
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy same-origin
+    }
+    handle_path /api/* {
+        reverse_proxy 127.0.0.1:8080
+    }
+    handle /v1/websocket {
+        reverse_proxy 127.0.0.1:8080
+    }
+    handle /auth/* {
+        reverse_proxy 127.0.0.1:8082 {
+            header_up X-Real-IP {remote_host}
+        }
+    }
+    @metadata path /health /app-config
+    handle @metadata {
+        reverse_proxy 127.0.0.1:8082
+    }
+    handle /.well-known/assetlinks.json {
+        root * /opt/gomoku/current/web
+        header Content-Type application/json
+        file_server
+    }
+    handle {
+        root * /opt/gomoku/current/web
+        header {
+            Cross-Origin-Opener-Policy same-origin
+            Cross-Origin-Embedder-Policy require-corp
+            Cross-Origin-Resource-Policy same-origin
+            Cache-Control no-cache
+        }
+        try_files {path} /index.html
+        file_server
+    }
+}

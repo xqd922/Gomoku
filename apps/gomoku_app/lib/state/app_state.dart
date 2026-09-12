@@ -23,6 +23,9 @@ final apiProvider = Provider<Api>((ref) {
 final backendHealthProvider = FutureProvider<bool>(
   (ref) => ref.watch(apiProvider).healthy(),
 );
+final serviceConfigProvider = FutureProvider<ServiceConfig>(
+  (ref) => ref.watch(apiProvider).serviceConfig(),
+);
 
 final class AuthState {
   const AuthState({
@@ -39,8 +42,14 @@ final authProvider = NotifierProvider<AuthController, AuthState>(
   AuthController.new,
 );
 final ownerProvider = Provider<String>((ref) {
-  final profile = ref.watch(authProvider).profile;
-  if (profile != null && !profile.isGuest) return 'player:${profile.playerId}';
+  // Restoring the same session must not invalidate an in-flight room attach.
+  // Only an identity change affects ownership, not resolving/session flags.
+  final playerId = ref.watch(
+    authProvider.select(
+      (auth) => auth.profile?.isGuest == false ? auth.profile!.playerId : null,
+    ),
+  );
+  if (playerId != null) return 'player:$playerId';
   return ref.watch(preferencesProvider).getString('guestScope')!;
 });
 final gamesProvider = StreamProvider<List<GameRecord>>(
@@ -61,7 +70,11 @@ class AuthController extends Notifier<AuthState> {
     final prefs = ref.read(preferencesProvider);
     PlayerProfile? cached;
     try {
-      final raw = prefs.getString('profile');
+      final raw =
+          prefs.getString(Api.profileStorageKey) ??
+          ((Api.apiUrl == 'http://127.0.0.1:8080/' || kIsWeb)
+              ? prefs.getString('profile')
+              : null);
       if (raw != null) {
         cached = PlayerProfile.fromJson(
           jsonDecode(raw) as Map<String, dynamic>,
@@ -95,8 +108,9 @@ class AuthController extends Notifier<AuthState> {
       if (ref.mounted) await _accept(result, sync: true);
     } catch (error) {
       if (!ref.mounted) return;
-      if (errorCode(error) == 'unauthenticated') {
+      if (sessionFailure(error)) {
         await api.clearCredential();
+        await ref.read(preferencesProvider).remove(Api.profileStorageKey);
         await ref.read(preferencesProvider).remove('profile');
         state = const AuthState();
       } else {
@@ -109,6 +123,8 @@ class AuthController extends Notifier<AuthState> {
     await restore();
     if (state.hasSession && state.profile != null) return state.profile!;
     if (state.profile != null) throw const ApiFailure('service_unavailable');
+    final config = await ref.read(serviceConfigProvider.future);
+    if (!config.guestOnline) throw const ApiFailure('login_required');
     final prefs = ref.read(preferencesProvider);
     final result = await ref.read(apiProvider).auth('guest', {
       'nickname':
@@ -185,6 +201,7 @@ class AuthController extends Notifier<AuthState> {
     await ref.read(apiProvider).clearCredential();
     final prefs = ref.read(preferencesProvider);
     await prefs.remove('profile');
+    await prefs.remove(Api.profileStorageKey);
     await prefs.setString('guestScope', 'guest:${const Uuid().v4()}');
     state = const AuthState();
   }
@@ -202,7 +219,8 @@ class AuthController extends Notifier<AuthState> {
             'player:${profile.playerId}',
           );
     }
-    await prefs.setString('profile', jsonEncode(profile.toJson()));
+    await prefs.setString(Api.profileStorageKey, jsonEncode(profile.toJson()));
+    await prefs.remove('profile');
     await prefs.setString('nickname', profile.nickname);
     if (!ref.mounted) return;
     state = AuthState(profile: profile, hasSession: true);

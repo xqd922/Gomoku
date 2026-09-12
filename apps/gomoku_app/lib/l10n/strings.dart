@@ -208,6 +208,20 @@ class AppStrings {
     'offline': ('暂时离线', 'Away'),
     'connected': ('云端已就绪', 'Ready to connect'),
     'offlineAvailable': ('随时同屏开玩', 'Pass & play, anytime'),
+    'connecting': ('正在连接服务…', 'Connecting…'),
+    'privateAccountNotice': (
+      '使用管理员提供的账号登录后与好友对弈。本地双人无需登录。',
+      'Sign in with an account provided by the host to play online. Local play needs no account.',
+    ),
+    'error.login_required': ('请先登录后再加入好友对弈。', 'Sign in to play with a friend.'),
+    'error.account_not_allowed': (
+      '此账号无法访问这个私人服务，请联系管理员。',
+      'This account cannot access this private server. Contact the host.',
+    ),
+    'error.feature_disabled': (
+      '此服务未开放该功能。',
+      'This feature is unavailable on this server.',
+    ),
     'reconnecting': ('正在重新连接…', 'Reconnecting…'),
     'reconnect': ('重新连接', 'Reconnect'),
     'paused': ('棋局已暂停', 'Game paused'),
@@ -324,8 +338,8 @@ class AppStrings {
     'reduceMotionBody': ('使用更轻的过渡效果', 'Keep transitions gentle'),
     'about': ('关于', 'About'),
     'aboutBody': (
-      'Gomoku 1.1.0\n给专注一点空间，给朋友一点时间。',
-      'Gomoku 1.1.0\nA little space to focus. A little time for friends.',
+      'Gomoku 1.2.0\n给专注一点空间，给朋友一点时间。',
+      'Gomoku 1.2.0\nA little space to focus. A little time for friends.',
     ),
     'storageWarning': (
       '当前浏览器无法长期保存棋谱。关闭页面前，请登录并完成同步。',

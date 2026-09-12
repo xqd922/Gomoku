@@ -39,7 +39,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin ||
       url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/') ||
-      url.pathname === '/health') return;
+      url.pathname === '/health' || url.pathname === '/app-config') return;
   if (request.mode === 'navigate') {
     event.respondWith(fetch(request).catch(() => caches.match('/index.html', {cacheName: CACHE})));
   } else {

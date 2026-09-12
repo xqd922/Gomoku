@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart' as uuid;
 
 import '../generated/protocol.dart';
 import 'database.dart';
+import 'private_accounts.dart';
 
 final class Players {
   static const ids = uuid.Uuid();
@@ -31,6 +32,11 @@ final class Players {
   }) async {
     final auth = session.authenticated;
     if (auth == null) throw AppException(code: 'unauthenticated');
+    await PrivateAccounts.requireAllowed(
+      session,
+      auth.userIdentifier,
+      transaction: transaction,
+    );
     return forAuth(
       session,
       auth.userIdentifier,

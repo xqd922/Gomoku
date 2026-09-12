@@ -29,6 +29,7 @@ FILES = {
     "apk": f"Gomoku-{NAME}-android.apk",
     "macos": f"Gomoku-{NAME}-macos-universal.zip",
     "ios": f"Gomoku-{NAME}-ios-unsigned.zip",
+    "server": f"Gomoku-{NAME}-server-debian12-x64.tar.gz",
 }
 
 
@@ -42,9 +43,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("target", choices=[*FILES, "manifest", "check-version"])
     parser.add_argument("--output", type=Path, default=ROOT / "artifacts/releases")
+    parser.add_argument("--server-binary", type=Path, default=ROOT / "artifacts/native/gomoku-server")
     args = parser.parse_args()
     if os.environ.get("GITHUB_REF_TYPE") == "tag":
-        if os.environ.get("GITHUB_REF_NAME") != f"v{NAME}":
+        if not re.fullmatch(rf"v{re.escape(NAME)}(?:-rc\.\d+)?", os.environ.get("GITHUB_REF_NAME", "")):
             raise SystemExit("Git tag and pubspec.yaml version do not match")
     notes = require(ROOT / f"docs/releases/v{NAME}.md")
     if args.target == "check-version":
@@ -96,7 +98,33 @@ def main():
     archive = output / FILES[args.target]
     if archive.exists():
         raise SystemExit(f"Refusing to replace an existing package: {archive}")
-    if args.target in ("windows", "web"):
+    if args.target == "server":
+        commit = os.environ.get("GITHUB_SHA") or subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+        if not re.fullmatch(r"[0-9a-f]{40}", commit):
+            raise SystemExit("A server release must have a source commit")
+        import io
+        with tarfile.open(archive, "w:gz") as bundle:
+            bundle.add(require(args.server_binary), arcname="gomoku-server")
+            bundle.add(require(ROOT / "infra/native/production.yaml"), arcname="config/production.yaml")
+            for source, target in [(ROOT / "apps/server/db", "db"),
+                                   (ROOT / "apps/server/migrations", "migrations"),
+                                   (APP / "build/web", "web"),
+                                   (ROOT / "infra/native", "native")]:
+                require(source)
+                for path in sorted(source.rglob("*")):
+                    if path.is_file() and "__pycache__" not in path.parts:
+                        bundle.add(path, arcname=f"{target}/{path.relative_to(source).as_posix()}")
+            for name, value in {
+                "build-info.json": json.dumps({"version": NAME, "buildNumber": int(BUILD), "commit": commit}) + "\n",
+                "build.env": f"GOMOKU_VERSION={NAME}\nGOMOKU_COMMIT={commit}\n",
+            }.items():
+                payload = value.encode("utf-8")
+                entry = tarfile.TarInfo(name)
+                entry.size, entry.mode = len(payload), 0o644
+                bundle.addfile(entry, io.BytesIO(payload))
+            bundle.add(notes, arcname="README-release.md")
+    elif args.target in ("windows", "web"):
         relative = "windows/x64/runner/Release" if args.target == "windows" else "web"
         source = require(APP / "build" / relative)
         if args.target == "windows":

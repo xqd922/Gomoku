@@ -15,7 +15,8 @@ import '../widgets/common.dart';
 enum _AccountMode { login, register, reset }
 
 class AccountPage extends ConsumerStatefulWidget {
-  const AccountPage({super.key});
+  const AccountPage({super.key, this.returnTo});
+  final String? returnTo;
   @override
   ConsumerState<AccountPage> createState() => _AccountPageState();
 }
@@ -73,8 +74,16 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       switch (_mode) {
         case _AccountMode.login:
           await auth.login(_email.text.trim(), _password.text);
+          if (!mounted) return;
           _nickname.text = ref.read(authProvider).profile!.nickname;
           TextInput.finishAutofillContext();
+          final target = widget.returnTo;
+          if (mounted &&
+              target != null &&
+              (target == '/lobby' ||
+                  RegExp(r'^/join/[A-Za-z0-9]{6}$').hasMatch(target))) {
+            context.go(target);
+          }
         case _AccountMode.register:
           if (_requestId == null) {
             final request = await auth.startRegistration(_email.text.trim());
@@ -151,6 +160,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     final s = context.strings;
     final colors = Theme.of(context).colorScheme;
     final auth = ref.watch(authProvider);
+    final capabilities = ref.watch(serviceConfigProvider);
+    final allowEmail = capabilities.asData?.value.authMode == 'email';
     final profile = auth.profile;
     final signedIn = profile != null && !profile.isGuest;
     final sync = ref.watch(syncProvider);
@@ -200,7 +211,9 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                                         sync.error == null
                                   ? 'synced'
                                   : 'syncPending')
-                            : 'guestNotice',
+                            : allowEmail
+                            ? 'guestNotice'
+                            : 'privateAccountNotice',
                       ),
                       style: Theme.of(context).textTheme.bodyMedium
                           ?.copyWith(color: colors.onSecondaryContainer),
@@ -232,6 +245,16 @@ class _AccountPageState extends ConsumerState<AccountPage> {
           ),
         ],
         const SizedBox(height: 22),
+        if (capabilities.hasError) ...[
+          InlineNotice(
+            message: s.t('connectionUnavailable'),
+            action: TextButton(
+              onPressed: () => ref.invalidate(serviceConfigProvider),
+              child: Text(s.t('retry')),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         if (signedIn)
           Card(
             child: Padding(
@@ -330,7 +353,9 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                         ),
                         const SizedBox(height: 16),
                       ],
-                      if (_mode != _AccountMode.reset && !verify) ...[
+                      if (_mode != _AccountMode.reset &&
+                          !verify &&
+                          allowEmail) ...[
                         SegmentedButton<_AccountMode>(
                           showSelectedIcon: false,
                           segments: [
@@ -499,7 +524,11 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                       const SizedBox(height: 24),
                       FilledButton.icon(
                         key: const ValueKey('account-submit'),
-                        onPressed: _busy || blocked || auth.resolving
+                        onPressed:
+                            _busy ||
+                                blocked ||
+                                auth.resolving ||
+                                capabilities.asData == null
                             ? null
                             : _submit,
                         icon: _busy
@@ -517,14 +546,14 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                         label: Text(s.t(submitLabel)),
                       ),
                       const SizedBox(height: 10),
-                      if (_mode == _AccountMode.login)
+                      if (_mode == _AccountMode.login && allowEmail)
                         TextButton(
                           onPressed: _busy
                               ? null
                               : () => _setMode(_AccountMode.reset),
                           child: Text(s.t('forgotPassword')),
                         )
-                      else
+                      else if (allowEmail)
                         TextButton(
                           onPressed: _busy
                               ? null

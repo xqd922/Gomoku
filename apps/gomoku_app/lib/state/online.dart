@@ -115,7 +115,7 @@ class OnlineController extends Notifier<OnlineState> {
     state = OnlineState(room: room);
     _attempt = 0;
     _savedGame = null;
-    _attach();
+    unawaited(_attach());
   }
 
   Future<void> send(RoomAction action, {int? row, int? col}) async {
@@ -194,13 +194,13 @@ class OnlineController extends Notifier<OnlineState> {
     }
   }
 
-  void reconnect() {
+  Future<void> reconnect() async {
     if (state.room == null) return;
     _attempt = 0;
-    _attach();
+    await _attach();
   }
 
-  void _attach() {
+  Future<void> _attach() async {
     final room = state.room;
     if (room == null || !ref.mounted) return;
     final generation = ++_generation;
@@ -210,49 +210,81 @@ class OnlineController extends Notifier<OnlineState> {
     final connection = const Uuid().v4();
     final api = ref.read(apiProvider).client;
     state = state.copyWith(connected: false);
-    _subscription = api.room
-        .watch(room.roomId, connection)
-        .listen(
-          (snapshot) {
-            if (!ref.mounted || generation != _generation) return;
-            _attempt = 0;
-            _receive(snapshot);
-            state = state.copyWith(connected: true);
-          },
-          onError: (Object error) {
-            if (ref.mounted && generation == _generation) {
-              _scheduleReconnect(error);
-            }
-          },
-          onDone: () {
-            if (ref.mounted &&
-                generation == _generation &&
-                state.room?.status != RoomStatus.closed) {
-              _scheduleReconnect(const ApiFailure('connection_lost'));
-            }
-          },
+    try {
+      await ref.read(authProvider.notifier).restore(force: true);
+      if (!ref.mounted || generation != _generation) return;
+      final auth = ref.read(authProvider);
+      if (!auth.hasSession) {
+        throw ApiFailure(
+          auth.profile == null ? 'unauthenticated' : 'service_unavailable',
         );
-    var sendingHeartbeat = false;
-    _heartbeat = Timer.periodic(const Duration(seconds: 8), (_) async {
-      if (!ref.mounted || generation != _generation || sendingHeartbeat) return;
-      sendingHeartbeat = true;
-      try {
-        await api.room.heartbeat(room.roomId, connection);
-      } catch (error) {
-        if (ref.mounted && generation == _generation) _scheduleReconnect(error);
-      } finally {
-        sendingHeartbeat = false;
       }
-    });
+      final latest = await api.room.snapshot(room.roomId);
+      if (!ref.mounted || generation != _generation) return;
+      _receive(latest);
+      if (latest.status == RoomStatus.closed) {
+        ref.invalidate(activeRoomProvider);
+        return;
+      }
+      _subscription = api.room
+          .watch(room.roomId, connection)
+          .listen(
+            (snapshot) {
+              if (!ref.mounted || generation != _generation) return;
+              _attempt = 0;
+              _receive(snapshot);
+              state = state.copyWith(connected: true);
+            },
+            onError: (Object error) {
+              if (ref.mounted && generation == _generation) {
+                _scheduleReconnect(error);
+              }
+            },
+            onDone: () {
+              if (ref.mounted &&
+                  generation == _generation &&
+                  state.room?.status != RoomStatus.closed) {
+                _scheduleReconnect(const ApiFailure('connection_lost'));
+              }
+            },
+          );
+      var sendingHeartbeat = false;
+      _heartbeat = Timer.periodic(const Duration(seconds: 8), (_) async {
+        if (!ref.mounted || generation != _generation || sendingHeartbeat) {
+          return;
+        }
+        sendingHeartbeat = true;
+        try {
+          await api.room.heartbeat(room.roomId, connection);
+        } catch (error) {
+          if (ref.mounted && generation == _generation) {
+            _scheduleReconnect(error);
+          }
+        } finally {
+          sendingHeartbeat = false;
+        }
+      });
+    } catch (error) {
+      if (ref.mounted && generation == _generation) _scheduleReconnect(error);
+    }
   }
 
   void _scheduleReconnect(Object error) {
     if (_retry?.isActive ?? false) return;
     state = state.copyWith(connected: false, error: errorCode(error));
     _heartbeat?.cancel();
+    if (!retryableFailure(error)) {
+      _generation++;
+      _retry?.cancel();
+      unawaited(_subscription?.cancel());
+      if (sessionFailure(error)) {
+        unawaited(ref.read(authProvider.notifier).restore(force: true));
+      }
+      return;
+    }
     final seconds = min(10, 1 << min(_attempt++, 4));
     _retry = Timer(Duration(seconds: seconds), () {
-      if (ref.mounted) _attach();
+      if (ref.mounted) unawaited(_attach());
     });
   }
 
@@ -313,7 +345,7 @@ class OnlineController extends Notifier<OnlineState> {
       try {
         return await request();
       } catch (error) {
-        if (error is AppException || attempt >= 1) rethrow;
+        if (!retryableFailure(error) || attempt >= 1) rethrow;
         await Future<void>.delayed(const Duration(milliseconds: 500));
       }
     }

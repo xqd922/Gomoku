@@ -57,6 +57,20 @@ final class Api {
   String? token;
   Future<void>? _load;
   String get _storageKey => 'gomoku.session.${Uri.encodeComponent(apiUrl)}';
+  static String get profileStorageKey =>
+      'profile.${Uri.encodeComponent(apiUrl)}';
+
+  Future<ServiceConfig> serviceConfig() async {
+    final response = await httpClient
+        .get(Uri.parse(authUrl).resolve('../app-config'))
+        .timeout(const Duration(seconds: 5));
+    if (response.statusCode != 200) {
+      throw const ApiFailure('service_unavailable');
+    }
+    return ServiceConfig.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
 
   Future<void> load() => _load ??= () async {
     if (!kIsWeb) token = await _storage.read(key: _storageKey);
@@ -120,5 +134,30 @@ final class _KeyProvider implements ClientAuthKeyProvider {
     await api.load();
     if (kIsWeb) return 'Bearer web-session';
     return api.token == null ? null : 'Bearer ${api.token!}';
+  }
+}
+
+bool retryableFailure(Object error) =>
+    {'service_unavailable', 'connection_lost'}.contains(errorCode(error));
+bool sessionFailure(Object error) => {
+  'unauthenticated',
+  'account_not_allowed',
+  'login_required',
+}.contains(errorCode(error));
+
+final class ServiceConfig {
+  const ServiceConfig({required this.authMode, required this.guestOnline});
+  final String authMode;
+  final bool guestOnline;
+  bool get privateAccounts => authMode == 'private';
+  factory ServiceConfig.fromJson(Map<String, dynamic> value) {
+    final mode = value['authMode'];
+    final guest = value['guestOnline'];
+    if (!{'private', 'email'}.contains(mode) ||
+        guest is! bool ||
+        (mode == 'private' && guest)) {
+      throw const ApiFailure('service_unavailable');
+    }
+    return ServiceConfig(authMode: mode as String, guestOnline: guest);
   }
 }

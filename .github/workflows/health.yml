@@ -1,0 +1,22 @@
+name: Production health
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: production-health
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Check public HTTPS and database readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 2 --retry-delay 10 --max-time 15 \
+            https://gomoku.xqd.pp.ua/health -o "$RUNNER_TEMP/health.json"
+          jq -e '.status == "ok" and (.commit | test("^[0-9a-f]{40}$"))' "$RUNNER_TEMP/health.json"

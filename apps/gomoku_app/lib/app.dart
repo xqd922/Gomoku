@@ -81,9 +81,9 @@ class _GomokuAppState extends ConsumerState<GomokuApp>
       ),
       GoRoute(
         path: '/account',
-        builder: (context, _) => SectionScaffold(
+        builder: (context, state) => SectionScaffold(
           title: context.strings.t('account'),
-          child: const AccountPage(),
+          child: AccountPage(returnTo: state.uri.queryParameters['returnTo']),
         ),
       ),
       GoRoute(
@@ -123,14 +123,15 @@ class _GomokuAppState extends ConsumerState<GomokuApp>
     }
     if (!mounted) return;
     ref.invalidate(backendHealthProvider);
+    if (resume) ref.invalidate(serviceConfigProvider);
     await ref.read(syncProvider.notifier).sync();
+    if (resume && mounted) await ref.read(onlineProvider.notifier).reconnect();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(_refresh(resume: true));
-      ref.read(onlineProvider.notifier).reconnect();
     }
   }
 

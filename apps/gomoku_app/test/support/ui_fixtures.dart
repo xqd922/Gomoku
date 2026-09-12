@@ -76,15 +76,25 @@ RoomSnapshot uiRoom({RoomStatus status = RoomStatus.playing, GameState? game}) {
 }
 
 class UiAuth extends AuthController {
-  UiAuth({this.profile});
+  UiAuth({this.profile, this.loginSucceeds = false});
   final PlayerProfile? profile;
+  final bool loginSucceeds;
   @override
   AuthState build() => AuthState(profile: profile, hasSession: profile != null);
   @override
   Future<void> restore({bool force = false}) async {}
   @override
-  Future<void> login(String email, String password) async =>
-      throw const ApiFailure('invalid_credentials');
+  Future<void> login(String email, String password) async {
+    if (!loginSucceeds) throw const ApiFailure('invalid_credentials');
+    state = AuthState(
+      profile: PlayerProfile(
+        playerId: 'host',
+        nickname: 'Player one',
+        isGuest: false,
+      ),
+      hasSession: true,
+    );
+  }
 }
 
 class UiSync extends SyncController {
@@ -151,7 +161,7 @@ class UiOnline extends OnlineController {
   }
 
   @override
-  void reconnect() {}
+  Future<void> reconnect() async {}
 }
 
 class UiHarness {
@@ -173,6 +183,12 @@ Future<UiHarness> pumpGomoku(
   GameRecord? local,
   RoomSnapshot? room,
   bool connected = true,
+  ServiceConfig serviceConfig = const ServiceConfig(
+    authMode: 'email',
+    guestOnline: true,
+  ),
+  bool configUnavailable = false,
+  bool loginSucceeds = false,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
@@ -204,6 +220,7 @@ Future<UiHarness> pumpGomoku(
         preferencesProvider.overrideWithValue(preferences),
         authProvider.overrideWith(
           () => UiAuth(
+            loginSucceeds: loginSucceeds,
             profile: room == null
                 ? null
                 : PlayerProfile(
@@ -215,6 +232,14 @@ Future<UiHarness> pumpGomoku(
         ),
         syncProvider.overrideWith(UiSync.new),
         backendHealthProvider.overrideWith((_) async => true),
+        serviceConfigProvider.overrideWith(
+          (_) async {
+            if (configUnavailable) {
+              throw const ApiFailure('service_unavailable');
+            }
+            return serviceConfig;
+          },
+        ),
         gamesProvider.overrideWith(
           (_) => recordStream ?? Stream.value(records),
         ),

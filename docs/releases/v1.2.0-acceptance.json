@@ -1,0 +1,11 @@
+{
+  "version": "1.2.0+10200",
+  "builds": {"status": "pending", "evidence": ""},
+  "online": {"status": "pending", "evidence": ""},
+  "capacity60Minutes": {"status": "pending", "evidence": ""},
+  "backupRestore": {"status": "pending", "evidence": ""},
+  "existingServices": {"status": "pending", "evidence": ""},
+  "androidManual": {"status": "pending", "evidence": "用户将安装候选 APK，按清单手动验收。"},
+  "windowsRuntime": {"status": "pending", "evidence": ""},
+  "webRuntime": {"status": "pending", "evidence": ""}
+}

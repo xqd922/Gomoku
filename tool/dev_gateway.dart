@@ -41,7 +41,8 @@ Future<void> _handle(
     if (path.startsWith('/api/') ||
         path == '/v1/websocket' ||
         path.startsWith('/auth/') ||
-        path == '/health') {
+        path == '/health' ||
+        path == '/app-config') {
       final rpc = path.startsWith('/api/') || path == '/v1/websocket';
       final target = Uri(
         scheme: 'http',
@@ -68,13 +69,45 @@ Future<void> _handle(
           headers: headers,
         );
         final local = await WebSocketTransformer.upgrade(request);
-        void close() {
-          unawaited(local.close());
-          unawaited(remote.close());
+        var closing = false;
+        Future<void> closeSocket(WebSocket socket) async {
+          try {
+            await socket.close();
+          } catch (_) {
+            // A browser can disappear while the close handshake is pending.
+          }
         }
 
-        local.listen(remote.add, onDone: close, onError: (Object _) => close());
-        remote.listen(local.add, onDone: close, onError: (Object _) => close());
+        void close() {
+          if (closing) return;
+          closing = true;
+          unawaited(closeSocket(local));
+          unawaited(closeSocket(remote));
+        }
+
+        void forward(WebSocket destination, Object? message) {
+          if (closing) return;
+          if (destination.readyState != WebSocket.open) {
+            close();
+            return;
+          }
+          try {
+            destination.add(message);
+          } catch (_) {
+            close();
+          }
+        }
+
+        local.listen(
+          (message) => forward(remote, message),
+          onDone: close,
+          onError: (Object _) => close(),
+        );
+        remote.listen(
+          (message) => forward(local, message),
+          onDone: close,
+          onError: (Object _) => close(),
+        );
         return;
       }
       final outgoing = await client.openUrl(request.method, target);

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:mailer/mailer.dart';
@@ -13,12 +14,21 @@ import 'src/generated/protocol.dart';
 import 'src/services/app_config.dart';
 import 'src/services/database.dart';
 import 'src/services/rooms.dart';
+import 'src/services/private_accounts.dart';
+import 'src/web/routes/app_config_route.dart';
 import 'src/web/routes/auth_route.dart';
 import 'src/web/routes/health_route.dart';
 
 Future<void> run(List<String> args) async {
   final config = AppConfig.load();
-  final pod = Serverpod(args, Protocol(), Endpoints());
+  AppConfig.current = config;
+  final adminOperation = args
+      .where((a) => a.startsWith('--gomoku-admin='))
+      .firstOrNull;
+  final serverArgs = args
+      .where((a) => !a.startsWith('--gomoku-admin='))
+      .toList();
+  final pod = Serverpod(serverArgs, Protocol(), Endpoints());
   if (pod.runMode == ServerpodRunMode.production && !config.cookieSecure) {
     throw StateError('Production requires COOKIE_SECURE=true and HTTPS.');
   }
@@ -52,6 +62,39 @@ Future<void> run(List<String> args) async {
       authenticateSession(session, token, config);
   pod.webServer.addRoute(AuthRoute(config), '/auth/**');
   pod.webServer.addRoute(HealthRoute(), '/health');
+  pod.webServer.addRoute(AppConfigRoute(config), '/app-config');
+  if (adminOperation != null) {
+    // Maintenance mode never listens on application ports.
+    final session = await pod.createSession(enableLogging: false);
+    try {
+      await migrateApplication(session);
+      switch (adminOperation.split('=').last) {
+        case 'provision':
+          await PrivateAccounts.provision(
+            session,
+            File(config.get('GOMOKU_ACCOUNTS_FILE')),
+          );
+        case 'reset-password':
+          final input = jsonDecode(
+            await File(config.get('GOMOKU_RESET_FILE')).readAsString(),
+          ) as Map<String, dynamic>;
+          await PrivateAccounts.resetPassword(
+            session,
+            input['email'] as String,
+            input['password'] as String,
+          );
+        default:
+          throw ArgumentError('Unknown account administration operation.');
+      }
+      stdout.writeln(
+        'Account administration completed. Credentials were not printed.',
+      );
+    } finally {
+      await session.close();
+      await pod.shutdown(exitProcess: false);
+    }
+    return;
+  }
   await pod.start();
   final migration = await pod.createSession(enableLogging: false);
   try {
@@ -118,7 +161,7 @@ Future<void> run(List<String> args) async {
     }),
   );
   stdout.writeln(
-    'Gomoku is ready: persistent rooms, email authentication, and record sync.',
+    'Gomoku ${config.version} is ready (${config.privateAccounts ? 'private' : 'email'} authentication).',
   );
   if (!Platform.isWindows) {
     ProcessSignal.sigterm.watch().listen((_) async {
@@ -137,6 +180,9 @@ Future<void> _sendCode(
   String code,
   bool reset,
 ) async {
+  if (config.privateAccounts) {
+    throw StateError('Email delivery is disabled in private mode.');
+  }
   final ssl = config.get('SMTP_SSL', 'false') == 'true';
   final username = config.get('SMTP_USERNAME');
   final server = SmtpServer(

@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.xqd922.gomoku",
+      "sha256_cert_fingerprints": ["C5:BB:B8:80:6B:70:34:DB:C4:AB:65:65:2C:3F:89:83:9F:05:7D:78:2D:F3:1E:CE:4E:81:25:F5:79:2E:53:33"]
+    }
+  }
+]

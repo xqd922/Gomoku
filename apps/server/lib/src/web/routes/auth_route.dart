@@ -9,6 +9,7 @@ import '../../generated/protocol.dart';
 import '../../services/app_config.dart';
 import '../../services/players.dart';
 import '../../services/rate_limiter.dart';
+import '../../services/private_accounts.dart';
 
 /// The browser never receives a session secret in a JSON response.
 /// The same provider services back native secure storage and web cookies.
@@ -34,6 +35,10 @@ final class AuthRoute extends Route {
         return _json({'error': 'invalid_request'}, status: 400);
       }
       final action = request.url.pathSegments.last;
+      if (config.privateAccounts &&
+          !{'session', 'login', 'logout'}.contains(action)) {
+        throw AppException(code: 'feature_disabled');
+      }
       final ip = clientAddress(request, config);
       await checkRateLimit(session, 'auth:$action:$ip', limit: 40);
       final oldToken = isWeb
@@ -50,6 +55,10 @@ final class AuthRoute extends Route {
       switch (action) {
         case 'session':
           if (previous == null) throw AppException(code: 'unauthenticated');
+          await PrivateAccounts.requireAllowed(
+            session,
+            previous.userIdentifier,
+          );
           final profile = await Players.forAuth(
             session,
             previous.userIdentifier,
@@ -109,6 +118,11 @@ final class AuthRoute extends Route {
               session,
               email: _string(body, 'email'),
               password: _string(body, 'password'),
+              transaction: transaction,
+            );
+            await PrivateAccounts.requireAllowed(
+              session,
+              auth.authUserId.toString(),
               transaction: transaction,
             );
             final profile = await Players.claim(
@@ -176,6 +190,7 @@ final class AuthRoute extends Route {
       final status = switch (error.code) {
         'unauthenticated' => 401,
         'origin_rejected' => 403,
+        'account_not_allowed' || 'feature_disabled' => 403,
         'rate_limited' => 429,
         _ => 400,
       };

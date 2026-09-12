@@ -16,6 +16,7 @@ const browser = await chromium.launch({
 const pages = [];
 const errors = [];
 const results = [];
+const network = [];
 function passed(description) {
   results.push(description);
   console.log("PASS: " + description);
@@ -31,6 +32,12 @@ async function boot(context, route = "/") {
   const page = await context.newPage();
   page.setDefaultTimeout(15000);
   page.on("pageerror", error => errors.push(error.message));
+  page.on("response", response => {
+    const path = new URL(response.url()).pathname;
+    if (!/^\/(api|auth)\//.test(path)) return;
+    network.push({ page: pages.indexOf(page), at: Date.now(), path, status: response.status() });
+    if (network.length > 200) network.shift();
+  });
   pages.push(page);
   await navigate(page, route);
   return page;
@@ -272,6 +279,8 @@ try {
   await writeFile(output + "/results.json", JSON.stringify({ passed: results, runtimeErrors: errors, recordedAt: new Date().toISOString() }, null, 2));
   console.log("All browser scenarios passed without runtime exceptions.");
 } catch (error) {
+  // Record only route/status metadata; credentials and request bodies stay private.
+  await writeFile(output + "/failure-network.json", JSON.stringify(network, null, 2));
   for (let i = 0; i < pages.length; i++) {
     if (pages[i].isClosed()) continue;
     await pages[i].screenshot({ path: output + "/failure-" + i + ".png" }).catch(() => {});

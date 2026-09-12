@@ -12,8 +12,9 @@ import 'package:gomoku_server/src/services/app_config.dart';
 const ids = Uuid();
 
 class TestServer {
-  TestServer(this.port);
+  TestServer(this.port, {this.environment = const {}});
   final int port;
+  final Map<String, String> environment;
   Process? _process;
   IOSink? _logs;
   String get api => 'http://127.0.0.1:$port/';
@@ -40,6 +41,7 @@ class TestServer {
         'SERVERPOD_INSIGHTS_SERVER_PORT': '${port + 1}',
         'COOKIE_SECURE': 'false',
         'ALLOWED_ORIGINS': 'http://localhost:4280',
+        ...environment,
       },
     );
     _process!.stdout.listen(_logs!.add);
@@ -189,6 +191,7 @@ class Presence {
           onError: (Object error) {
             lastError = error;
           },
+          onDone: () => streamEnded = true,
         );
     timer = Timer.periodic(const Duration(seconds: 5), (_) async {
       try {
@@ -205,6 +208,7 @@ class Presence {
   Timer? timer;
   RoomSnapshot? latest;
   Object? lastError;
+  bool streamEnded = false;
   Future<RoomSnapshot> until(bool Function(RoomSnapshot) condition) async {
     await eventually(
       () => latest != null && condition(latest!),

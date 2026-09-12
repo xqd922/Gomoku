@@ -16,6 +16,9 @@ concurrency:
 
 env:
   PUB_HOSTED_URL: https://pub.dev
+  GOMOKU_API_URL: ${{ vars.GOMOKU_API_URL || 'https://gomoku.xqd.pp.ua/api/' }}
+  GOMOKU_AUTH_URL: ${{ vars.GOMOKU_AUTH_URL || 'https://gomoku.xqd.pp.ua/auth/' }}
+  GOMOKU_WEB_URL: ${{ vars.GOMOKU_WEB_URL || 'https://gomoku.xqd.pp.ua' }}
 
 jobs:
   verify:
@@ -64,6 +67,8 @@ jobs:
           fi
       - name: Browser verification
         timeout-minutes: 10
+        env:
+          GOMOKU_WEB_URL: http://localhost:4280
         run: |
           cd tool/browser
           npm test
@@ -82,7 +87,16 @@ jobs:
           docker build -f infra/server.Dockerfile -t gomoku-server:ci .
           docker build -f infra/web.Dockerfile -t gomoku-web:ci .
       - name: Package Web
-        run: python3 tool/package_release.py web
+        run: |
+          python3 tool/check_release_config.py
+          cd apps/gomoku_app
+          flutter build web --release --no-web-resources-cdn --no-pub \
+            --dart-define=GOMOKU_API_URL="$GOMOKU_API_URL" \
+            --dart-define=GOMOKU_AUTH_URL="$GOMOKU_AUTH_URL" \
+            --dart-define=GOMOKU_WEB_URL="$GOMOKU_WEB_URL"
+          cd ../..
+          dart tool/prepare_web.dart
+          python3 tool/package_release.py web
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: distribution-web
@@ -91,6 +105,32 @@ jobs:
           compression-level: 0
       - if: always()
         run: docker compose down
+
+  server:
+    name: Build Debian 12 server
+    runs-on: ubuntu-24.04
+    needs: verify
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: distribution-web
+          path: artifacts/releases
+      - name: Compile AOT on Debian 12
+        run: docker build -f infra/native/server-build.Dockerfile --output type=local,dest=artifacts/native .
+      - name: Assemble server, migrations and Web assets
+        run: |
+          mkdir -p apps/gomoku_app/build/web
+          unzip -q artifacts/releases/Gomoku-*-web.zip -d apps/gomoku_app/build/web
+          python3 tool/package_release.py server
+          tar -tzf artifacts/releases/Gomoku-*-server-debian12-x64.tar.gz | head -30 || true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: distribution-server
+          path: artifacts/releases/*-server-debian12-x64.tar.gz
+          if-no-files-found: error
+          compression-level: 0
 
   native:
     name: Build ${{ matrix.target }}
@@ -111,9 +151,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     env:
-      GOMOKU_API_URL: ${{ vars.GOMOKU_API_URL }}
-      GOMOKU_AUTH_URL: ${{ vars.GOMOKU_AUTH_URL }}
-      GOMOKU_WEB_URL: ${{ vars.GOMOKU_WEB_URL }}
       BUILD_TARGET: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -139,15 +176,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python tool/check_release_config.py
           options=(--release --no-pub)
-          if [[ -n "$GOMOKU_API_URL$GOMOKU_AUTH_URL$GOMOKU_WEB_URL" ]]; then
-            [[ "$GOMOKU_API_URL" == https://*/ ]]
-            [[ "$GOMOKU_AUTH_URL" == https://*/ ]]
-            [[ "$GOMOKU_WEB_URL" == https://* ]]
-            options+=("--dart-define=GOMOKU_API_URL=$GOMOKU_API_URL")
-            options+=("--dart-define=GOMOKU_AUTH_URL=$GOMOKU_AUTH_URL")
-            options+=("--dart-define=GOMOKU_WEB_URL=$GOMOKU_WEB_URL")
-          fi
+          options+=("--dart-define=GOMOKU_API_URL=$GOMOKU_API_URL")
+          options+=("--dart-define=GOMOKU_AUTH_URL=$GOMOKU_AUTH_URL")
+          options+=("--dart-define=GOMOKU_WEB_URL=$GOMOKU_WEB_URL")
           if [[ "$BUILD_TARGET" == ios ]]; then
             options+=(--no-codesign)
           fi
@@ -179,7 +212,7 @@ jobs:
   release:
     name: Publish Release
     if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
-    needs: [verify, native]
+    needs: [verify, native, server]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -191,7 +224,7 @@ jobs:
           pattern: distribution-*
           merge-multiple: true
           path: artifacts/releases
-      - name: Verify all six packages and create checksums
+      - name: Verify six client packages and server; create checksums
         run: |
           python3 tool/package_release.py manifest
           cd artifacts/releases
@@ -201,8 +234,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          notes="docs/releases/$GITHUB_REF_NAME.md"
+          version="${GITHUB_REF_NAME%%-rc.*}"
+          notes="docs/releases/$version.md"
           test -f "$notes"
+          if [[ "$GITHUB_REF_NAME" != *-rc.* ]]; then
+            python3 tool/check_release_acceptance.py
+          fi
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/release.json" 2>/dev/null; then
             test "$(jq -r .isDraft "$RUNNER_TEMP/release.json")" = true || {
               echo 'This release is already published; published assets are immutable.' >&2
@@ -215,6 +252,11 @@ jobs:
           fi
           gh release upload "$GITHUB_REF_NAME" artifacts/releases/* \
             --repo "$GITHUB_REPOSITORY" --clobber
-          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
-            --draft=false --latest --notes-file "$notes"
+          if [[ "$GITHUB_REF_NAME" == *-rc.* ]]; then
+            gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+              --draft=false --prerelease --latest=false --notes-file "$notes"
+          else
+            gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+              --draft=false --prerelease=false --latest --notes-file "$notes"
+          fi
           echo "Published https://github.com/$GITHUB_REPOSITORY/releases/tag/$GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"

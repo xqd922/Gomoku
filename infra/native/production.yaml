@@ -1,0 +1,29 @@
+apiServer:
+  port: 8080
+  publicHost: gomoku.xqd.pp.ua
+  publicPort: 443
+  publicScheme: https
+insightsServer:
+  port: 8081
+  publicHost: localhost
+  publicPort: 8081
+  publicScheme: http
+webServer:
+  port: 8082
+  publicHost: gomoku.xqd.pp.ua
+  publicPort: 443
+  publicScheme: https
+database:
+  host: 127.0.0.1
+  port: 5432
+  name: gomoku
+  user: gomoku
+  maxConnectionCount: 5
+redis:
+  enabled: true
+  host: 127.0.0.1
+  port: 6379
+maxRequestSize: 1048576
+sessionLogs:
+  persistentEnabled: false
+  consoleEnabled: false

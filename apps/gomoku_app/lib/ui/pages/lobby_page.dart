@@ -96,10 +96,60 @@ class _LobbyPageState extends ConsumerState<LobbyPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authProvider, (previous, next) {
+      final profile = next.profile;
+      if (profile != null && previous?.profile?.playerId != profile.playerId) {
+        _nickname.text = profile.nickname;
+      }
+    });
     final s = context.strings;
     final colors = Theme.of(context).colorScheme;
     final active = ref.watch(activeRoomProvider).asData?.value;
     final health = ref.watch(backendHealthProvider);
+    final capabilities = ref.watch(serviceConfigProvider);
+    final config = capabilities.asData?.value;
+    final auth = ref.watch(authProvider);
+    final needsLogin =
+        config?.privateAccounts == true &&
+        (!auth.hasSession || auth.profile?.isGuest != false);
+    if (config == null || needsLogin) {
+      return PageFrame(
+        maxWidth: AppLayout.reading,
+        children: [
+          PageHeading(
+            title: s.t('lobbyTitle'),
+            subtitle: s.t('privateAccountNotice'),
+          ),
+          if (widget.initialCode.isNotEmpty)
+            Text('${s.t('roomCode')}: ${_code.text}'),
+          const SizedBox(height: 20),
+          if (config == null)
+            InlineNotice(
+              message: s.t(
+                capabilities.hasError ? 'connectionUnavailable' : 'connecting',
+              ),
+              action: TextButton(
+                onPressed: () => ref.invalidate(serviceConfigProvider),
+                child: Text(s.t('retry')),
+              ),
+            )
+          else
+            FilledButton.icon(
+              key: const ValueKey('lobby-login'),
+              onPressed: () {
+                final target = widget.initialCode.isEmpty
+                    ? '/lobby'
+                    : '/join/${_code.text}';
+                context.push(
+                  '/account?returnTo=${Uri.encodeComponent(target)}',
+                );
+              },
+              icon: const Icon(Icons.login_rounded),
+              label: Text(s.t('login')),
+            ),
+        ],
+      );
+    }
     return PageFrame(
       maxWidth: AppLayout.reading,
       children: [
@@ -242,7 +292,7 @@ class _LobbyPageState extends ConsumerState<LobbyPage> {
         ),
         const SizedBox(height: 20),
         Text(
-          s.t('guestNotice'),
+          s.t(config.privateAccounts ? 'privateAccountNotice' : 'guestNotice'),
           style: Theme.of(context).textTheme.bodySmall
               ?.copyWith(color: colors.onSurfaceVariant),
         ),

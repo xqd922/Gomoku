@@ -4,6 +4,7 @@ import 'package:serverpod/serverpod.dart';
 
 import '../../generated/protocol.dart';
 import '../../services/database.dart';
+import '../../services/app_config.dart';
 
 final class HealthRoute extends Route {
   @override
@@ -25,7 +26,8 @@ final class HealthRoute extends Route {
         body: Body.fromString(
           jsonEncode({
             'status': 'ok',
-            'version': '1.0.0',
+            'version': AppConfig.current.version,
+            'commit': AppConfig.current.commit,
             'outboxPending': pending.single['count'],
           }),
           mimeType: MimeType.json,
