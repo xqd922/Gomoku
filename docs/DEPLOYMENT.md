@@ -110,7 +110,7 @@ docker compose --env-file .env.production -f compose.production.yaml \
 - 源码依赖缓存、浏览器截图与验证日志、各平台构建产物、后端 Docker 镜像构建检查。
 - `v*` 标签发布：核对 pubspec 版本、等待所有平台通过、收集六端包、生成校验和与构建来源，再公开 GitHub Release。
 
-配置 CI 不代表已经在远端运行通过；实际已执行结果和实机边界记录在 [VALIDATION.md](VALIDATION.md)。
+六端构建与完整验收已在 [GitHub Actions](https://github.com/xqd922/Gomoku/actions/runs/34669116772) 实际通过。源码编译、自动化运行与真人实机验收的边界分别记录在 [VALIDATION.md](VALIDATION.md)。
 
 ### Android 签名与客户端地址
 
