@@ -39,6 +39,23 @@ class Device implements ClientAuthKeyProvider {
   StreamSubscription<RoomSnapshot>? subscription;
   Timer? timer;
   bool heartbeatBusy = false;
+  int transportRetries = 0;
+
+  Future<T> request<T>(Future<T> Function() send) async {
+    try {
+      return await send();
+    } catch (error) {
+      final transient =
+          error is SocketException ||
+          error is HandshakeException ||
+          error is http.ClientException ||
+          error is TimeoutException;
+      if (!transient) rethrow;
+      transportRetries++;
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      return send();
+    }
+  }
 
   @override
   Future<String?> get authHeaderValue async =>
@@ -48,17 +65,19 @@ class Device implements ClientAuthKeyProvider {
     String action,
     Map<String, Object?> body,
   ) async {
-    final response = await httpClient
-        .post(
-          Uri.parse('$origin/auth/$action'),
-          headers: {
-            'content-type': 'application/json',
-            'x-gomoku-client': 'native',
-            if (token != null) 'authorization': 'Bearer $token',
-          },
-          body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 15));
+    final response = await request(
+      () => httpClient
+          .post(
+            Uri.parse('$origin/auth/$action'),
+            headers: {
+              'content-type': 'application/json',
+              'x-gomoku-client': 'native',
+              if (token != null) 'authorization': 'Bearer $token',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 15)),
+    );
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     require(
       response.statusCode == 200,
@@ -80,7 +99,7 @@ class Device implements ClientAuthKeyProvider {
       if (heartbeatBusy) return;
       heartbeatBusy = true;
       try {
-        await rpc.room.heartbeat(id, connectionId);
+        await request(() => rpc.room.heartbeat(id, connectionId));
       } catch (error) {
         streamError = error;
       } finally {
@@ -91,18 +110,18 @@ class Device implements ClientAuthKeyProvider {
 
   Future<RoomSnapshot> send(RoomAction action, {int? row, int? col}) async {
     for (var attempt = 0; ; attempt++) {
-      final snapshot = await rpc.room.snapshot(roomId!);
+      final snapshot = await request(() => rpc.room.snapshot(roomId!));
+      final command = RoomCommand(
+        commandId: ids.v4(),
+        expectedRevision: snapshot.revision,
+        action: action,
+        row: row,
+        col: col,
+      );
       try {
-        return await rpc.room.command(
-          roomId!,
-          RoomCommand(
-            commandId: ids.v4(),
-            expectedRevision: snapshot.revision,
-            action: action,
-            row: row,
-            col: col,
-          ),
-        );
+        // Match the app's one transport retry, including its delay in P95.
+        // The exact command, ID and revision are retained across that retry.
+        return await request(() => rpc.room.command(roomId!, command));
       } on AppException catch (error) {
         if (error.code != 'stale_revision' ||
             attempt >= 2 ||
@@ -179,6 +198,7 @@ Future<void> main(List<String> args) async {
     'accounts': 2,
     'requestedMinutes': minutes,
     'status': 'running',
+    'transportRetryPolicy': 'One retry after 500 ms, retaining command ID and revision; latency includes retries.',
   };
   var rounds = 0;
   var moves = 0;
@@ -196,6 +216,10 @@ Future<void> main(List<String> args) async {
       'moves': moves,
       'moveP95Ms': p95(),
       'samples': latencies.length,
+      'transportRetries': devices.fold<int>(
+        0,
+        (count, device) => count + device.transportRetries,
+      ),
     });
     await reportFile.writeAsString(
       const JsonEncoder.withIndent('  ').convert(report),
@@ -420,6 +444,7 @@ Future<void> main(List<String> args) async {
         ? error.code
         : error.runtimeType.toString();
     if (error is StateError) report['detail'] = error.message;
+    if (error is HandshakeException) report['tlsError'] = error.message;
     exitCode = 1;
   } finally {
     elapsed.stop();

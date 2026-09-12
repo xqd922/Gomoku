@@ -214,6 +214,8 @@ class _GameBoardState extends State<GameBoard>
         widget.game.at(point.row, point.col) != null) {
       return;
     }
+    // Accessibility activation has no pointer event to focus the board.
+    _focus.requestFocus();
     final touch =
         _pointer == PointerDeviceKind.touch ||
         _pointer == PointerDeviceKind.stylus;

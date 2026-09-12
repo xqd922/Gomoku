@@ -173,6 +173,79 @@ void main() {
     },
   );
 
+  testWidgets('accessible selection accepts keyboard input without a pointer', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final interaction = BoardInteractionController();
+    var game = GameState.newGame();
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        supportedLocales: AppStrings.supportedLocales,
+        localizationsDelegates: const [AppStrings.delegate],
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) => Center(
+              child: SizedBox(
+                width: 360,
+                child: GameBoard(
+                  game: game,
+                  interaction: interaction,
+                  settings: const AppSettings(
+                    sound: false,
+                    haptics: false,
+                    reduceMotion: true,
+                  ),
+                  onMove: (row, col) async =>
+                      setState(() => game = game.play(row, col)),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    void chooseCorner() {
+      var found = false;
+      tester.binding.rootPipelineOwner.visitChildren((owner) {
+        void visit(SemanticsNode node) {
+          if (node.getSemanticsData().label == 'O15, Empty') {
+            owner.semanticsOwner!.performAction(node.id, SemanticsAction.tap);
+            found = true;
+          }
+          node.visitChildren((child) {
+            visit(child);
+            return true;
+          });
+        }
+
+        final root = owner.semanticsOwner?.rootSemanticsNode;
+        if (root != null) visit(root);
+      });
+      expect(found, isTrue);
+    }
+
+    chooseCorner();
+    await tester.pumpAndSettle();
+    expect(interaction.selectedPoint?.col, 14);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(interaction.selectedPoint, isNull);
+    expect(game.moves, isEmpty);
+    chooseCorner();
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+    expect(game.moves.length, 1);
+    expect(game.at(14, 13), Stone.black);
+    expect(interaction.selectedPoint, isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    interaction.dispose();
+    semantics.dispose();
+  });
+
   testWidgets('all intersections are labeled for screen readers', (
     tester,
   ) async {

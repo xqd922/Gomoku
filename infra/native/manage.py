@@ -252,6 +252,7 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 ''')
     write('/etc/systemd/journald.conf.d/gomoku-limits.conf', '[Journal]\nSystemMaxUse=50M\nRuntimeMaxUse=20M\n')
+    systemctl('restart', 'systemd-journald')
     if not (ETC / 'Caddyfile').exists():
         write(ETC / 'Caddyfile', caddy_config(domain))
     ETC.chmod(0o755)  # Secret files themselves are root-readable only.
@@ -456,7 +457,10 @@ def gateway():
     try:
         replace_owned(xray_path, json.dumps(config, indent=2), original_metadata)
         systemctl('restart','xray')
-        systemctl('enable','--now','haproxy')
+        systemctl('enable','haproxy')
+        # Debian may already have started the package's default configuration.
+        # A restart is required to load the newly validated listener and routes.
+        systemctl('restart','haproxy')
         proxy_probe(config, 443)
         write(ETC / 'Caddyfile', caddy_config(domain, production=True))
         systemctl('reload','caddy')

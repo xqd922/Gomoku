@@ -57,7 +57,7 @@ async function fill(page, label, value) {
 }
 async function signIn(page, account) {
   await click(page, '登录');
-  await page.waitForURL('**/account?**');
+  await page.waitForURL(url => url.pathname === '/account');
   assert.equal(await page.getByText('注册', { exact: true }).count(), 0);
   assert.equal(await page.getByText('忘记密码', { exact: true }).count(), 0);
   await fill(page, '邮箱地址', account.email);
@@ -105,19 +105,19 @@ try {
   const a = await boot(desktop, '/lobby');
   assert.equal(await a.evaluate(() => crossOriginIsolated), true);
   await signIn(a, accounts[0]);
-  await a.waitForURL('**/lobby');
+  await a.waitForURL(url => url.pathname === '/lobby');
   await click(a, '创建房间');
-  await a.waitForURL('**/room/**');
+  await a.waitForURL(url => url.pathname.startsWith('/room/'));
   report.roomId = new URL(a.url()).pathname.split('/').pop();
   await until(async () => (await snapshot(a)).includes('六位房间码:'), 'room code');
   const code = (await snapshot(a)).match(/六位房间码: ([A-Z2-9 ]+)/)?.[1].replaceAll(' ', '');
   assert.ok(code);
   const b = await boot(phone, '/join/' + code);
   await signIn(b, accounts[1]);
-  await b.waitForURL('**/join/' + code);
-  assert.equal(await b.getByRole('textbox', { name: '六位房间码', exact: true }).count(), 1);
+  await b.waitForURL(url => url.pathname === '/join/' + code);
+  await b.getByRole('textbox', { name: '六位房间码', exact: true }).waitFor();
   await click(b, '加入');
-  await b.waitForURL('**/room/**');
+  await b.waitForURL(url => url.pathname.startsWith('/room/'));
   const cookie = (await desktop.cookies()).find(c => c.name === '__Host-gomoku_session');
   assert.ok(cookie?.httpOnly && cookie.secure && cookie.sameSite === 'Lax');
   assert.equal(await a.evaluate(() => document.cookie.includes('gomoku_session')), false);
@@ -210,7 +210,11 @@ try {
   console.error('Private browser check failed during ' + stage + ' (' + error.name + ').');
   for (let i = 0; i < pages.length; i++) {
     await pages[i].screenshot({ path: resolve(output, `failure-${i}.png`) }).catch(() => {});
-    await writeFile(resolve(output, `failure-${i}.txt`), await snapshot(pages[i]).catch(() => 'Page closed'));
+    // Flutter exposes the password value in its accessibility tree even when
+    // the text field is visually obscured. Never persist that value in reports.
+    let tree = await snapshot(pages[i]).catch(() => 'Page closed');
+    for (const account of accounts) tree = tree.replaceAll(account.password, '[REDACTED]');
+    await writeFile(resolve(output, `failure-${i}.txt`), tree);
   }
   process.exitCode = 1;
 } finally {
