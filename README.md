@@ -18,9 +18,9 @@
 
 ## 下载
 
-[GitHub Releases](https://github.com/xqd922/Gomoku/releases) 提供由 Actions 构建的六端发行文件、SHA-256 校验和及源码版本记录。v1.0.0 是 Flutter / Serverpod 架构的首个版本；旧版 Tauri 源码仍可通过 v0.3.0 等标签查看。
+[GitHub Releases](https://github.com/xqd922/Gomoku/releases) 提供由 Actions 构建的六端发行文件、SHA-256 校验和及源码版本记录。v1.1.0 带来整体 Material 3 Expressive 界面改版；v1.0.0 是 Flutter / Serverpod 架构的首个版本，旧版 Tauri 源码仍可通过 v0.3.0 等标签查看。
 
-本地双人无需后端。发布包未接入公共服务器，账号、联机和云端同步需按 [部署说明](docs/DEPLOYMENT.md) 自建服务并配置客户端地址。iOS 文件为无签名构建，不能直接安装；其余使用条件见 [发行说明](docs/releases/v1.0.0.md)。
+本地双人无需后端。发布包未接入公共服务器，账号、联机和云端同步需按 [部署说明](docs/DEPLOYMENT.md) 自建服务并配置客户端地址。iOS 文件为无签名构建，不能直接安装；其余使用条件见 [发行说明](docs/releases/v1.1.0.md)。
 
 ## 本机启动
 
@@ -110,7 +110,7 @@ flutter build windows --release --no-pub
 flutter build apk --release --no-pub
 ```
 
-Web 构建后从根目录执行 `dart tool/prepare_web.dart`。Windows 分发必须保留整个 `build/windows/x64/runner/Release` 目录中的 DLL 和 `data`。本地 Android 构建使用 debug key，Actions 发布前使用仓库已有正式证书重新签名并验证；包名沿用 `com.xqd922.gomoku`，v1.0.0 的 versionCode 为 10000。
+Web 构建后从根目录执行 `dart tool/prepare_web.dart`。Windows 分发必须保留整个 `build/windows/x64/runner/Release` 目录中的 DLL 和 `data`。本地 Android 构建使用 debug key，Actions 发布前使用仓库已有正式证书重新签名并验证；包名沿用 `com.xqd922.gomoku`，v1.1.0 的 versionCode 为 10100。
 
 本次界面改版的六端构建和完整自动验收已在 [GitHub Actions](https://github.com/xqd922/Gomoku/actions/runs/34677414905) 实际通过，构建产物可在该运行的 Artifacts 下载；其中 iOS 使用 `--no-codesign`，macOS 为 Intel / Apple Silicon 通用构建。生产地址、SMTP、HTTPS、备份及升级步骤见 [部署说明](docs/DEPLOYMENT.md)；一致性协议见 [架构说明](docs/ARCHITECTURE.md)。
 

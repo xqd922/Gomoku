@@ -324,8 +324,8 @@ class AppStrings {
     'reduceMotionBody': ('使用更轻的过渡效果', 'Keep transitions gentle'),
     'about': ('关于', 'About'),
     'aboutBody': (
-      'Gomoku 1.0.0\n给专注一点空间，给朋友一点时间。',
-      'Gomoku 1.0.0\nA little space to focus. A little time for friends.',
+      'Gomoku 1.1.0\n给专注一点空间，给朋友一点时间。',
+      'Gomoku 1.1.0\nA little space to focus. A little time for friends.',
     ),
     'storageWarning': (
       '当前浏览器无法长期保存棋谱。关闭页面前，请登录并完成同步。',

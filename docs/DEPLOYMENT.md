@@ -116,7 +116,7 @@ docker compose --env-file .env.production -f compose.production.yaml \
 
 仓库 Secrets 使用 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`。密钥只在 Android 签名步骤写入 runner 临时目录，步骤结束清理；不会进入源码和发行包。`tool/sign_android.sh` 校验原有证书 SHA-256 指纹、包名、版本和 16 KB 对齐。PR 验证包使用测试签名，正式标签发布必须具备全部签名 Secrets。
 
-v1.0.0 的 Android versionCode 为 10000，高于 v0.3.0 的 3000；后续发布继续递增。旧版 Tauri 数据和 WebSocket 协议未迁移到新架构，覆盖安装能力不代表旧棋谱已自动迁移。
+v1.1.0 的 Android versionCode 为 10100，高于 v1.0.0 的 10000 和 v0.3.0 的 3000；后续发布继续递增。v1.1.0 沿用 v1.0.0 的数据格式与服务端协议。旧版 Tauri 数据和 WebSocket 协议未迁移到新架构，覆盖安装能力不代表旧棋谱已自动迁移。
 
 自建后端后可设置仓库 Actions Variables：`GOMOKU_API_URL`、`GOMOKU_AUTH_URL`、`GOMOKU_WEB_URL`。三项必须一起提供，使用 HTTPS；前两项以 `/` 结束。工作流将这些公开地址编入原生客户端。留空时使用本机开发默认值；Web 从同源地址访问。请勿把密码或会话凭证放入这些变量。
 
