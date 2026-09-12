@@ -2,6 +2,21 @@
 
 验证日期：**2026-09-12（Asia/Shanghai）**。本机为 Windows，Flutter **3.47.1**、Dart **3.13.1**、Serverpod **3.4.13**；后端依赖运行于 Ubuntu-22.04 WSL 的 Docker Engine **29.1.3** / Compose **2.40.3**。
 
+## v1.1.0 正式发行
+
+[Gomoku v1.1.0](https://github.com/xqd922/Gomoku/releases/tag/v1.1.0) 已于 **2026-09-12 14:46（Asia/Shanghai）** 公开发布，并设为最新稳定版。源码提交为 [7d12b98](https://github.com/xqd922/Gomoku/commit/7d12b984ef7b135b6aea9a4016c7eca1bce09f11)，[标签发布工作流 34678707537](https://github.com/xqd922/Gomoku/actions/runs/34678707537) 的验证、六端构建及 Publish Release 全部成功。
+
+- 版本为 **1.1.0+10100**；Android versionCode 高于上一版的 10000，依赖锁文件保持一致。
+- 标签上重新通过规则 **12 项**、Flutter／SQLite **39 项**、真实后端 **11 项**和 Chrome **9 组**流程，浏览器运行时异常为 **0**；生产后端与 Web 镜像构建通过。
+- Windows x64、Android 通用 APK、Linux x64、macOS Intel／Apple Silicon 通用 app、iOS 无签名 app、Web 静态包均已上传。
+- Release 共 **10 个附件**：六端包、`SHA256SUMS.txt`、`build-info.json`、`android-signature.txt` 和 `RELEASE_NOTES.md`。
+- 已核对公开文件的 GitHub SHA-256 与 `SHA256SUMS.txt` 全部一致；四份辅助文件已下载并重新计算哈希，Windows ZIP 也已下载并校验为同一公开文件。
+- Windows ZIP 包含完整 DLL、data 与发行说明，实际 `Gomoku.exe` 的 ProductVersion / FileVersion 为 **1.1.0+10100**。
+- Android 通过包标识、版本、16 KB ZIP 对齐及 v2／v3 签名检查；公开证书 SHA-256 与 v1.0.0 相同，为 `c5bbb8806b7034dbc4ab65652c3f89839f057d782df31ece4e8125f5792e5333`。
+- `build-info.json` 中的版本、构建号、源码提交、六端文件名和 Actions 来源均已核对；已公开的 v1.0.0 文件保留。
+
+本轮下载核验位于 `artifacts/release-v1.1.0`，Actions 日志保留于 `.local/release-v1.1.0-actions.log`。本轮验收属于构建、自动化运行和发行文件核验；Android 实机覆盖安装、iOS 安装、macOS 公证及六平台全部真人操作仍未验证。iOS 产物需要开发者签名后安装。
+
 ## 本次 Material 3 Expressive 改版
 
 本节对应“对弈／棋谱两区＋头像入口”的主线改版；下方 v1.0.0 记录保留为历史依据。设计说明、相同窗口尺寸的前后截图见 [界面改版记录](UI_REDESIGN.md)。
