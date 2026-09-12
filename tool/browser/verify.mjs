@@ -73,15 +73,29 @@ async function emailCode(email) {
 
 async function enterPassword(page, password) {
   await page.getByRole("textbox", { name: "密码", exact: true }).click();
-  await page.locator('input[type="password"]').fill(password);
-  await page.locator('input[type="password"]').press("Tab");
+  await typeFocusedText(page, password);
 }
 
 async function fillText(page, label, value) {
   const field = page.getByRole("textbox", { name: label, exact: true });
   await field.click();
-  await field.fill(value);
-  await field.press("Tab");
+  await typeFocusedText(page, value);
+}
+
+async function typeFocusedText(page, value) {
+  // Flutter attaches its native editing element after the semantics click.
+  // Send keyboard events to that focused editor once the frame has settled;
+  // filling the transient semantics input can miss the TextEditingController.
+  await page.evaluate(() => new Promise(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await page.waitForFunction(() => {
+    const element = document.activeElement;
+    return (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) &&
+      !element.disabled && !element.readOnly;
+  });
+  await page.keyboard.press("ControlOrMeta+A");
+  await page.keyboard.type(value, { delay: 20 });
+  await page.keyboard.press("Tab");
 }
 
 async function clickReplayControl(page, label) {
