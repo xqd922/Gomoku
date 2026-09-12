@@ -26,8 +26,74 @@ class AppStrings {
 
   static const delegate = _StringsDelegate();
   static const supportedLocales = [Locale('zh'), Locale('en')];
+  static Locale resolveLocales(List<Locale> locales) {
+    for (final locale in locales) {
+      if (locale.languageCode == 'zh') return const Locale('zh');
+      if (locale.languageCode == 'en') return const Locale('en');
+    }
+    return const Locale('en');
+  }
 
   static const _strings = <String, (String, String)>{
+    'profileMenu': ('账户与设置', 'Account and settings'),
+    'registeredPlayer': ('已登录账户', 'Signed in'),
+    'guestLocal': ('棋谱保存在此设备', 'Games saved on this device'),
+    'guestName': ('棋友 {suffix}', 'Player {suffix}'),
+    'homeTitle': ('来一局。', 'Your move.'),
+    'homeCaption': ('一方棋盘，两位好对手。', 'One board. Two good opponents.'),
+    'resumeTitle': ('接着下。', 'Pick up your game.'),
+    'resumeCaption': ('棋局还在，下一手等你。', 'Your board is right where you left it.'),
+    'playTogether': ('同屏开局', 'Start pass & play'),
+    'playOnline': ('好友对弈', 'Play online'),
+    'localShort': ('两人 · 一块屏幕', 'Two players · One screen'),
+    'onlineShort': ('分享房间码，随时相聚', 'Meet over a room code'),
+    'returnRoom': ('返回房间', 'Return to room'),
+    'alsoLocal': ('继续同屏棋局', 'Continue pass & play'),
+    'gameOptions': ('对局选项', 'Game options'),
+    'gameSettings': ('对局设置', 'Game settings'),
+    'clearSelection': ('取消预选', 'Cancel selection'),
+    'placing': ('正在落子…', 'Placing stone…'),
+    'chooseMove': ('选择落点', 'Choose a move'),
+    'roomDetails': ('房间信息', 'Room details'),
+    'matchDetails': ('棋局信息', 'Game details'),
+    'inviteTitle': ('邀请一位好对手', 'Save a seat for a friend'),
+    'roomSetup': ('先认识一下', 'Make yourself known'),
+    'createRoomBody': (
+      '生成房间码，邀请朋友加入。',
+      'Get a room code to share with a friend.',
+    ),
+    'joinRoomBody': (
+      '输入朋友发来的六位房间码。',
+      'Enter the six-character code from your friend.',
+    ),
+    'connectionUnavailable': ('暂时无法连接联机服务', 'Online service is unavailable'),
+    'connectionChecking': ('正在检查连接…', 'Checking connection…'),
+    'readyCaption': (
+      '双方准备后，黑棋先行。',
+      'When both players are ready, black goes first.',
+    ),
+    'libraryTitle': ('每一局，都有故事。', 'Every game has a story.'),
+    'libraryEmpty': ('还没有棋谱', 'No games yet'),
+    'filterEmpty': ('这一分类还没有棋谱', 'No games in this category'),
+    'filterEmptyBody': (
+      '试试其他分类，或开始一局新的对弈。',
+      'Try another filter, or start a new game.',
+    ),
+    'players': ('{black} · {white}', '{black} · {white}'),
+    'appearanceSection': ('外观', 'Appearance'),
+    'accessibilitySection': ('语言与无障碍', 'Language & accessibility'),
+    'playingSection': ('对局', 'Playing'),
+    'colorFromSystem': ('当前使用系统配色', 'Using system colors'),
+    'colorPreview': ('你的配色', 'Your palette'),
+    'preferencesCaption': ('选一种颜色，找到自己的节奏。', 'Your color. Your pace.'),
+    'accountCaption': ('把每一局，带到下一台设备。', 'Take your games to your next device.'),
+    'accountDetails': ('账户资料', 'Account details'),
+    'editEmail': ('修改邮箱地址', 'Change email address'),
+    'emailStep': ('第 1 步 · 邮箱', 'Step 1 · Email'),
+    'verifyStep': ('第 2 步 · 验证并完成', 'Step 2 · Verify and finish'),
+    'emailError': ('请输入有效的邮箱地址', 'Enter a valid email address'),
+    'passwordError': ('请输入密码', 'Enter your password'),
+    'codeError': ('请输入邮件中的验证码', 'Enter the code from your email'),
     'error.local_game_updated': (
       '另一个窗口更新了棋局，已恢复最新进度，请重新落子。',
       'Another window updated this game. The latest position is restored; choose your move again.',
@@ -36,7 +102,7 @@ class AppStrings {
     'play': ('对弈', 'Play'),
     'history': ('棋谱', 'Library'),
     'settings': ('设置', 'Settings'),
-    'account': ('我的账户', 'Your account'),
+    'account': ('账户', 'Account'),
     'hello': ('落子之间，遇见乐趣。', 'A little focus. A good connection.'),
     'heroTitle': ('好棋，从\n这一手开始。', 'Great games\nstart with you.'),
     'heroBody': (
@@ -226,7 +292,7 @@ class AppStrings {
       '先结束或离开房间，再切换账户或昵称。',
       'Finish or leave your room before changing your account or nickname.',
     ),
-    'appearance': ('让它，更像你。', 'Make yourself at home.'),
+    'appearance': ('外观', 'Appearance'),
     'appearanceBody': ('选一种颜色，找到舒服的节奏。', 'Find your color. Set your own pace.'),
     'theme': ('显示模式', 'Appearance'),
     'system': ('跟随系统', 'System'),

@@ -10,13 +10,16 @@ import 'package:gomoku_client/gomoku_client.dart';
 import 'package:gomoku_core/gomoku_core.dart';
 
 import '../../data/api.dart';
+import '../../design/tokens.dart';
 import '../../l10n/strings.dart';
 import '../../state/app_state.dart';
 import '../../state/online.dart';
 import '../../state/settings.dart';
+import '../shell.dart';
 import '../widgets/board.dart';
 import '../widgets/common.dart';
-import 'local_page.dart';
+import '../widgets/game_layout.dart';
+import 'settings_page.dart';
 
 class OnlinePage extends ConsumerStatefulWidget {
   const OnlinePage({super.key, required this.roomId});
@@ -26,12 +29,20 @@ class OnlinePage extends ConsumerStatefulWidget {
 }
 
 class _OnlinePageState extends ConsumerState<OnlinePage> {
+  final _boardKey = GlobalKey(debugLabel: 'online-board');
+  final _interaction = BoardInteractionController();
   Object? _error;
   bool _loading = false;
   @override
   void initState() {
     super.initState();
     Future.microtask(_load);
+  }
+
+  @override
+  void dispose() {
+    _interaction.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -89,43 +100,86 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
     }
   }
 
+  Widget _roomInfo(RoomSnapshot room) {
+    final s = context.strings;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          s.t('roomDetails'),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 10),
+        SelectableText(
+          room.code,
+          semanticsLabel:
+              '${s.t('roomCode')}: ${room.code.split('').join(' ')}',
+          style: Theme.of(context).textTheme.headlineSmall
+              ?.copyWith(letterSpacing: 3),
+        ),
+        const SizedBox(height: 8),
+        Text(s.t('round', {'n': room.round})),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            IconButton.filledTonal(
+              tooltip: s.t('shareCode'),
+              onPressed: () => _copy(room.code),
+              icon: const Icon(Icons.copy_rounded),
+            ),
+            IconButton.filledTonal(
+              tooltip: s.t('shareLink'),
+              onPressed: () => _copy('${Api.webUrl}/join/${room.code}'),
+              icon: const Icon(Icons.link_rounded),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final online = ref.watch(onlineProvider);
     final room = online.room?.roomId == widget.roomId ? online.room : null;
     final s = context.strings;
     final colors = Theme.of(context).colorScheme;
-    if (_error != null && room == null) {
-      return PageFrame(
-        children: [
-          PageHeading(
-            title: s.t('friendMatch'),
-            subtitle: s.error(errorCode(_error!)),
-          ),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              FilledButton(onPressed: _load, child: Text(s.t('retry'))),
-              TextButton(
-                onPressed: () => context.go('/lobby'),
-                child: Text(s.t('back')),
+    if (room == null) {
+      return SectionScaffold(
+        title: s.t('friendMatch'),
+        compact: true,
+        child: _error == null
+            ? const Center(child: CircularProgressIndicator())
+            : PageFrame(
+                children: [
+                  InlineNotice(
+                    message: s.error(errorCode(_error!)),
+                    error: true,
+                    action: TextButton(
+                      onPressed: _load,
+                      child: Text(s.t('retry')),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => context.go('/lobby'),
+                    child: Text(s.t('joinRoom')),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ],
       );
     }
-    if (room == null) return const Center(child: CircularProgressIndicator());
     final game = GameState.fromJson(
       jsonDecode(room.gameJson) as Map<String, dynamic>,
     );
     final player = ref.watch(authProvider).profile?.playerId;
     final isHost = room.hostPlayerId == player;
+    final hostBlack = room.blackPlayerId == room.hostPlayerId;
     final myStone = room.blackPlayerId == player ? Stone.black : Stone.white;
     final myReady = isHost ? room.hostReady : room.guestReady;
-    final playing = room.status == RoomStatus.playing;
     final waiting = room.status == RoomStatus.waiting;
+    final playing = room.status == RoomStatus.playing;
     final closed = room.status == RoomStatus.closed;
     final finished = room.status == RoomStatus.finished;
     final canSend = online.connected && !online.busy && !closed;
@@ -133,302 +187,319 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
     final label = closed
         ? s.t('closedRoom')
         : game.isOver
-        ? resultLabel(game, s)
+        ? s.t('finished')
         : room.status == RoomStatus.paused
         ? s.t('paused')
         : waiting
         ? s.t('waitingSeat')
         : s.t(myTurn ? 'yourTurn' : 'theirTurn');
-    final seats = Column(
-      children: [
-        _Seat(
-          name: room.hostName,
-          stone: room.blackPlayerId == room.hostPlayerId
-              ? Stone.black
-              : Stone.white,
-          mine: isHost,
-          online: room.hostConnected,
-          ready: room.hostReady,
-          waiting: waiting,
-        ),
-        const SizedBox(height: 14),
-        _Seat(
-          name: room.guestName ?? s.t('waitingSeat'),
-          stone: room.blackPlayerId == room.hostPlayerId
-              ? Stone.white
-              : Stone.black,
-          mine: !isHost,
-          online: room.guestConnected,
-          ready: room.guestReady,
-          waiting: waiting,
+    final reconnecting = !online.connected && !closed
+        ? InlineNotice(
+            message: s.t('reconnecting'),
+            icon: Icons.wifi_off_rounded,
+            action: TextButton(
+              onPressed: () => ref.read(onlineProvider.notifier).reconnect(),
+              child: Text(s.t('reconnect')),
+            ),
+          )
+        : null;
+
+    final menu = PopupMenuButton<String>(
+      tooltip: s.t('gameOptions'),
+      onSelected: (action) async {
+        switch (action) {
+          case 'settings':
+            await showGameSettings(context);
+          case 'room':
+            await showModalBottomSheet<void>(
+              context: context,
+              useSafeArea: true,
+              isScrollControlled: true,
+              constraints: const BoxConstraints(maxWidth: AppLayout.reading),
+              builder: (context) => SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: _roomInfo(room),
+                ),
+              ),
+            );
+          case 'resign':
+            if (await confirmAction(
+              context,
+              s.t('resignTitle'),
+              s.t('resignBody'),
+              confirmLabel: s.t('resign'),
+            )) {
+              await _send(RoomAction.resign);
+            }
+          case 'leave':
+            await _leave();
+        }
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(value: 'room', child: Text(s.t('roomDetails'))),
+        PopupMenuItem(value: 'settings', child: Text(s.t('gameSettings'))),
+        if (playing || room.status == RoomStatus.paused)
+          PopupMenuItem(
+            value: 'resign',
+            enabled: canSend,
+            child: Text(s.t('resign')),
+          ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'leave',
+          enabled: !online.busy,
+          child: Text(s.t(closed ? 'returnHome' : 'leaveRoom')),
         ),
       ],
     );
-    final panel = Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+
+    if (waiting) {
+      return SectionScaffold(
+        title: s.t('friendMatch'),
+        actions: [menu],
+        child: PageFrame(
+          maxWidth: AppLayout.reading,
           children: [
-            Semantics(
-              liveRegion: true,
-              child: Text(label, style: Theme.of(context).textTheme.titleLarge),
+            PageHeading(
+              title: s.t('inviteTitle'),
+              subtitle: s.t('waitingBody'),
             ),
-            const SizedBox(height: 22),
-            seats,
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Divider(),
+            if (reconnecting != null) ...[
+              reconnecting,
+              const SizedBox(height: 16),
+            ],
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.section),
+              decoration: BoxDecoration(
+                color: colors.primaryContainer,
+                borderRadius: BorderRadius.circular(AppShape.feature),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    s.t('roomCode'),
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 10),
+                  SelectableText(
+                    room.code,
+                    semanticsLabel:
+                        '${s.t('roomCode')}: ${room.code.split('').join(' ')}',
+                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                      color: colors.onPrimaryContainer,
+                      letterSpacing: 4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.tonalIcon(
+                        onPressed: () => _copy(room.code),
+                        icon: const Icon(Icons.copy_rounded),
+                        label: Text(s.t('shareCode')),
+                      ),
+                      TextButton.icon(
+                        onPressed: () =>
+                            _copy('${Api.webUrl}/join/${room.code}'),
+                        icon: const Icon(Icons.link_rounded),
+                        label: Text(s.t('shareLink')),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            if (waiting)
-              FilledButton.icon(
-                onPressed: canSend && !myReady
-                    ? () => _send(RoomAction.ready)
-                    : null,
-                icon: Icon(
-                  myReady ? Icons.check_rounded : Icons.sports_esports_outlined,
+            const SizedBox(height: 20),
+            SettingsGroup(
+              title: s.t('readyCaption'),
+              children: [
+                _ReadySeat(
+                  name: room.hostName,
+                  stone: hostBlack ? Stone.black : Stone.white,
+                  mine: isHost,
+                  online: room.hostConnected,
+                  ready: room.hostReady,
                 ),
-                label: Text(s.t(myReady ? 'isReady' : 'ready')),
-              ),
-            if (playing && room.undoRequestedBy != null) ...[
-              Text(
-                s.t(
-                  room.undoRequestedBy == player
-                      ? 'undoWaiting'
-                      : 'undoIncoming',
-                ),
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              if (room.undoRequestedBy != player) ...[
-                const SizedBox(height: 10),
-                Text(
-                  s.t('undoExplanation'),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: canSend
-                      ? () => _send(RoomAction.acceptUndo)
-                      : null,
-                  child: Text(s.t('accept')),
-                ),
-                TextButton(
-                  onPressed: canSend
-                      ? () => _send(RoomAction.rejectUndo)
-                      : null,
-                  child: Text(s.t('decline')),
+                _ReadySeat(
+                  name: room.guestName ?? s.t('waitingSeat'),
+                  stone: hostBlack ? Stone.white : Stone.black,
+                  mine: !isHost,
+                  online: room.guestConnected,
+                  ready: room.guestReady,
                 ),
               ],
-              const SizedBox(height: 18),
-            ],
-            if (playing)
-              OutlinedButton.icon(
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              key: const ValueKey('ready-room'),
+              onPressed: canSend && !myReady
+                  ? () => _send(RoomAction.ready)
+                  : null,
+              icon: Icon(
+                myReady ? Icons.check_rounded : Icons.play_arrow_rounded,
+              ),
+              label: Text(s.t(myReady ? 'isReady' : 'ready')),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (closed && !game.isOver) {
+      return SectionScaffold(
+        title: s.t('friendMatch'),
+        child: PageFrame(
+          children: [
+            InlineNotice(message: s.t('closedRoom')),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () => context.go('/'),
+              child: Text(s.t('returnHome')),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final status = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PlayerStrip(
+          blackName: hostBlack ? room.hostName : room.guestName ?? s.t('white'),
+          whiteName: hostBlack ? room.guestName ?? s.t('white') : room.hostName,
+          blackOnline: hostBlack ? room.hostConnected : room.guestConnected,
+          whiteOnline: hostBlack ? room.guestConnected : room.hostConnected,
+          label: label,
+          moves: game.moves.length,
+          activeStone: playing ? game.turn : null,
+        ),
+        if (reconnecting != null) ...[const SizedBox(height: 12), reconnecting],
+        if (room.status == RoomStatus.paused &&
+            room.resumeDeadline != null) ...[
+          const SizedBox(height: 12),
+          _DisconnectNotice(
+            deadline: room.resumeDeadline!,
+            serverTime: room.serverTime,
+          ),
+        ],
+        if (playing && room.undoRequestedBy != null) ...[
+          const SizedBox(height: 12),
+          InlineNotice(
+            icon: Icons.undo_rounded,
+            message: s.t(
+              room.undoRequestedBy == player ? 'undoWaiting' : 'undoIncoming',
+            ),
+            action: room.undoRequestedBy == player
+                ? null
+                : Wrap(
+                    spacing: 8,
+                    children: [
+                      TextButton(
+                        onPressed: canSend
+                            ? () => _send(RoomAction.rejectUndo)
+                            : null,
+                        child: Text(s.t('decline')),
+                      ),
+                      FilledButton.tonal(
+                        onPressed: canSend
+                            ? () => _send(RoomAction.acceptUndo)
+                            : null,
+                        child: Text(s.t('accept')),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ],
+    );
+
+    return GameScaffold(
+      title: s.t('friendMatch'),
+      actions: [menu],
+      board: GameBoard(
+        key: _boardKey,
+        game: game,
+        settings: ref.watch(settingsProvider),
+        interaction: _interaction,
+        showControls: false,
+        enabled: canSend && myTurn && room.undoRequestedBy == null,
+        onMove: (row, col) => ref
+            .read(onlineProvider.notifier)
+            .send(RoomAction.move, row: row, col: col),
+      ),
+      status: status,
+      controls: game.isOver
+          ? ResultMoment(
+              key: ValueKey(room.gameId),
+              gameId: room.gameId,
+              label: resultLabel(game, s),
+              child: EndGameActions(
+                primaryLabel: s.t(
+                  closed
+                      ? 'returnHome'
+                      : myReady
+                      ? 'rematchWaiting'
+                      : 'rematch',
+                ),
+                onPrimary: closed
+                    ? () => context.go('/')
+                    : finished && canSend && !myReady
+                    ? () => _send(RoomAction.rematch)
+                    : null,
+                onReplay: () => context.push('/history/${room.gameId}'),
+              ),
+            )
+          : MoveControls(
+              interaction: _interaction,
+              message: !canSend || !myTurn ? label : null,
+              undo: IconButton.filledTonal(
+                tooltip: s.t('undoRequest'),
                 onPressed:
-                    canSend &&
+                    playing &&
+                        canSend &&
                         room.undoRequestedBy == null &&
                         game.moves.any((move) => move.stone == myStone)
                     ? () => _send(RoomAction.requestUndo)
                     : null,
                 icon: const Icon(Icons.undo_rounded),
-                label: Text(s.t('undoRequest')),
-              ),
-            if (playing || room.status == RoomStatus.paused) ...[
-              const SizedBox(height: 10),
-              TextButton.icon(
-                onPressed: canSend
-                    ? () async {
-                        if (await confirmAction(
-                          context,
-                          s.t('resignTitle'),
-                          s.t('resignBody'),
-                          confirmLabel: s.t('resign'),
-                        )) {
-                          await _send(RoomAction.resign);
-                        }
-                      }
-                    : null,
-                icon: const Icon(Icons.flag_outlined),
-                label: Text(s.t('resign')),
-              ),
-            ],
-            if (finished) ...[
-              FilledButton.icon(
-                onPressed: canSend && !myReady
-                    ? () => _send(RoomAction.rematch)
-                    : null,
-                icon: const Icon(Icons.refresh_rounded),
-                label: Text(s.t(myReady ? 'rematchWaiting' : 'rematch')),
-              ),
-              const SizedBox(height: 12),
-            ],
-            if (game.isOver)
-              OutlinedButton.icon(
-                onPressed: () => context.go('/history/${room.gameId}'),
-                icon: const Icon(Icons.replay_rounded),
-                label: Text(s.t('replay')),
-              ),
-            const SizedBox(height: 20),
-            Text(
-              s.t('moves', {'n': game.moves.length}),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: online.busy ? null : _leave,
-              icon: Icon(closed ? Icons.home_outlined : Icons.logout_rounded),
-              label: Text(s.t(closed ? 'returnHome' : 'leaveRoom')),
-            ),
-          ],
-        ),
-      ),
-    );
-    return PageFrame(
-      maxWidth: 1080,
-      children: [
-        PageHeading(
-          title: s.t('friendMatch'),
-          subtitle: '${s.t('round', {'n': room.round})} · ${room.code}',
-          action: StatusPill(
-            label: online.connected ? s.t('online') : s.t('reconnecting'),
-            icon: online.connected
-                ? Icons.wifi_rounded
-                : Icons.wifi_off_rounded,
-          ),
-        ),
-        if (!online.connected && !closed) ...[
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Wrap(
-                spacing: 16,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(s.t('reconnecting')),
-                  TextButton(
-                    onPressed: () =>
-                        ref.read(onlineProvider.notifier).reconnect(),
-                    child: Text(s.t('reconnect')),
-                  ),
-                ],
               ),
             ),
-          ),
-          const SizedBox(height: 18),
-        ],
-        if (room.status == RoomStatus.paused &&
-            room.resumeDeadline != null) ...[
-          _DisconnectNotice(
-            deadline: room.resumeDeadline!,
-            serverTime: room.serverTime,
-          ),
-          const SizedBox(height: 18),
-        ],
-        if (waiting) ...[
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: colors.primaryContainer.withValues(alpha: .55),
-              borderRadius: BorderRadius.circular(32),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  s.t('waitingFriend'),
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 14),
-                Text(s.t('waitingBody')),
-                const SizedBox(height: 28),
-                SelectableText(
-                  room.code,
-                  semanticsLabel:
-                      '${s.t('roomCode')}: ${room.code.split('').join(' ')}',
-                  style: Theme.of(context).textTheme.displaySmall
-                      ?.copyWith(color: colors.primary, letterSpacing: 6),
-                ),
-                const SizedBox(height: 22),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    FilledButton.tonalIcon(
-                      onPressed: () => _copy(room.code),
-                      icon: const Icon(Icons.copy_rounded),
-                      label: Text(s.t('shareCode')),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => _copy('${Api.webUrl}/join/${room.code}'),
-                      icon: const Icon(Icons.link_rounded),
-                      label: Text(s.t('shareLink')),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 22),
-          panel,
-        ] else
-          GameLayout(
-            board: GameBoard(
-              game: game,
-              settings: ref.watch(settingsProvider),
-              enabled: canSend && myTurn && room.undoRequestedBy == null,
-              onMove: (row, col) => ref
-                  .read(onlineProvider.notifier)
-                  .send(RoomAction.move, row: row, col: col),
-            ),
-            panel: panel,
-          ),
-      ],
+      details: _roomInfo(room),
     );
   }
 }
 
-class _Seat extends StatelessWidget {
-  const _Seat({
+class _ReadySeat extends StatelessWidget {
+  const _ReadySeat({
     required this.name,
     required this.stone,
     required this.mine,
     required this.online,
     required this.ready,
-    required this.waiting,
   });
   final String name;
   final Stone stone;
-  final bool mine, online, ready, waiting;
+  final bool mine, online, ready;
   @override
   Widget build(BuildContext context) {
     final s = context.strings;
-    final colors = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        StoneDisc(stone: stone, size: 34),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name + (mine ? ' · ${s.t('you')}' : ''),
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              Text(
-                s.t(online ? 'online' : 'offline') +
-                    (waiting
-                        ? ' · ${s.t(ready ? 'isReady' : 'notReady')}'
-                        : ''),
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: colors.onSurfaceVariant),
-              ),
-            ],
-          ),
-        ),
-        if (ready && waiting)
-          Icon(Icons.check_circle_rounded, color: colors.primary, size: 20),
-      ],
+    return ListTile(
+      leading: StoneDisc(stone: stone, size: 32),
+      title: Text(name + (mine ? ' · ${s.t('you')}' : '')),
+      subtitle: Text(
+        '${s.t(online ? 'online' : 'offline')} · ${s.t(ready ? 'isReady' : 'notReady')}',
+      ),
+      trailing: ready
+          ? Icon(
+              Icons.check_circle_rounded,
+              color: Theme.of(context).colorScheme.primary,
+            )
+          : null,
     );
   }
 }
@@ -441,7 +512,7 @@ class _DisconnectNotice extends StatefulWidget {
 }
 
 class _DisconnectNoticeState extends State<_DisconnectNotice> {
-  late DateTime _received = DateTime.now();
+  DateTime _received = DateTime.now();
   Timer? _timer;
   @override
   void initState() {
@@ -470,17 +541,9 @@ class _DisconnectNoticeState extends State<_DisconnectNotice> {
       widget.deadline.difference(widget.serverTime).inSeconds -
           DateTime.now().difference(_received).inSeconds,
     );
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colors.tertiaryContainer,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Text(
-        context.strings.t('disconnectBody', {'seconds': seconds}),
-        style: TextStyle(color: colors.onTertiaryContainer),
-      ),
+    return InlineNotice(
+      icon: Icons.hourglass_top_rounded,
+      message: context.strings.t('disconnectBody', {'seconds': seconds}),
     );
   }
 }

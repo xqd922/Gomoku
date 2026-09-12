@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,8 +9,74 @@ import 'package:gomoku_core/gomoku_core.dart';
 import 'package:gomoku_flutter/l10n/strings.dart';
 import 'package:gomoku_flutter/state/settings.dart';
 import 'package:gomoku_flutter/ui/widgets/board.dart';
+import 'package:gomoku_flutter/ui/widgets/game_layout.dart';
 
 void main() {
+  testWidgets('external confirmation submits once while a move is pending', (
+    tester,
+  ) async {
+    final interaction = BoardInteractionController();
+    final accepted = Completer<void>();
+    var calls = 0;
+    var game = GameState.newGame();
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        supportedLocales: AppStrings.supportedLocales,
+        localizationsDelegates: const [AppStrings.delegate],
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) => Center(
+              child: SizedBox(
+                width: 360,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GameBoard(
+                      game: game,
+                      interaction: interaction,
+                      showControls: false,
+                      settings: const AppSettings(
+                        sound: false,
+                        haptics: false,
+                        reduceMotion: true,
+                      ),
+                      onMove: (row, col) async {
+                        calls++;
+                        await accepted.future;
+                        setState(() => game = game.play(row, col));
+                      },
+                    ),
+                    MoveControls(interaction: interaction),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tapAt(
+      tester.getCenter(find.byKey(const ValueKey('game-board'))),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('confirm-move')));
+    await tester.pump();
+    expect(interaction.submitting, isTrue);
+    await interaction.confirm();
+    interaction.cancel();
+    expect(calls, 1);
+    expect(game.moves, isEmpty);
+    accepted.complete();
+    await tester.pumpAndSettle();
+    expect(game.moves.length, 1);
+    expect(interaction.selectedPoint, isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await interaction.confirm();
+    interaction.dispose();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('touch previews and confirms; keyboard and mouse place once', (
     tester,
   ) async {

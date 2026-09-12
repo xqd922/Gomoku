@@ -46,8 +46,12 @@ final ownerProvider = Provider<String>((ref) {
 final gamesProvider = StreamProvider<List<GameRecord>>(
   (ref) => ref.watch(databaseProvider).watchGames(ref.watch(ownerProvider)),
 );
-final recordProvider = FutureProvider.family<GameRecord?, String>(
-  (ref, id) => ref.watch(databaseProvider).find(ref.watch(ownerProvider), id),
+final recordProvider = Provider.family<AsyncValue<GameRecord?>, String>(
+  (ref, id) => ref
+      .watch(gamesProvider)
+      .whenData(
+        (games) => games.where((game) => game.id == id).firstOrNull,
+      ),
 );
 
 class AuthController extends Notifier<AuthState> {

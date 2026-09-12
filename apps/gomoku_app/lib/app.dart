@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'design/theme.dart';
+import 'design/tokens.dart';
 import 'l10n/strings.dart';
 import 'state/app_state.dart';
 import 'state/online.dart';
@@ -30,38 +31,67 @@ class _GomokuAppState extends ConsumerState<GomokuApp>
     with WidgetsBindingObserver {
   late final GoRouter _router = GoRouter(
     routes: [
-      ShellRoute(
-        builder: (context, state, child) =>
-            AppShell(location: state.uri.path, child: child),
-        routes: [
-          GoRoute(path: '/', builder: (_, _) => const HomePage()),
-          GoRoute(path: '/local', builder: (_, _) => const LocalPage()),
-          GoRoute(path: '/lobby', builder: (_, _) => const LobbyPage()),
-          GoRoute(
-            path: '/join/:code',
-            builder: (_, state) => LobbyPage(
-              key: ValueKey(state.pathParameters['code']),
-              initialCode: state.pathParameters['code']!,
-            ),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/', builder: (_, _) => const HomePage()),
+            ],
           ),
-          GoRoute(
-            path: '/room/:id',
-            builder: (_, state) => OnlinePage(
-              key: ValueKey(state.pathParameters['id']),
-              roomId: state.pathParameters['id']!,
-            ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/history', builder: (_, _) => const HistoryPage()),
+            ],
           ),
-          GoRoute(path: '/history', builder: (_, _) => const HistoryPage()),
-          GoRoute(
-            path: '/history/:id',
-            builder: (_, state) => ReplayPage(
-              key: ValueKey(state.pathParameters['id']),
-              recordId: state.pathParameters['id']!,
-            ),
-          ),
-          GoRoute(path: '/account', builder: (_, _) => const AccountPage()),
-          GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
         ],
+      ),
+      GoRoute(path: '/local', builder: (_, _) => const LocalPage()),
+      GoRoute(
+        path: '/lobby',
+        builder: (context, _) => SectionScaffold(
+          title: context.strings.t('friendMatch'),
+          child: const LobbyPage(),
+        ),
+      ),
+      GoRoute(
+        path: '/join/:code',
+        builder: (context, state) => SectionScaffold(
+          title: context.strings.t('joinRoom'),
+          child: LobbyPage(
+            key: ValueKey(state.pathParameters['code']),
+            initialCode: state.pathParameters['code']!,
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/room/:id',
+        builder: (_, state) => OnlinePage(
+          key: ValueKey(state.pathParameters['id']),
+          roomId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '/history/:id',
+        builder: (_, state) => ReplayPage(
+          key: ValueKey(state.pathParameters['id']),
+          recordId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '/account',
+        builder: (context, _) => SectionScaffold(
+          title: context.strings.t('account'),
+          child: const AccountPage(),
+        ),
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, _) => SectionScaffold(
+          title: context.strings.t('settings'),
+          child: const SettingsPage(),
+        ),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
@@ -78,6 +108,9 @@ class _GomokuAppState extends ConsumerState<GomokuApp>
   @override
   void initState() {
     super.initState();
+    // Every pushed page has a complete, independently restorable route. Keep
+    // its URL visible so refresh, browser history and copied links agree.
+    GoRouter.optionURLReflectsImperativeAPIs = true;
     WidgetsBinding.instance.addObserver(this);
     _syncTimer = Timer.periodic(const Duration(seconds: 30), (_) => _refresh());
   }
@@ -102,6 +135,16 @@ class _GomokuAppState extends ConsumerState<GomokuApp>
   }
 
   @override
+  void didChangeAccessibilityFeatures() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void didChangeLocales(List<Locale>? locales) {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _syncTimer?.cancel();
@@ -112,50 +155,61 @@ class _GomokuAppState extends ConsumerState<GomokuApp>
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
+    final locale = settings.language == 'system'
+        ? AppStrings.resolveLocales(
+            WidgetsBinding.instance.platformDispatcher.locales,
+          )
+        : Locale(settings.language);
     ref.watch(authProvider);
     return DynamicColorBuilder(
-      builder: (light, dark) => MaterialApp.router(
-        title: 'Gomoku',
-        debugShowCheckedModeBanner: false,
-        routerConfig: _router,
-        theme: AppTheme.build(
-          Brightness.light,
-          Color(settings.seed),
-          dynamicScheme: settings.dynamicColor ? light : null,
-        ),
-        darkTheme: AppTheme.build(
-          Brightness.dark,
-          Color(settings.seed),
-          dynamicScheme: settings.dynamicColor ? dark : null,
-        ),
-        themeMode: settings.theme,
-        themeAnimationDuration: settings.reduceMotion
-            ? Duration.zero
-            : const Duration(milliseconds: 280),
-        supportedLocales: AppStrings.supportedLocales,
-        locale: settings.language == 'system'
-            ? null
-            : Locale(settings.language),
-        localeListResolutionCallback: (locales, _) {
-          for (final locale in locales ?? <Locale>[]) {
-            if (locale.languageCode == 'zh') return const Locale('zh');
-            if (locale.languageCode == 'en') return const Locale('en');
-          }
-          return const Locale('en');
-        },
-        localizationsDelegates: const [
-          AppStrings.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            disableAnimations:
-                settings.reduceMotion ||
-                MediaQuery.disableAnimationsOf(context),
+      builder: (light, dark) => DesignCapabilities(
+        dynamicColor: light != null && dark != null,
+        child: MaterialApp.router(
+          title: 'Gomoku',
+          debugShowCheckedModeBanner: false,
+          routerConfig: _router,
+          theme: AppTheme.build(
+            Brightness.light,
+            Color(settings.seed),
+            dynamicScheme: settings.dynamicColor ? light : null,
+            chinese: locale.languageCode == 'zh',
           ),
-          child: child ?? const SizedBox.shrink(),
+          darkTheme: AppTheme.build(
+            Brightness.dark,
+            Color(settings.seed),
+            dynamicScheme: settings.dynamicColor ? dark : null,
+            chinese: locale.languageCode == 'zh',
+          ),
+          themeMode: settings.theme,
+          themeAnimationDuration:
+              settings.reduceMotion ||
+                  WidgetsBinding
+                      .instance
+                      .platformDispatcher
+                      .accessibilityFeatures
+                      .disableAnimations
+              ? Duration.zero
+              : const Duration(milliseconds: 280),
+          supportedLocales: AppStrings.supportedLocales,
+          locale: settings.language == 'system'
+              ? null
+              : Locale(settings.language),
+          localeListResolutionCallback: (locales, _) =>
+              AppStrings.resolveLocales(locales ?? []),
+          localizationsDelegates: const [
+            AppStrings.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              disableAnimations:
+                  settings.reduceMotion ||
+                  MediaQuery.disableAnimationsOf(context),
+            ),
+            child: child ?? const SizedBox.shrink(),
+          ),
         ),
       ),
     );

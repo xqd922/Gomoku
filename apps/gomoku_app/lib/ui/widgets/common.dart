@@ -3,18 +3,26 @@ import 'package:go_router/go_router.dart';
 import 'package:gomoku_core/gomoku_core.dart';
 
 import '../../data/api.dart';
+import '../../design/tokens.dart';
 import '../../l10n/strings.dart';
 
 class PageFrame extends StatelessWidget {
-  const PageFrame({super.key, required this.children, this.maxWidth = 1200});
+  const PageFrame({
+    super.key,
+    required this.children,
+    this.maxWidth = AppLayout.content,
+    this.scrollKey,
+  });
   final List<Widget> children;
   final double maxWidth;
+  final Key? scrollKey;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final pad = constraints.maxWidth >= 840 ? 40.0 : 20.0;
+      final pad = AppLayout.pageInset(constraints.maxWidth);
       return SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(pad, 12, pad, 36),
+        key: scrollKey,
+        padding: EdgeInsets.fromLTRB(pad, 20, pad, 32),
         child: Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
@@ -42,7 +50,7 @@ class PageHeading extends StatelessWidget {
   final Widget? action;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 12, bottom: 28),
+    padding: const EdgeInsets.only(bottom: 20),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -51,7 +59,7 @@ class PageHeading extends StatelessWidget {
           runSpacing: 12,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text(title, style: Theme.of(context).textTheme.headlineLarge),
+            Text(title, style: Theme.of(context).textTheme.headlineMedium),
             ?action,
           ],
         ),
@@ -168,25 +176,20 @@ class RecordTile extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Material(
       color: colors.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(AppShape.menu),
       child: InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: () => context.go('/history/${record.id}'),
+        borderRadius: BorderRadius.circular(AppShape.menu),
+        onTap: () => context.push('/history/${record.id}'),
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(AppSpacing.content),
           child: Row(
             children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Center(
-                  child: StoneDisc(
-                    stone: record.game.result?.winner ?? Stone.black,
-                    size: 27,
+              ExcludeSemantics(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: CustomPaint(
+                    size: const Size.square(64),
+                    painter: _RecordPreview(record.game, colors),
                   ),
                 ),
               ),
@@ -201,7 +204,15 @@ class RecordTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      '${s.t(record.source == RecordSource.local ? 'localMatch' : 'friendMatch')} · ${s.t('moves', {'n': record.game.moves.length})} · ${dateLabel(record.updatedAt, s)}',
+                      s.t('players', {
+                        'black': record.blackName,
+                        'white': record.whiteName,
+                      }),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${s.t(record.source == RecordSource.local ? 'localMatch' : 'friendMatch')} · ${s.t('moves', {'n': record.game.moves.length})} · ${record.updatedAt.toLocal().hour.toString().padLeft(2, '0')}:${record.updatedAt.toLocal().minute.toString().padLeft(2, '0')}',
                       style: Theme.of(context).textTheme.bodySmall
                           ?.copyWith(color: colors.onSurfaceVariant),
                     ),
@@ -210,7 +221,7 @@ class RecordTile extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Icon(
-                Icons.arrow_outward_rounded,
+                Icons.chevron_right_rounded,
                 size: 20,
                 color: colors.onSurfaceVariant,
               ),
@@ -247,7 +258,7 @@ class EmptyGames extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            context.strings.t('emptyHistory'),
+            context.strings.t('libraryEmpty'),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleSmall,
           ),
@@ -258,10 +269,193 @@ class EmptyGames extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall
                 ?.copyWith(color: colors.onSurfaceVariant),
           ),
+          const SizedBox(height: 18),
+          FilledButton.tonalIcon(
+            onPressed: () => context.go('/'),
+            icon: const Icon(Icons.add_rounded),
+            label: Text(context.strings.t('startPlaying')),
+          ),
         ],
       ),
     );
   }
+}
+
+class _RecordPreview extends CustomPainter {
+  _RecordPreview(this.game, this.colors);
+  final GameState game;
+  final ColorScheme colors;
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = colors.surfaceContainerHighest,
+    );
+    const pad = 7.0;
+    final step = (size.width - pad * 2) / 14;
+    final grid = Paint()
+      ..color = colors.outlineVariant
+      ..strokeWidth = .45;
+    for (var i = 0; i < 15; i++) {
+      final p = pad + i * step;
+      canvas.drawLine(Offset(p, pad), Offset(p, size.height - pad), grid);
+      canvas.drawLine(Offset(pad, p), Offset(size.width - pad, p), grid);
+    }
+    for (final move in game.moves) {
+      canvas.drawCircle(
+        Offset(pad + move.col * step, pad + move.row * step),
+        step * .43,
+        Paint()
+          ..color = move.stone == Stone.black
+              ? const Color(0xff242127)
+              : const Color(0xfffffdfa),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RecordPreview old) =>
+      old.game != game || old.colors != colors;
+}
+
+class SettingsGroup extends StatelessWidget {
+  const SettingsGroup({super.key, required this.title, required this.children});
+  final String title;
+  final List<Widget> children;
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall
+                ?.copyWith(color: colors.primary),
+          ),
+        ),
+        for (var i = 0; i < children.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 3),
+            child: Material(
+              color: colors.surfaceContainerLow,
+              clipBehavior: Clip.antiAlias,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(i == 0 ? AppShape.card : AppShape.joined),
+                bottom: Radius.circular(
+                  i == children.length - 1 ? AppShape.card : AppShape.joined,
+                ),
+              ),
+              child: children[i],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class InlineNotice extends StatelessWidget {
+  const InlineNotice({
+    super.key,
+    required this.message,
+    this.icon = Icons.info_outline_rounded,
+    this.action,
+    this.error = false,
+  });
+  final String message;
+  final IconData icon;
+  final Widget? action;
+  final bool error;
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final foreground = error
+        ? colors.onErrorContainer
+        : colors.onSecondaryContainer;
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.content),
+        decoration: BoxDecoration(
+          color: error ? colors.errorContainer : colors.secondaryContainer,
+          borderRadius: BorderRadius.circular(AppShape.menu),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 22, color: foreground),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(message, style: TextStyle(color: foreground)),
+                ),
+              ],
+            ),
+            if (action != null)
+              Align(alignment: Alignment.centerRight, child: action),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<T?> showChoice<T>(
+  BuildContext context, {
+  required String title,
+  required T value,
+  required List<(T, String)> choices,
+}) {
+  Widget contents(BuildContext sheetContext) => RadioGroup<T>(
+    groupValue: value,
+    onChanged: (next) {
+      if (next != null) Navigator.pop(sheetContext, next);
+    },
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final choice in choices)
+          RadioListTile<T>(value: choice.$1, title: Text(choice.$2)),
+      ],
+    ),
+  );
+  if (MediaQuery.sizeOf(context).width >= AppLayout.compact) {
+    return showDialog<T>(
+      context: context,
+      builder: (sheetContext) => AlertDialog(
+        title: Text(title),
+        content: SizedBox(
+          width: 400,
+          child: SingleChildScrollView(child: contents(sheetContext)),
+        ),
+      ),
+    );
+  }
+  return showModalBottomSheet<T>(
+    context: context,
+    useSafeArea: true,
+    isScrollControlled: true,
+    builder: (sheetContext) => SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+            ),
+            contents(sheetContext),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 void showFailure(BuildContext context, Object error) {

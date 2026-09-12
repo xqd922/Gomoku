@@ -8,11 +8,84 @@ import 'package:flutter/services.dart';
 import 'package:gomoku_core/gomoku_core.dart';
 
 import '../../l10n/strings.dart';
+import '../../design/tokens.dart';
 import '../../state/settings.dart';
 import 'common.dart';
 
 String pointName(BoardPoint point) =>
     String.fromCharCode(65 + point.col) + (point.row + 1).toString();
+
+/// The board owns input and move acceptance; layouts only present these actions.
+class BoardInteractionController extends ChangeNotifier {
+  BoardPoint? get selectedPoint => _selected;
+  bool get submitting => _submitting;
+  bool get canConfirm => _enabled && !_submitting && _selected != null;
+  BoardPoint? _selected;
+  bool _submitting = false, _enabled = false, _disposed = false;
+  Object? _owner;
+  Future<void> Function()? _confirm;
+  VoidCallback? _cancel;
+  bool _notificationScheduled = false;
+
+  Future<void> confirm() async {
+    if (canConfirm) await _confirm?.call();
+  }
+
+  void cancel() {
+    if (!_submitting) _cancel?.call();
+  }
+
+  void _attach(
+    Object owner,
+    Future<void> Function() confirm,
+    VoidCallback cancel,
+  ) {
+    _owner = owner;
+    _confirm = confirm;
+    _cancel = cancel;
+  }
+
+  void _detach(Object owner) {
+    if (_owner != owner) return;
+    _owner = null;
+    _confirm = null;
+    _cancel = null;
+    _publish(null, false, false, deferred: true);
+  }
+
+  void _publish(
+    BoardPoint? point,
+    bool submitting,
+    bool enabled, {
+    bool deferred = false,
+  }) {
+    if (_selected == point &&
+        _submitting == submitting &&
+        _enabled == enabled) {
+      return;
+    }
+    _selected = point;
+    _submitting = submitting;
+    _enabled = enabled;
+    if (!deferred) {
+      if (!_disposed) notifyListeners();
+    } else if (!_notificationScheduled) {
+      _notificationScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _notificationScheduled = false;
+        if (!_disposed) notifyListeners();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _confirm = null;
+    _cancel = null;
+    super.dispose();
+  }
+}
 
 class GameBoard extends StatefulWidget {
   const GameBoard({
@@ -22,12 +95,16 @@ class GameBoard extends StatefulWidget {
     this.onMove,
     this.enabled = true,
     this.readOnly = false,
+    this.interaction,
+    this.showControls = true,
   });
   final GameState game;
   final AppSettings settings;
   final Future<void> Function(int row, int col)? onMove;
   final bool enabled;
   final bool readOnly;
+  final BoardInteractionController? interaction;
+  final bool showControls;
 
   @override
   State<GameBoard> createState() => _GameBoardState();
@@ -49,6 +126,32 @@ class _GameBoardState extends State<GameBoard>
   bool _moving = false;
   bool _focused = false;
   Size _paintSize = Size.zero;
+  late BoardInteractionController _interaction;
+  @override
+  void initState() {
+    super.initState();
+    _attachInteraction();
+  }
+
+  void _attachInteraction() {
+    _interaction = widget.interaction ?? BoardInteractionController();
+    _interaction._attach(
+      this,
+      () async {
+        final point = _selected;
+        if (point != null) await _place(point);
+      },
+      () {
+        if (!mounted) return;
+        setState(() => _selected = null);
+        _publish();
+        _focus.requestFocus();
+      },
+    );
+  }
+
+  void _publish({bool deferred = false}) =>
+      _interaction._publish(_selected, _moving, _canPlay, deferred: deferred);
 
   bool get _canPlay =>
       widget.enabled &&
@@ -61,6 +164,11 @@ class _GameBoardState extends State<GameBoard>
   @override
   void didUpdateWidget(GameBoard old) {
     super.didUpdateWidget(old);
+    if (old.interaction != widget.interaction) {
+      _interaction._detach(this);
+      if (old.interaction == null) _interaction.dispose();
+      _attachInteraction();
+    }
     if (old.game.moves.length != widget.game.moves.length ||
         old.game.lastMove != widget.game.lastMove) {
       _selected = null;
@@ -72,10 +180,13 @@ class _GameBoardState extends State<GameBoard>
       }
     }
     if (!_canPlay) _selected = null;
+    _publish(deferred: true);
   }
 
   @override
   void dispose() {
+    _interaction._detach(this);
+    if (widget.interaction == null) _interaction.dispose();
     _focus.dispose();
     _animation.dispose();
     _audio.dispose();
@@ -111,6 +222,7 @@ class _GameBoardState extends State<GameBoard>
         _selected = point;
         _cursor = point;
       });
+      _publish();
     } else {
       _place(point);
     }
@@ -122,9 +234,12 @@ class _GameBoardState extends State<GameBoard>
       _moving = true;
       _selected = point;
     });
+    _publish();
     try {
       await widget.onMove!(point.row, point.col);
-      if (widget.settings.haptics) await HapticFeedback.selectionClick();
+      if (widget.settings.haptics && DesignCapabilities.supportsHaptics) {
+        await HapticFeedback.selectionClick();
+      }
       if (widget.settings.sound) {
         try {
           await _audio.play(AssetSource('sounds/stone.wav'), volume: .4);
@@ -140,11 +255,13 @@ class _GameBoardState extends State<GameBoard>
           _moving = false;
           _selected = null;
         });
+        _publish();
       }
     }
   }
 
   KeyEventResult _key(FocusNode node, KeyEvent event) {
+    if (widget.readOnly) return KeyEventResult.ignored;
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
     }
@@ -161,20 +278,32 @@ class _GameBoardState extends State<GameBoard>
       row++;
     } else if (key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.space) {
-      if (_canPlay && widget.game.at(row, col) == null) _place(_cursor);
+      if (event is KeyDownEvent &&
+          _canPlay &&
+          widget.game.at(row, col) == null) {
+        _place(_cursor);
+      }
       return KeyEventResult.handled;
     } else if (key == LogicalKeyboardKey.escape) {
       setState(() => _selected = null);
+      _publish();
       return KeyEventResult.handled;
     } else {
       return KeyEventResult.ignored;
     }
-    setState(() => _cursor = BoardPoint(row.clamp(0, 14), col.clamp(0, 14)));
+    setState(() {
+      _cursor = BoardPoint(row.clamp(0, 14), col.clamp(0, 14));
+      _selected = _canPlay && widget.game.at(_cursor.row, _cursor.col) == null
+          ? _cursor
+          : null;
+    });
+    _publish();
     return KeyEventResult.handled;
   }
 
   @override
   Widget build(BuildContext context) {
+    _publish(deferred: true);
     final colors = Theme.of(context).colorScheme;
     final strings = context.strings;
     final dark = Theme.of(context).brightness == Brightness.dark;
@@ -210,7 +339,7 @@ class _GameBoardState extends State<GameBoard>
                       return Semantics(
                         label: strings.t('board'),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(28),
+                          borderRadius: BorderRadius.circular(AppShape.card),
                           child: AnimatedBuilder(
                             animation: _animation,
                             builder: (context, _) => CustomPaint(
@@ -224,8 +353,8 @@ class _GameBoardState extends State<GameBoard>
                                     ? const Color(0xff27252c)
                                     : const Color(0xfff4f0e8),
                                 gridColor: dark
-                                    ? const Color(0xff5b565f)
-                                    : const Color(0xffc7c0b5),
+                                    ? const Color(0xff817889)
+                                    : const Color(0xff979087),
                                 labelColor: colors.onSurfaceVariant,
                                 selected: _selected,
                                 hover: _canPlay ? _hover : null,
@@ -255,7 +384,7 @@ class _GameBoardState extends State<GameBoard>
             ),
           ),
         ),
-        if (!widget.readOnly)
+        if (!widget.readOnly && widget.showControls)
           Padding(
             padding: const EdgeInsets.only(top: 14),
             child: AnimatedSwitcher(

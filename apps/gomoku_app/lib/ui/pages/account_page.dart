@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/api.dart';
+import '../../design/tokens.dart';
 import '../../l10n/strings.dart';
 import '../../state/app_state.dart';
 import '../../state/online.dart';
@@ -23,13 +25,23 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _code = TextEditingController();
-  late final _nickname = TextEditingController(
-    text: ref.read(preferencesProvider).getString('nickname') ?? '',
-  );
+  late final TextEditingController _nickname;
   _AccountMode _mode = _AccountMode.login;
   String? _requestId;
   bool _busy = false;
   bool _obscure = true;
+  String? _serverError, _errorField;
+  @override
+  void initState() {
+    super.initState();
+    _nickname = TextEditingController(
+      text:
+          ref.read(authProvider).profile?.nickname ??
+          ref.read(preferencesProvider).getString('nickname') ??
+          '',
+    );
+  }
+
   @override
   void dispose() {
     for (final controller in [_email, _password, _code, _nickname]) {
@@ -44,12 +56,18 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       _requestId = null;
       _code.clear();
       _password.clear();
+      _serverError = null;
+      _errorField = null;
     });
   }
 
   Future<void> _submit() async {
-    if (_busy || !_form.currentState!.validate()) return;
-    setState(() => _busy = true);
+    if (_busy || !(_form.currentState?.validate() ?? false)) return;
+    setState(() {
+      _busy = true;
+      _serverError = null;
+      _errorField = null;
+    });
     final auth = ref.read(authProvider.notifier);
     try {
       switch (_mode) {
@@ -89,7 +107,19 @@ class _AccountPageState extends ConsumerState<AccountPage> {
           }
       }
     } catch (error) {
-      if (mounted) showFailure(context, error);
+      if (mounted) {
+        setState(() {
+          final code = errorCode(error);
+          _serverError = context.strings.error(code);
+          _errorField = code == 'invalid_credentials'
+              ? 'password'
+              : code == 'invalid_verification'
+              ? 'code'
+              : code == 'invalid_nickname'
+              ? 'nickname'
+              : 'form';
+        });
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -140,26 +170,25 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         ? 'completeRegistration'
         : 'resetPassword';
     return PageFrame(
-      maxWidth: 860,
+      maxWidth: AppLayout.reading,
       children: [
-        PageHeading(title: s.t('accountTitle'), subtitle: s.t('accountBody')),
         Container(
-          padding: const EdgeInsets.all(28),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: colors.primaryContainer.withValues(alpha: .55),
-            borderRadius: BorderRadius.circular(32),
+            color: colors.secondaryContainer,
+            borderRadius: BorderRadius.circular(AppShape.feature),
           ),
           child: Row(
             children: [
-              const BrandMark(size: 60),
-              const SizedBox(width: 22),
+              const BrandMark(size: 44),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       profile?.nickname ?? s.t('guest'),
-                      style: Theme.of(context).textTheme.headlineSmall,
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -174,7 +203,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                             : 'guestNotice',
                       ),
                       style: Theme.of(context).textTheme.bodyMedium
-                          ?.copyWith(color: colors.onPrimaryContainer),
+                          ?.copyWith(color: colors.onSecondaryContainer),
                     ),
                   ],
                 ),
@@ -193,7 +222,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                   Text(s.t('accountActiveRoom')),
                   const SizedBox(height: 12),
                   FilledButton.tonal(
-                    onPressed: () => context.go('/room/${active.roomId}'),
+                    onPressed: () =>
+                        context.pushReplacement('/room/${active.roomId}'),
                     child: Text(s.t('continueGame')),
                   ),
                 ],
@@ -205,10 +235,15 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         if (signedIn)
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(28),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Text(
+                    s.t('accountDetails'),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: _nickname,
                     maxLength: 24,
@@ -275,7 +310,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         else
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(28),
+              padding: const EdgeInsets.all(20),
               child: AutofillGroup(
                 child: Form(
                   key: _form,
@@ -286,17 +321,25 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                         s.t(modeTitle),
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 16),
+                      if (_mode != _AccountMode.login) ...[
+                        Text(
+                          s.t(verify ? 'verifyStep' : 'emailStep'),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(color: colors.primary),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       if (_mode != _AccountMode.reset && !verify) ...[
-                        Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: [
+                        SegmentedButton<_AccountMode>(
+                          showSelectedIcon: false,
+                          segments: [
                             for (final mode in [
                               _AccountMode.login,
                               _AccountMode.register,
                             ])
-                              ChoiceChip(
+                              ButtonSegment(
+                                value: mode,
                                 label: Text(
                                   s.t(
                                     mode == _AccountMode.login
@@ -304,16 +347,12 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                                         : 'register',
                                   ),
                                 ),
-                                selected: _mode == mode,
-                                onSelected: _busy
-                                    ? null
-                                    : (_) => _setMode(mode),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
-                                ),
                               ),
                           ],
+                          selected: {_mode},
+                          onSelectionChanged: _busy
+                              ? null
+                              : (value) => _setMode(value.single),
                         ),
                         const SizedBox(height: 22),
                       ],
@@ -333,7 +372,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                                 RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
                                     .hasMatch(value.trim())
                             ? null
-                            : s.error('invalid_request'),
+                            : s.t('emailError'),
                       ),
                       if (verify) ...[
                         const SizedBox(height: 18),
@@ -350,14 +389,22 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                           textInputAction: TextInputAction.next,
                           decoration: InputDecoration(
                             labelText: s.t('verificationCode'),
+                            errorText: _errorField == 'code'
+                                ? _serverError
+                                : null,
                             prefixIcon: const Icon(
                               Icons.mark_email_read_outlined,
                             ),
                           ),
+                          onChanged: (_) {
+                            if (_errorField == 'code') {
+                              setState(() => _errorField = null);
+                            }
+                          },
                           validator: (value) =>
                               value != null && value.trim().isNotEmpty
                               ? null
-                              : s.error('invalid_request'),
+                              : s.t('codeError'),
                         ),
                       ],
                       if (_mode == _AccountMode.login || verify) ...[
@@ -380,6 +427,9 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                           },
                           decoration: InputDecoration(
                             labelText: s.t('password'),
+                            errorText: _errorField == 'password'
+                                ? _serverError
+                                : null,
                             helperText: _mode == _AccountMode.login
                                 ? null
                                 : s.t('passwordHint'),
@@ -397,12 +447,21 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                               ),
                             ),
                           ),
+                          onChanged: (_) {
+                            if (_errorField == 'password') {
+                              setState(() => _errorField = null);
+                            }
+                          },
                           validator: (value) =>
                               value != null &&
                                   value.length >=
                                       (_mode == _AccountMode.login ? 1 : 8)
                               ? null
-                              : s.error('invalid_request'),
+                              : s.t(
+                                  _mode == _AccountMode.login
+                                      ? 'passwordError'
+                                      : 'passwordHint',
+                                ),
                         ),
                       ],
                       if (_mode == _AccountMode.register && verify) ...[
@@ -416,7 +475,15 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                           onFieldSubmitted: (_) => _submit(),
                           decoration: InputDecoration(
                             labelText: s.t('nickname'),
+                            errorText: _errorField == 'nickname'
+                                ? _serverError
+                                : null,
                           ),
+                          onChanged: (_) {
+                            if (_errorField == 'nickname') {
+                              setState(() => _errorField = null);
+                            }
+                          },
                           validator: (value) =>
                               value != null &&
                                   value.trim().isNotEmpty &&
@@ -424,6 +491,10 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                               ? null
                               : s.error('invalid_nickname'),
                         ),
+                      ],
+                      if (_serverError != null && _errorField == 'form') ...[
+                        const SizedBox(height: 18),
+                        InlineNotice(message: _serverError!, error: true),
                       ],
                       const SizedBox(height: 24),
                       FilledButton.icon(
@@ -457,8 +528,10 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                         TextButton(
                           onPressed: _busy
                               ? null
-                              : () => _setMode(_AccountMode.login),
-                          child: Text(s.t('back')),
+                              : () => _setMode(
+                                  verify ? _mode : _AccountMode.login,
+                                ),
+                          child: Text(s.t(verify ? 'editEmail' : 'back')),
                         ),
                     ],
                   ),

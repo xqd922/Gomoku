@@ -2,7 +2,32 @@
 
 验证日期：**2026-09-12（Asia/Shanghai）**。本机为 Windows，Flutter **3.47.1**、Dart **3.13.1**、Serverpod **3.4.13**；后端依赖运行于 Ubuntu-22.04 WSL 的 Docker Engine **29.1.3** / Compose **2.40.3**。
 
-## GitHub Actions 实际验收
+## 本次 Material 3 Expressive 改版
+
+本节对应“对弈／棋谱两区＋头像入口”的主线改版；下方 v1.0.0 记录保留为历史依据。设计说明、相同窗口尺寸的前后截图见 [界面改版记录](UI_REDESIGN.md)。
+
+### 本机已执行
+
+| 检查 | 本次结果 |
+| --- | --- |
+| 格式、静态分析、workspace／后端锁文件一致性 | 通过；95 个共享 hosted 依赖一致 |
+| 规则 | 12 / 12 通过 |
+| Flutter／SQLite | 39 / 39 通过，包含 22 项布局、9 项导航／对局流程、4 项棋盘、4 项数据库测试 |
+| 真实后端 | 11 / 11 通过，使用 PostgreSQL、Redis、Mailpit 与两个服务实例 |
+| Chrome 发布模式 Web | 9 组场景通过，运行时异常 0 |
+| Web release | 构建通过；55 个公共离线资源已准备 |
+| Windows x64 release | 构建通过；新程序启动后持续运行检查通过，约 118 MB 工作集 |
+| Android release APK | 本机测试签名构建通过，约 72.5 MB |
+
+浏览器流程实际验证了二级页 URL、前进／后退、房间刷新、邀请链接、HttpOnly 会话、返回续局、双客户端完整棋局、协商悔棋、断线暂停／重连、即时复盘、棋谱持久化后刷新、Mailpit 注册、游客归并、第二设备登录与云端棋谱、Drift 多标签页和离线重载、深色及英文／横屏设置。
+
+本机日志：`.local/ui-checks.log`、`.local/ui-browser.log`、`.local/ui-web-build.log`、`.local/ui-windows-build.log`、`.local/ui-windows-smoke.json`、`.local/ui-android-build.log`；浏览器结果见 `artifacts/browser/results.json`，精选截图随 `docs/images/ui-redesign` 交付。
+
+### 六端构建与实机范围
+
+六端 Actions 运行链接在本次主线推送完成后补录。Windows 已进行本机发布程序启动检查；浏览器已完成桌面和触屏模拟自动运行。Android、Linux、macOS、iOS 尚无本轮真人实机操作结论；iOS 构建使用 `--no-codesign`。Android 本机样本使用测试签名，Actions 使用已有仓库正式证书。
+
+## v1.0.0 历史：GitHub Actions 实际验收
 
 [完整通过的工作流](https://github.com/xqd922/Gomoku/actions/runs/34669116772) 对应源码提交 [62c32eb](https://github.com/xqd922/Gomoku/commit/62c32ebc613351aa759eadbee35a375e2954f74b)，已完成六端构建和全部验收；以下记录之后的发行准备只补充文档，正式发行仍由版本标签上的 Actions 重新构建和验证。
 

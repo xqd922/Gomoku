@@ -107,6 +107,14 @@ async function clickReplayControl(page, label) {
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
 }
 
+async function capture(page, filename) {
+  await page.mouse.move(0, 0);
+  // Flutter paints its transitions on a canvas, outside Playwright's CSS
+  // animation controls. Let those settle only when recording visual evidence.
+  await page.waitForTimeout(450);
+  await page.screenshot({ path: output + "/" + filename });
+}
+
 try {
   await until(async () => {
     try { return (await fetch(base + "/health")).ok; } catch { return false; }
@@ -114,16 +122,26 @@ try {
   const desktop = await browser.newContext({ viewport: { width: 1440, height: 1000 }, locale: "zh-CN" });
   const a = await boot(desktop);
   assert.equal(await a.evaluate(() => crossOriginIsolated), true);
-  await a.getByRole("button", { name: /^与朋友对弈 / }).waitFor();
-  await a.screenshot({ path: output + "/home-desktop.png" });
-  await a.getByRole("button", { name: /^与朋友对弈 / }).click();
+  await a.getByRole("button", { name: /^好友对弈 / }).waitFor();
+  assert.equal(await a.getByRole("tab").count(), 2);
+  await capture(a, "home-desktop.png");
+  await a.getByRole("button", { name: /^好友对弈 / }).click();
+  await a.waitForURL("**/lobby");
+  await a.goBack();
+  await a.getByRole("button", { name: /^好友对弈 / }).waitFor();
+  await a.goForward();
+  await a.waitForURL("**/lobby");
   await fillText(a, "怎么称呼你", "小紫");
-  await a.getByRole("button", { name: "创建房间", exact: true }).click();
+  await a.getByRole("button", { name: "创建房间", exact: true }).last().click();
   await a.waitForURL("**/room/**");
   await enabled(a, "准备好了");
   const body = await a.locator("body").ariaSnapshot();
-  const code = body.match(/第 1 局 · ([A-Z2-9]{6})/)?.[1];
+  const code = body.match(/六位房间码: ([A-Z2-9 ]+)/)?.[1].replaceAll(" ", "");
   assert.ok(code, "Room code must be displayed");
+  await navigate(a, new URL(a.url()).pathname);
+  await enabled(a, "准备好了");
+  await capture(a, "room-waiting.png");
+  passed("Secondary-page URLs, browser back/forward and room reload");
   const cookies = await desktop.cookies();
   const session = cookies.find(c => c.name === "gomoku_session");
   assert.ok(session?.httpOnly);
@@ -137,11 +155,17 @@ try {
   await b.getByRole("button", { name: "加入", exact: true }).click();
   await b.waitForURL("**/room/**");
   await enabled(b, "准备好了");
+  await capture(b, "room-phone.png");
   await until(async () => (await a.locator("body").ariaSnapshot()).includes("小白"), "Guest seat was not broadcast");
   await (await enabled(a, "准备好了")).click();
   await (await enabled(b, "准备好了")).click();
   await a.getByRole("group", { name: "五子棋棋盘", exact: true }).waitFor();
   await b.getByRole("group", { name: "五子棋棋盘", exact: true }).waitFor();
+  await b.getByRole("button", { name: "返回", exact: true }).click();
+  await b.getByRole("button", { name: "返回房间", exact: true }).click();
+  await b.getByRole("group", { name: "五子棋棋盘", exact: true }).waitFor();
+  assert.equal(await b.getByRole("tab").count(), 0);
+  passed("Focused game layout and return to a reserved online seat");
   await move(a, "H8", b, "黑棋");
   await move(b, "H9", a, "白棋");
   await move(a, "I8", b, "黑棋");
@@ -150,28 +174,50 @@ try {
   await a.getByRole("button", { name: "I8，空位", exact: true }).waitFor();
   await move(a, "I8", b, "黑棋");
   await move(b, "I9", a, "白棋");
-  await a.screenshot({ path: output + "/game-desktop.png" });
+  await capture(a, "game-desktop.png");
   await b.mouse.wheel(0, -2000);
-  await b.screenshot({ path: output + "/game-phone.png" });
+  await capture(b, "game-phone.png");
+  await phone.setOffline(true);
+  await until(async () => (await a.locator("body").ariaSnapshot()).includes("棋局已暂停"),
+    "Disconnect did not pause the room", 35000);
+  await phone.setOffline(false);
+  await until(async () => (await a.locator("body").ariaSnapshot()).includes("轮到你了") &&
+    !(await a.locator("body").ariaSnapshot()).includes("棋局已暂停"),
+    "Reconnect did not restore the room", 35000);
+  await stone(b, "I8", "黑棋");
+  await stone(b, "I9", "白棋");
+  passed("Disconnection pauses play and reconnect restores the authoritative board");
   await move(a, "J8", b, "黑棋");
   await move(b, "J9", a, "白棋");
   await move(a, "K8", b, "黑棋");
   await move(b, "K9", a, "白棋");
   await move(a, "L8", b, "黑棋");
   await until(async () => (await b.locator("body").ariaSnapshot()).includes("黑棋获胜"), "Win not broadcast");
+  await capture(b, "result-phone.png");
   passed("Desktop and touch-phone complete game, consented undo, winning line");
+  await b.getByRole("button", { name: "复盘", exact: true }).click();
+  await until(async () => (await b.locator("body").ariaSnapshot()).includes("第 9 / 9 手"),
+    "A just-finished game did not open in replay");
+  await capture(b, "replay-phone.png");
+  await a.getByRole("button", { name: "返回", exact: true }).click();
+  await a.getByRole("tab", { name: "棋谱", exact: true }).click();
+  await a.getByRole("button", { name: /黑棋获胜/ }).first().waitFor();
+  // Navigate through the app while its final asynchronous database write
+  // completes, then reload to independently verify that the record is durable.
   await navigate(a, "/history");
   await a.getByRole("button", { name: /黑棋获胜/ }).first().waitFor();
+  await capture(a, "history-desktop.png");
   await a.getByRole("button", { name: /黑棋获胜/ }).first().click();
   await clickReplayControl(a, "回到开局");
   await until(async () => (await a.locator("body").ariaSnapshot()).includes("第 0 / 9 手"), "Replay did not return to the initial position");
   await clickReplayControl(a, "下一步");
   await until(async () => (await a.locator("body").ariaSnapshot()).includes("第 1 / 9 手"), "Replay did not advance one move");
   await stone(a, "H8", "黑棋");
+  await capture(a, "replay-desktop.png");
   passed("Persisted online game and step-by-step replay");
 
   await navigate(a, "/account");
-  await a.getByRole("checkbox", { name: "注册账户", exact: true }).click();
+  await a.getByRole("button", { name: "注册账户", exact: true }).click();
   const email = "browser-" + Date.now() + "@example.test";
   const password = "Browser-Test!937";
   await fillText(a, "邮箱地址", email);
@@ -187,7 +233,8 @@ try {
   await enterPassword(cloud, password);
   await cloud.getByRole("button", { name: "登录", exact: true }).last().click();
   await cloud.getByRole("button", { name: "退出登录", exact: true }).waitFor();
-  await cloud.getByRole("button", { name: "星紫", exact: true }).waitFor();
+  await until(async () => (await cloud.locator("body").ariaSnapshot()).includes("星紫"),
+    "The signed-in profile was not shown");
   await navigate(cloud, "/history");
   await cloud.getByRole("button", { name: /黑棋获胜/ }).first().waitFor();
   passed("Mailpit registration, guest claim, login on a second device, cloud history");
@@ -210,13 +257,16 @@ try {
   await localContext.setOffline(false);
   passed("Drift multi-tab updates and offline reload with preserved game");
 
-  await navigate(cloud, "/settings");
-  await cloud.getByRole("checkbox", { name: "深色", exact: true }).click();
-  await cloud.screenshot({ path: output + "/settings-dark.png" });
-  await cloud.getByRole("checkbox", { name: "English", exact: true }).click();
-  await until(async () => (await cloud.locator("body").ariaSnapshot()).includes("Make yourself at home."), "English setting did not apply");
+  await cloud.getByRole("button", { name: "账户与设置", exact: true }).click();
+  await cloud.getByRole("menuitem", { name: "设置", exact: true }).click();
+  await cloud.getByRole("button", { name: /^显示模式 / }).click();
+  await cloud.getByRole("radio", { name: "深色", exact: true }).click();
+  await capture(cloud, "settings-dark.png");
+  await cloud.getByRole("button", { name: /^语言 / }).click();
+  await cloud.getByRole("radio", { name: "English", exact: true }).click();
+  await until(async () => (await cloud.locator("body").ariaSnapshot()).includes("Your palette"), "English setting did not apply");
   await cloud.setViewportSize({ width: 844, height: 390 });
-  await cloud.screenshot({ path: output + "/settings-landscape.png" });
+  await capture(cloud, "settings-landscape.png");
   passed("Dark theme, English locale, tablet and landscape adaptation");
   assert.deepEqual(errors, [], "Unexpected browser runtime exceptions");
   await writeFile(output + "/results.json", JSON.stringify({ passed: results, runtimeErrors: errors, recordedAt: new Date().toISOString() }, null, 2));
