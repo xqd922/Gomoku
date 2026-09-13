@@ -8,7 +8,7 @@ final class AppConfig {
   bool get privateAccounts => get('GOMOKU_AUTH_MODE', 'email') == 'private';
   String get version => get(
     'GOMOKU_VERSION',
-    const String.fromEnvironment('GOMOKU_VERSION', defaultValue: '1.2.0'),
+    const String.fromEnvironment('GOMOKU_VERSION', defaultValue: '1.2.1'),
   );
   String get commit => get(
     'GOMOKU_COMMIT',

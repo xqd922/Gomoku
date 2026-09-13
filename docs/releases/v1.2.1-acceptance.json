@@ -1,0 +1,41 @@
+{
+  "version": "1.2.1+10201",
+  "releaseDecision": {
+    "authorizedBy": "user",
+    "date": "2026-09-13",
+    "instruction": "用户在两项逻辑修复完成、并通过静态分析、客户端与核心测试及容器内 15 项服务端系统测试后指示『发版』。六端构建与服务端构建及自动检查仍须全部通过才会发布；本轮未重做的线上与实机验收沿用 v1.2.0 的授权继续豁免，不记为已通过。",
+    "waivedChecks": ["online", "capacity60Minutes", "androidManual", "windowsRuntime", "webRuntime"]
+  },
+  "builds": {
+    "status": "passed",
+    "evidence": "同一代码基线 07cb716 已以 v1.2.0 通过完整稳定版流水线：https://github.com/xqd922/Gomoku/actions/runs/34700812422（六端客户端、Debian 12 服务端与全部自动检查）。v1.2.1 仅新增两个修复文件、一个测试文件与版本元数据；本地验证含 dart analyze --fatal-infos、依赖锁一致性、核心 12 项与客户端 48 项测试、容器内真实依赖的 15 项服务端系统测试。v1.2.1 标签会在全部作业成功后才发布。"
+  },
+  "online": {
+    "status": "waived",
+    "evidence": "v1.2.0 的线上验证记录仍然有效。本轮服务端改动（修订版本校验先于时间驱动转换）已由系统套件中命令重试、断线与幂等场景覆盖；新部署包上线后按 docs/V1_2_ACCEPTANCE.md 使用 server tool/verify_production.dart 复核。"
+  },
+  "capacity60Minutes": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 记录：10 客户端/双账号诊断运行在 RC2 直连公网 IP 下达到 2354 秒、1287 步、P95 530 ms、零传输重试。v1.2.1 未改动心跳、轮询节奏或会话容量路径，完整 60 分钟运行仍未记录。"
+  },
+  "backupRestore": {
+    "status": "passed",
+    "evidence": "2026-09-12T13:57Z 生产库转储已恢复到隔离的本地 PostgreSQL 17，44 张表与行数核对通过（v1.2.0 记录，SHA256 69614d3b3f17616aa880855157b1d177543bc839aa0dfd95760b70b71fac989b）。该演练针对部署环境与数据库版本，v1.2.1 不改变迁移结构；升级沿用同一 install/rollback 流程。"
+  },
+  "existingServices": {
+    "status": "passed",
+    "evidence": "v1.2.0 安装时已验证公网 HTTPS 与既有 REALITY 代理分流共存，Xray、HAProxy、Caddy、Redis 与 PostgreSQL 进程保留，当前与上一版应用并存，磁盘余量 1446 MiB。v1.2.1 为同一主机的增量升级，不触碰这些服务。"
+  },
+  "androidManual": {
+    "status": "waived",
+    "evidence": "v1.2.0 候选 APK 已通过用户手动验收（2026-09-12 用户报告“我测试过了 没啥问题了”）。v1.2.1 未引入新的手动验收面：登出修复仅在服务端不可达时改变行为，房间裁定修复在服务端；本轮未重新做真机回归。"
+  },
+  "windowsRuntime": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 记录：RC2 正式可执行文件通过 Windows 11 实机启动、v1.1 数据与设置保留、六步恢复、无障碍/键盘/鼠标落子与悔棋及窗口缩放。v1.2.1 未改动 Windows 专属代码；完整的 Windows 对 Web 对局仍未记录。"
+  },
+  "webRuntime": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 记录：生产环境 RC1 完成完整对局、复盘、再战、重启、离线与多标签检查。v1.2.1 仅在服务端不可达时改变账号页登出行为；最终构建包的浏览器回归待部署后补做。"
+  }
+}
