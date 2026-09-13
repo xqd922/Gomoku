@@ -242,10 +242,14 @@ final class Rooms {
         if (!isMember(room, player.playerId)) {
           throw AppException(code: 'not_a_player');
         }
-        await _tick(session, room, transaction);
+        // The revision check rejects intervening client commands only: a
+        // time-driven _tick transition is not a command, and rejecting after
+        // it would both misreport stale_revision and roll the transition back.
+        // Status checks below still run on the ticked room.
         if (room.revision != command.expectedRevision) {
           throw AppException(code: 'stale_revision');
         }
+        await _tick(session, room, transaction);
         if (room.status == RoomStatus.closed) {
           throw AppException(code: 'room_expired');
         }
