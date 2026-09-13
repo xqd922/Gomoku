@@ -1,0 +1,350 @@
+[2026/9/14 01:13:10] [Log] -------------------------------------------
+------------------
+[2026/9/14 01:13:10] [Log] crypto.publicDecrypt called
+------------------
+[2026/9/14 01:13:10] [Log] Key: -----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7nVoGCHqIMJyqgALEUrc
+5JJhap0+HtJqzPE04pz4y+nrOmY7/12f3HvZyyoRsxKdXTZbO0wEHFIh0cRqsuaJ
+PyaOOPbA0BsalofIAY3mRhQQ3vSf+rn3g+w0S+udWmKV9DnmJlpWqizFajU4T/E4
+5ZgMNcXt3E1ips32rdbTR0Nnen9PVITvrbJ3l6CI2BFBImZQZ2P8N+LsqfJsqyVV
+wDkt3mHAVxV7FZbfYWG+8FDSuKQHaCmvgAtChx9hwl3J6RekkqDVa6GIV13D23LS
+qdk0Jb521wFJi/V6QAK6SLBiby5gYN6zQQ5RQpjXtR53MwzTdiAzGEuKdOtrY2Me
+DwIDAQAB
+-----END PUBLIC KEY-----
+
+
+------------------
+[2026/9/14 01:13:10] [Log] Buffer (Hex): 75736572406578616d706c652e636f6d
+------------------
+[2026/9/14 01:13:10] [Log] BrowserWindow created
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("document.loadData") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("document.loadData") result: "{\"snap\":null,\"filePath\":\"D:\\\\Seven_code\\\\Gomoku\\\\DESIGN.md\",\"backups\":null,\"shouldReadFromDisk\":false,\"windowCounts\":1}"
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("setting.put") args: ["sidebar_tab","outline"]
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("setting.put") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("window.updateMenuForIsAlwaysOnTop") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("window.updateMenuForIsAlwaysOnTop") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("menu.updateCustomZoom") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("menu.updateCustomZoom") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("window.updateMenuForIsAlwaysOnTop") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("window.updateMenuForIsAlwaysOnTop") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("menu.updateCustomZoom") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("menu.updateCustomZoom") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("setting.getRecentFiles") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("setting.getRecentFiles") result: {"files":[{"name":"DESIGN.md","path":"D:\\Seven_code\\Gomoku\\DESIGN.md","date":1789319590245},{"name":"私聊_吴孟奇.md","path":"D:\\Desktop\\Zero\\texts\\私聊_吴孟奇\\私聊_吴孟奇.md","date":1789307577754},{"name":"私聊_吴孟奇.md","path":"D:\\Downloads\\texts\\私聊_吴孟奇\\私聊_吴孟奇.md","date":1789304793639},{"name":"USAGE.md","path":"D:\\Desktop\\welive-windows-x64\\USAGE.md","date":1789283885944},{"name":"AGENTS.md","path":"D:\\Seven_code\\Gomoku\\AGENTS.md","date":1789094573020},{"name":"MATERIAL3_GOMOKU_SPEC.md","path":"D:\\Seven_code\\Five\\MATERIAL3_GOMOKU_SPEC.md","date":1789029871096},{"name":"浙江图书馆之江馆楼层导览详解.md","path":"C:\\Users\\Seven\\WorkBuddy AI\\2026-09-08-15-03-20\\浙江图书馆之江馆楼层导览详解.md","date":1788852927948},{"name":"浙江图书馆馆藏与图书分布.md","path":"C:\\Users\\Seven\\WorkBuddy AI\\2026-09-08-15-03-20\\浙江图书馆馆藏与图书分布.md","date":1788851211005},{"name":"G1开发文档.md","path":"D:\\Desktop\\robot\\unitree_sdk2\\G1开发文档.md","date":1788834372145},{"name":"元旦花钱指南.md","path":"D:\\Desktop\\元旦花钱指南.md","date":1788793075171},{"name":"调试.md","path":"D:\\Documents\\Obsidian Vault\\调试.md","date":1788510696542},{"name":"宇树移动吊机安装.md","path":"D:\\Desktop\\移动式吊机\\宇树移动吊机安装.md","date":1788491066387},{"name":"移动式吊机安装文档.md","path":"D:\\Desktop\\移动式吊机\\移动式吊机安装文档.md","date":1788490994077},{"name":"compaction.md","path":"D:\\Desktop\\pi-windows-x64\\docs\\compaction.md","date":1788248606325},{"name":"调试.md","path":"D:\\Desktop\\robot开发文档\\调试.md","date":1788147040723},{"name":"调试_0805.md","path":"D:\\Desktop\\robot开发文档\\调试_0805.md","date":1788146954060},{"name":"mihomo.mdx","path":"D:\\Seven_code\\blog\\content\\mihomo.mdx","date":1788088979289},{"name":"Windows_AI_Agent终端推荐与美化指南.md","path":"D:\\Desktop\\Windows_AI_Agent终端推荐与美化指南.md","date":1788005876263},{"name":"新建文本文档 (2).md","path":"D:\\Desktop\\新建文本文档 (2).md","date":1787812100350},{"name":"双足机器人来源.md","path":"D:\\Desktop\\双足机器人\\双足机器人来源.md","date":1787810117966},{"name":"双足机器人来源.txt","path":"D:\\Desktop\\双足机器人\\双足机器人来源.txt","date":1787810032628},{"name":"招标对比_判定依据与出处.md","path":"C:\\Users\\Seven\\WorkBuddy AI\\2026-08-26-09-36-59\\人形机器人参数对比\\招标对比_判定依据与出处.md","date":1787713576514},{"name":"问题咨询.md","path":"D:\\Documents\\xwechat_files\\wxid_2d4hkwi6cwie22_a86e\\msg\\file\\2026-08\\问题咨询.md","date":1787132194317},{"name":"杭州顶赞科技_问题咨询.md","path":"D:\\Desktop\\虚拟图书馆_外包联系资料_打包用\\杭州顶赞科技_问题咨询.md","date":1787130215487},{"name":"招标.md","path":"D:\\Desktop\\robot开发文档\\招标.md","date":1786347772910},{"name":"H1-2_背古诗_实施手册.md","path":"D:\\Desktop\\robot\\unitree_sdk2\\H1-2_背古诗_实施手册.md","date":1785830175271},{"name":"项目笔记.md","path":"D:\\Desktop\\robot\\unitree_sdk2\\项目笔记.md","date":1785828664351},{"name":"README_zh.md","path":"D:\\Desktop\\robot\\unitree_sdk2\\example\\h1\\README_zh.md","date":1785828516292},{"name":"自我介绍-v4-含追问.md","path":"D:\\Desktop\\自我介绍\\自我介绍-v4-含追问.md","date":1785125325843},{"name":"自我介绍-v3.md","path":"D:\\Desktop\\自我介绍\\自我介绍-v3.md","date":1785124925586},{"name":"自我介绍-v2.md","path":"D:\\Desktop\\自我介绍\\自我介绍-v2.md","date":1785124852115},{"name":"ROBOTDOG_INTERVIEW_GUIDE.md","path":"D:\\Desktop\\Robotic dog\\docs\\ROBOTDOG_INTERVIEW_GUIDE.md","date":1785124320051},{"name":"demo3-timer.md","path":"D:\\Downloads\\demo3-timer.md","date":1785045579570},{"name":"demo2-servo.md","path":"D:\\Downloads\\demo2-servo.md","date":1785045564495},{"name":"Herdr_全方位使用与理解指南.md","path":"D:\\Desktop\\Herdr_全方位使用与理解指南.md","date":1784954880391},{"name":"从Hello World到嵌入式-C-C++-数据结构与硬件基础.md","path":"D:\\Desktop\\简历 - 副本\\40_20260710_224542\\从Hello World到嵌入式-C-C++-数据结构与硬件基础.md","date":1784897203068},{"name":"SEVEN_MASCOT_CREATIVE_DOCUMENT.md","path":"D:\\Desktop\\头像\\03-seven\\SEVEN_MASCOT_CREATIVE_DOCUMENT.md","date":1784736592952},{"name":"SPEC.md","path":"D:\\Seven_code\\submorph\\SPEC.md","date":1783957716994},{"name":"NodeQualityResult (2).md","path":"D:\\Downloads\\NodeQualityResult (2).md","date":1782659440780},{"name":"NodeQualityResult.md","path":"D:\\Downloads\\Telegram Desktop\\NodeQualityResult.md","date":1782386294053}],"folders":[]}
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("window.updateMenuForIsAlwaysOnTop") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("window.updateMenuForIsAlwaysOnTop") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("menu.updateCustomZoom") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("menu.updateCustomZoom") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("window.setTitle") args: [null,false]
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("window.setTitle") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("window.updateMenuForIsAlwaysOnTop") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("window.updateMenuForIsAlwaysOnTop") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("menu.updateCustomZoom") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("menu.updateCustomZoom") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("window.checkAsFocus") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("window.checkAsFocus") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("document.getSnapWithValidation") args: [null]
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("document.getSnapWithValidation") result: "{\"snap\":null,\"shouldReadFromDisk\":false}"
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("window.updateMenuForIsAlwaysOnTop") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("window.updateMenuForIsAlwaysOnTop") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("menu.updateCustomZoom") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("menu.updateCustomZoom") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("window.checkAsFocus") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("window.checkAsFocus") result: 
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("setting.getDownloadingDicts") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("setting.getDownloadingDicts") result: "[]"
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("setting.getUserDictionaryPath") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("setting.getUserDictionaryPath") result: "C:\\Users\\Seven\\AppData\\Roaming\\Typora\\typora-dictionaries"
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("setting.getUserDict") args: []
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("setting.getUserDict") result: "{}"
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .invoke("document.hasDuplicateName") args: ["DESIGN.md"]
+------------------
+[2026/9/14 01:13:10] [Log] [IPC] .handle("document.hasDuplicateName") result: false
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .invoke("document.setLastSync") args: ["2026-09-13T17:13:10.961Z"]
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .handle("document.setLastSync") result: 
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .invoke("window.updateMenuForIsAlwaysOnTop") args: []
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .handle("window.updateMenuForIsAlwaysOnTop") result: 
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .invoke("menu.updateCustomZoom") args: []
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .handle("menu.updateCustomZoom") result: 
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .invoke("window.setTitle") args: ["DESIGN.md - Typora"]
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .handle("window.setTitle") result: 
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .invoke("window.setTitle") args: [null,false]
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .handle("window.setTitle") result: 
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .invoke("theme.setThemeSource") args: ["system"]
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .handle("theme.setThemeSource") result: 
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .invoke("setting.put") args: ["backgroundColor","#FFFFFF"]
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .handle("setting.put") result: 
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .invoke("setting.put") args: ["isDarkMode",false]
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .handle("setting.put") result: 
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .invoke("window.updateMenuForIsAlwaysOnTop") args: []
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .handle("window.updateMenuForIsAlwaysOnTop") result: 
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .invoke("menu.updateCustomZoom") args: []
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .handle("menu.updateCustomZoom") result: 
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .invoke("window.checkAsFocus") args: []
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .handle("window.checkAsFocus") result: 
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .invoke("setting.getKeyBinding") args: []
+------------------
+[2026/9/14 01:13:11] [Log] [IPC] .handle("setting.getKeyBinding") result: {"_useLowerCase":true}
+------------------
+[2026/9/14 01:20:35] [Log] [IPC] .invoke("window.setTitle") args: [null,true]
+------------------
+[2026/9/14 01:20:35] [Log] [IPC] .handle("window.setTitle") result: 
+------------------
+[2026/9/14 01:20:35] [Log] [IPC] .invoke("window.setTitle") args: [null,false]
+------------------
+[2026/9/14 01:20:35] [Log] [IPC] .handle("window.setTitle") result: 
+------------------
+[2026/9/14 01:20:45] [Log] [IPC] .invoke("window.setTitle") args: [null,true]
+------------------
+[2026/9/14 01:20:45] [Log] [IPC] .handle("window.setTitle") result: 
+------------------
+[2026/9/14 01:20:45] [Log] [IPC] .invoke("window.setTitle") args: [null,false]
+------------------
+[2026/9/14 01:20:45] [Log] [IPC] .handle("window.setTitle") result: 
+------------------
+[2026/9/14 01:22:00] [Log] -------------------------------------------
+------------------
+[2026/9/14 01:22:00] [Log] crypto.publicDecrypt called
+------------------
+[2026/9/14 01:22:00] [Log] Key: -----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7nVoGCHqIMJyqgALEUrc
+5JJhap0+HtJqzPE04pz4y+nrOmY7/12f3HvZyyoRsxKdXTZbO0wEHFIh0cRqsuaJ
+PyaOOPbA0BsalofIAY3mRhQQ3vSf+rn3g+w0S+udWmKV9DnmJlpWqizFajU4T/E4
+5ZgMNcXt3E1ips32rdbTR0Nnen9PVITvrbJ3l6CI2BFBImZQZ2P8N+LsqfJsqyVV
+wDkt3mHAVxV7FZbfYWG+8FDSuKQHaCmvgAtChx9hwl3J6RekkqDVa6GIV13D23LS
+qdk0Jb521wFJi/V6QAK6SLBiby5gYN6zQQ5RQpjXtR53MwzTdiAzGEuKdOtrY2Me
+DwIDAQAB
+-----END PUBLIC KEY-----
+
+
+------------------
+[2026/9/14 01:22:00] [Log] Buffer (Hex): 75736572406578616d706c652e636f6d
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .invoke("setting.removeRecentDocument") args: ["D:\\Seven_code\\Gomoku\\apps\\gomoku_app\\build\\native_assets\\windows\\99671ca"]
+------------------
+[2026/9/14 01:23:53] [Log] [IPC] .handle("setting.removeRecentDocument") result: 
+------------------
+[2026/9/14 01:29:07] [Log] [IPC] .invoke("app.onCloseWin") args: [null]
+------------------
+[2026/9/14 01:29:07] [Log] [IPC] .handle("app.onCloseWin") result: 
+------------------

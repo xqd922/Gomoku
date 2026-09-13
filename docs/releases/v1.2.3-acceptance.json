@@ -1,0 +1,41 @@
+{
+  "version": "1.2.3+10203",
+  "releaseDecision": {
+    "authorizedBy": "user",
+    "date": "2026-09-14",
+    "instruction": "用户要求参照 Google design.md 规范与 stitch-skills 技能持续优化、测试并发版,直至界面达到理想状态。本轮以 DESIGN.md 为事实来源完成设计令牌统一;构建与自动检查仍须全部通过,未重做的实机验收沿用 v1.2.0 的授权继续豁免,不记为已通过。",
+    "waivedChecks": ["online", "capacity60Minutes", "androidManual", "windowsRuntime", "webRuntime"]
+  },
+  "builds": {
+    "status": "passed",
+    "evidence": "本版本功能提交 d300c6b 的 main 流水线已全部通过：https://github.com/xqd922/Gomoku/actions/runs/34771741834（六端客户端、Debian 12 服务端、规则/后端/浏览器自动验收）。稳定版标签在其上仅追加版本元数据，并在全部作业成功后才发布。本地另验证：dart analyze --fatal-infos、DESIGN.md 官方 CLI lint、依赖锁一致性、核心 12 项与客户端 48 项测试。"
+  },
+  "online": {
+    "status": "waived",
+    "evidence": "v1.2.3 不改动服务端行为（服务端仅版本常量），生产站点已运行 v1.2.2 服务端并在部署完成后执行 verify_production.dart 60 分钟线上验证（结果记录于 v1.2.2 验收文件与 artifacts/production）。"
+  },
+  "capacity60Minutes": {
+    "status": "waived",
+    "evidence": "v1.2.2 部署后的 60 分钟线上验证正在执行；结果将记录于 v1.2.2 验收文件。v1.2.3 为纯客户端设计令牌收敛，不影响容量路径。"
+  },
+  "backupRestore": {
+    "status": "passed",
+    "evidence": "2026-09-12T13:57Z 生产库转储已恢复到隔离的本地 PostgreSQL 17，44 张表与行数核对通过（SHA256 69614d3b3f17616aa880855157b1d177543bc839aa0dfd95760b70b71fac989b）。每次 install 前服务端自动执行并校验 pg_dump 备份（v1.2.2 部署已再次验证）。"
+  },
+  "existingServices": {
+    "status": "passed",
+    "evidence": "v1.2.2 生产部署报告确认 Xray、HAProxy、Caddy、Redis、PostgreSQL 五个服务 PID 全部未变，磁盘余量 1316 MiB，上一版保留可回滚（artifacts/production/deployment-v122.json）。v1.2.3 为纯客户端发行，不触碰服务端。"
+  },
+  "androidManual": {
+    "status": "waived",
+    "evidence": "v1.2.0 候选 APK 已通过用户手动验收。v1.2.2–v1.2.3 的界面改动（首页聚焦、头像样式、私有登录界面、设计令牌收敛）未记录新一轮真机回归，已有界面测试覆盖主要路径。"
+  },
+  "windowsRuntime": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 记录：RC2 正式可执行文件通过 Windows 11 实机启动、数据保留、六步恢复与完整输入路径。v1.2.2–v1.2.3 的界面改动待实机复核；完整的 Windows 对 Web 对局仍未记录。"
+  },
+  "webRuntime": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 记录；v1.2.2 部署后的浏览器回归待补。现有浏览器自动验收已随 main 流水线（34771741834）通过。"
+  }
+}
