@@ -9,11 +9,14 @@ abstract final class AppSpacing {
 }
 
 abstract final class AppShape {
+  static const joined = 6.0;
+  static const thumb = 14.0;
   static const field = 20.0;
+  static const menu = 24.0;
   static const card = 28.0;
   static const feature = 32.0;
-  static const menu = 24.0;
-  static const joined = 6.0;
+  static const heroNotchCompact = 56.0;
+  static const heroNotchWide = 88.0;
 }
 
 abstract final class AppLayout {

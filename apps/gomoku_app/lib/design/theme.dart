@@ -162,7 +162,9 @@ abstract final class AppTheme {
         side: BorderSide.none,
         backgroundColor: colors.surfaceContainerLow,
         selectedColor: colors.secondaryContainer,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppShape.thumb),
+        ),
         labelStyle: text.labelLarge,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       ),

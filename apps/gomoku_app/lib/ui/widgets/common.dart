@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gomoku_core/gomoku_core.dart';
 
 import '../../data/api.dart';
+import '../../design/board_palette.dart';
 import '../../design/tokens.dart';
 import '../../l10n/strings.dart';
 
@@ -97,7 +98,7 @@ class StatusPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         color: background ?? colors.secondaryContainer,
-        borderRadius: BorderRadius.circular(50),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -127,14 +128,8 @@ class StoneDisc extends StatelessWidget {
     height: size,
     decoration: BoxDecoration(
       shape: BoxShape.circle,
-      color: stone == Stone.black
-          ? const Color(0xff302d35)
-          : const Color(0xfffffdfa),
-      border: Border.all(
-        color: stone == Stone.black
-            ? const Color(0xff514b59)
-            : const Color(0xffc5bec8),
-      ),
+      color: BoardPalette.stoneFill(stone),
+      border: Border.all(color: BoardPalette.stoneBorder(stone)),
       boxShadow: [
         BoxShadow(
           color: Colors.black.withValues(alpha: .08),
@@ -186,7 +181,7 @@ class RecordTile extends StatelessWidget {
             children: [
               ExcludeSemantics(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppShape.thumb),
                   child: CustomPaint(
                     size: const Size.square(64),
                     painter: _RecordPreview(record.game, colors),
@@ -242,7 +237,7 @@ class EmptyGames extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       decoration: BoxDecoration(
         border: Border.all(color: colors.outlineVariant.withValues(alpha: .55)),
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(AppShape.card),
       ),
       child: Column(
         children: [
@@ -305,10 +300,7 @@ class _RecordPreview extends CustomPainter {
       canvas.drawCircle(
         Offset(pad + move.col * step, pad + move.row * step),
         step * .43,
-        Paint()
-          ..color = move.stone == Stone.black
-              ? const Color(0xff242127)
-              : const Color(0xfffffdfa),
+        Paint()..color = BoardPalette.stoneFill(move.stone),
       );
     }
   }

@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:gomoku_core/gomoku_core.dart';
 
 import '../../l10n/strings.dart';
+import '../../design/board_palette.dart';
 import '../../design/tokens.dart';
 import '../../state/settings.dart';
 import 'common.dart';
@@ -308,7 +309,6 @@ class _GameBoardState extends State<GameBoard>
     _publish(deferred: true);
     final colors = Theme.of(context).colorScheme;
     final strings = context.strings;
-    final dark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -351,12 +351,12 @@ class _GameBoardState extends State<GameBoard>
                                 game: widget.game,
                                 padding: _padding(_paintSize),
                                 accent: colors.primary,
-                                background: dark
-                                    ? const Color(0xff27252c)
-                                    : const Color(0xfff4f0e8),
-                                gridColor: dark
-                                    ? const Color(0xff817889)
-                                    : const Color(0xff979087),
+                                background: BoardPalette.canvas(
+                                  Theme.of(context).brightness,
+                                ),
+                                gridColor: BoardPalette.grid(
+                                  Theme.of(context).brightness,
+                                ),
                                 labelColor: colors.onSurfaceVariant,
                                 selected: _selected,
                                 hover: _canPlay ? _hover : null,
@@ -530,24 +530,19 @@ class _BoardPainter extends CustomPainter {
       canvas.drawCircle(
         point,
         radius,
-        Paint()
-          ..color = move.stone == Stone.black
-              ? const Color(0xff302d35)
-              : const Color(0xfffffdfa),
+        Paint()..color = BoardPalette.stoneFill(move.stone),
       );
       canvas.drawCircle(
         point,
         radius,
         Paint()
-          ..color = move.stone == Stone.black
-              ? const Color(0xff4c4752)
-              : const Color(0xffbfb8ba)
+          ..color = BoardPalette.stoneBorder(move.stone)
           ..strokeWidth = .9
           ..style = PaintingStyle.stroke,
       );
       final ink = move.stone == Stone.black
           ? Colors.white
-          : const Color(0xff302d35);
+          : BoardPalette.stoneBlack;
       if (showNumbers) {
         _text(
           canvas,
@@ -569,7 +564,7 @@ class _BoardPainter extends CustomPainter {
         Paint()
           ..color =
               (game.turn == Stone.black
-                      ? const Color(0xff302d35)
+                      ? BoardPalette.stoneBlack
                       : Colors.white)
                   .withValues(alpha: .35),
       );

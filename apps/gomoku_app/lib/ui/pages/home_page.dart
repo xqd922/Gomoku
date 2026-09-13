@@ -68,7 +68,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                 color: colors.primary,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(AppShape.feature),
-                  topRight: Radius.circular(wide ? 88 : 56),
+                  topRight: Radius.circular(
+                    wide ? AppShape.heroNotchWide : AppShape.heroNotchCompact,
+                  ),
                   bottomLeft: const Radius.circular(AppShape.feature),
                   bottomRight: const Radius.circular(AppShape.feature),
                 ),
@@ -276,7 +278,7 @@ class _PlayArtwork extends StatelessWidget {
               height: 114,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: .14),
-                borderRadius: BorderRadius.circular(36),
+                borderRadius: BorderRadius.circular(AppShape.feature),
               ),
               child: const Center(
                 child: StoneDisc(stone: Stone.black, size: 70),
