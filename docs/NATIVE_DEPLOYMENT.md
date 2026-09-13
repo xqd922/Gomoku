@@ -8,7 +8,7 @@
 
 ```sh
 python3 /opt/gomoku/native/manage.py bootstrap gomoku.xqd.pp.ua
-python3 /opt/gomoku/native/manage.py install /root/Gomoku-1.2.1-server-debian12-x64.tar.gz
+python3 /opt/gomoku/native/manage.py install /root/Gomoku-1.2.2-server-debian12-x64.tar.gz
 python3 /opt/gomoku/native/manage.py gateway
 python3 /opt/gomoku/native/manage.py status
 ```

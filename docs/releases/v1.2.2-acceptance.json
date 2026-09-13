@@ -1,0 +1,41 @@
+{
+  "version": "1.2.2+10202",
+  "releaseDecision": {
+    "authorizedBy": "user",
+    "date": "2026-09-13",
+    "instruction": "用户在三项界面打磨完成、并通过静态分析与客户端全部测试后指示『发下一个版本』。六端构建与服务端构建及自动检查仍须全部通过才会发布；本轮未重做的线上与实机验收沿用 v1.2.0 的授权继续豁免，不记为已通过。",
+    "waivedChecks": ["online", "capacity60Minutes", "androidManual", "windowsRuntime", "webRuntime"]
+  },
+  "builds": {
+    "status": "passed",
+    "evidence": "本版本功能提交 27fd4fd 的 main 流水线已全部通过：https://github.com/xqd922/Gomoku/actions/runs/34769240558（六端客户端、Debian 12 服务端、规则/后端/浏览器自动验收）。稳定版标签在其上仅追加版本元数据，并在全部作业成功后才发布。本地另验证：dart analyze --fatal-infos、依赖锁一致性、核心 12 项与客户端 48 项测试。"
+  },
+  "online": {
+    "status": "waived",
+    "evidence": "v1.2.2 不改动服务端行为（服务端仅版本常量），线上验证继续沿用 v1.2.1/v1.2.0 的记录；v1.2.1 起的部署后线上复核仍未执行，部署新版包后按 docs/V1_2_ACCEPTANCE.md 使用 server tool/verify_production.dart 一并补做。"
+  },
+  "capacity60Minutes": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 记录：10 客户端/双账号诊断运行在 RC2 直连公网 IP 下达到 2354 秒、1287 步、P95 530 ms、零传输重试。v1.2.2 为纯客户端界面变更，未改动心跳、轮询或会话容量路径，完整 60 分钟运行仍未记录。"
+  },
+  "backupRestore": {
+    "status": "passed",
+    "evidence": "2026-09-12T13:57Z 生产库转储已恢复到隔离的本地 PostgreSQL 17，44 张表与行数核对通过（v1.2.0 记录，SHA256 69614d3b3f17616aa880855157b1d177543bc839aa0dfd95760b70b71fac989b）。该演练针对部署环境与数据库版本，v1.2.2 不改变迁移结构；升级沿用同一 install/rollback 流程。"
+  },
+  "existingServices": {
+    "status": "passed",
+    "evidence": "v1.2.0 安装时已验证公网 HTTPS 与既有 REALITY 代理分流共存，Xray、HAProxy、Caddy、Redis 与 PostgreSQL 进程保留，当前与上一版应用并存，磁盘余量 1446 MiB。v1.2.2 为同一主机的增量升级，不触碰这些服务。"
+  },
+  "androidManual": {
+    "status": "waived",
+    "evidence": "v1.2.0 候选 APK 已通过用户手动验收（2026-09-12 用户报告“我测试过了 没啥问题了”）。v1.2.2 改动首页、头像样式与私有登录界面，未记录新一轮真机回归；私有登录新界面已有对应的界面测试覆盖。"
+  },
+  "windowsRuntime": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 记录：RC2 正式可执行文件通过 Windows 11 实机启动、v1.1 数据与设置保留、六步恢复、无障碍/键盘/鼠标落子与悔棋及窗口缩放。v1.2.2 的首页与登录页改动待实机复核；完整的 Windows 对 Web 对局仍未记录。"
+  },
+  "webRuntime": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 记录：生产环境 RC1 完成完整对局、复盘、再战、重启、离线与多标签检查。v1.2.2 的首页与私有登录改动待最终构建包的浏览器回归；现有浏览器自动验收已随 main 流水线通过。"
+  }
+}
