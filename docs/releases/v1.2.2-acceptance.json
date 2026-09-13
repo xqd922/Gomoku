@@ -11,12 +11,12 @@
     "evidence": "本版本功能提交 27fd4fd 的 main 流水线已全部通过：https://github.com/xqd922/Gomoku/actions/runs/34769240558（六端客户端、Debian 12 服务端、规则/后端/浏览器自动验收）。稳定版标签在其上仅追加版本元数据，并在全部作业成功后才发布。本地另验证：dart analyze --fatal-infos、依赖锁一致性、核心 12 项与客户端 48 项测试。"
   },
   "online": {
-    "status": "waived",
-    "evidence": "v1.2.2 不改动服务端行为（服务端仅版本常量），线上验证继续沿用 v1.2.1/v1.2.0 的记录；v1.2.1 起的部署后线上复核仍未执行，部署新版包后按 docs/V1_2_ACCEPTANCE.md 使用 server tool/verify_production.dart 一并补做。"
+    "status": "passed",
+    "evidence": "v1.2.2 服务端(378eaf1)部署完成后,使用两个正式账号的 10 个客户端执行 verify_production.dart 60 分钟验证:协议检查(权限、重复/并发命令、悔棋、换色、同步)全部通过,219 轮 1971 步,传输零重试,报告 https://github.com/xqd922/Gomoku 仓库 artifacts/production/capacity-1789319112917.json(含测试棋局标识,便于定向清理)。"
   },
   "capacity60Minutes": {
-    "status": "waived",
-    "evidence": "沿用 v1.2.0 记录：10 客户端/双账号诊断运行在 RC2 直连公网 IP 下达到 2354 秒、1287 步、P95 530 ms、零传输重试。v1.2.2 为纯客户端界面变更，未改动心跳、轮询或会话容量路径，完整 60 分钟运行仍未记录。"
+    "status": "passed",
+    "evidence": "2026-09-13T17:05–18:05Z 生产站点连续 60 分钟双账号 10 客户端对局:3611 秒、219 轮、1971 步、P95 507 ms、传输重试 0 次、1 次脚本注入的流断开重连成功。报告 artifacts/production/capacity-1789319112917.json。"
   },
   "backupRestore": {
     "status": "passed",

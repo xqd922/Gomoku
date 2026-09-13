@@ -4,19 +4,19 @@
     "authorizedBy": "user",
     "date": "2026-09-14",
     "instruction": "用户要求参照 Google design.md 规范与 stitch-skills 技能持续优化、测试并发版,直至界面达到理想状态。本轮以 DESIGN.md 为事实来源完成设计令牌统一;构建与自动检查仍须全部通过,未重做的实机验收沿用 v1.2.0 的授权继续豁免,不记为已通过。",
-    "waivedChecks": ["online", "capacity60Minutes", "androidManual", "windowsRuntime", "webRuntime"]
+    "waivedChecks": ["androidManual", "windowsRuntime", "webRuntime"]
   },
   "builds": {
     "status": "passed",
     "evidence": "本版本功能提交 d300c6b 的 main 流水线已全部通过：https://github.com/xqd922/Gomoku/actions/runs/34771741834（六端客户端、Debian 12 服务端、规则/后端/浏览器自动验收）。稳定版标签在其上仅追加版本元数据，并在全部作业成功后才发布。本地另验证：dart analyze --fatal-infos、DESIGN.md 官方 CLI lint、依赖锁一致性、核心 12 项与客户端 48 项测试。"
   },
   "online": {
-    "status": "waived",
-    "evidence": "v1.2.3 不改动服务端行为（服务端仅版本常量），生产站点已运行 v1.2.2 服务端并在部署完成后执行 verify_production.dart 60 分钟线上验证（结果记录于 v1.2.2 验收文件与 artifacts/production）。"
+    "status": "passed",
+    "evidence": "生产站点（v1.2.2 服务端，378eaf1）已通过 verify_production.dart 60 分钟验证：协议检查全部通过、219 轮 1971 步、零传输重试（artifacts/production/capacity-1789319112917.json）。v1.2.3 不改动服务端行为，客户端界面改动不触及联机协议。"
   },
   "capacity60Minutes": {
-    "status": "waived",
-    "evidence": "v1.2.2 部署后的 60 分钟线上验证正在执行；结果将记录于 v1.2.2 验收文件。v1.2.3 为纯客户端设计令牌收敛，不影响容量路径。"
+    "status": "passed",
+    "evidence": "2026-09-13T17:05–18:05Z 生产站点连续 60 分钟双账号 10 客户端对局：3611 秒、219 轮、1971 步、P95 507 ms、传输重试 0 次（artifacts/production/capacity-1789319112917.json）。v1.2.3 为纯客户端设计令牌收敛，不影响容量路径。"
   },
   "backupRestore": {
     "status": "passed",
