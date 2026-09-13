@@ -23,7 +23,9 @@ String errorCode(Object error) => switch (error) {
   _ => 'service_unavailable',
 };
 
-final class Api {
+/// Open to `implements` (test fakes) but closed to `extends`: callers depend
+/// on the documented behavior, never on inherited internals.
+interface class Api {
   Api() {
     client = Client(
       apiUrl,

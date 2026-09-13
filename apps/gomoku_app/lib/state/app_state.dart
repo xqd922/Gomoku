@@ -197,7 +197,12 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
-    await ref.read(apiProvider).auth('logout', {});
+    // Logging out is local-first: an unreachable service or an already-invalid
+    // session must never trap credentials on this device. The server revokes
+    // its own session whenever the call succeeds.
+    try {
+      await ref.read(apiProvider).auth('logout', {});
+    } catch (_) {}
     await ref.read(apiProvider).clearCredential();
     final prefs = ref.read(preferencesProvider);
     await prefs.remove('profile');
