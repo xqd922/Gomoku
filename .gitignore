@@ -32,3 +32,4 @@ apps/server/web/
 .DS_Store
 .idea/
 *.iml
+Typora_Hook_Log.txt
