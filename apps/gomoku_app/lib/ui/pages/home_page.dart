@@ -35,9 +35,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final s = context.strings;
     final colors = Theme.of(context).colorScheme;
-    final records = ref.watch(gamesProvider);
-    final games = records.asData?.value ?? <GameRecord>[];
-    final recent = games.where((r) => r.game.isOver).take(3).toList();
+    final games = ref.watch(gamesProvider).asData?.value ?? <GameRecord>[];
     final unfinished = games
         .where((r) => !r.game.isOver && r.source == RecordSource.local)
         .firstOrNull;
@@ -201,46 +199,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             );
           },
         ),
-        const SizedBox(height: 28),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                s.t('recentGames'),
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-            TextButton(
-              onPressed: () => context.go('/history'),
-              child: Text(s.t('viewAll')),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (records.hasError)
-          InlineNotice(
-            message: s.error('storage_unavailable'),
-            error: true,
-            action: TextButton(
-              onPressed: () => ref.invalidate(gamesProvider),
-              child: Text(s.t('retry')),
-            ),
-          )
-        else if (recent.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              s.t('emptyHistoryBody'),
-              style: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(color: colors.onSurfaceVariant),
-            ),
-          )
-        else
-          for (final record in recent)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: RecordTile(record: record),
-            ),
       ],
     );
   }

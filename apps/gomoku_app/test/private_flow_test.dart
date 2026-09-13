@@ -33,11 +33,12 @@ void main() {
       );
       expect(find.text('Register'), findsNothing);
       expect(find.text('Forgot password?'), findsNothing);
-      expect(find.text('Enter 1 or 2, or use your email'), findsOneWidget);
-      await tester.enterText(
-        find.byKey(const ValueKey('account-email')),
-        '1',
-      );
+      expect(find.text('Choose account'), findsOneWidget);
+      expect(find.text('Account 1'), findsOneWidget);
+      expect(find.text('Account 2'), findsOneWidget);
+      expect(find.byKey(const ValueKey('account-email')), findsNothing);
+      await tester.tap(find.text('Account 1'));
+      await tester.pump();
       await tester.enterText(
         find.byKey(const ValueKey('account-password')),
         '48271635',

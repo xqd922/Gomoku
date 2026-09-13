@@ -92,11 +92,12 @@ class AppStrings {
     'emailStep': ('第 1 步 · 邮箱', 'Step 1 · Email'),
     'verifyStep': ('第 2 步 · 验证并完成', 'Step 2 · Verify and finish'),
     'emailError': ('请输入有效的邮箱地址', 'Enter a valid email address'),
-    'loginName': ('账号', 'Account'),
-    'privateLoginHint': ('输入 1 或 2，也可使用原邮箱', 'Enter 1 or 2, or use your email'),
-    'privateLoginError': (
-      '请输入账号 1、2 或有效的邮箱地址',
-      'Enter account 1, 2 or a valid email address',
+    'pickAccount': ('选择账号', 'Choose account'),
+    'accountOne': ('账号 1', 'Account 1'),
+    'accountTwo': ('账号 2', 'Account 2'),
+    'privatePasswordHint': (
+      '管理员提供的 8 位数字密码',
+      'The 8-digit password from your administrator',
     ),
     'passwordError': ('请输入密码', 'Enter your password'),
     'codeError': ('请输入邮件中的验证码', 'Enter the code from your email'),

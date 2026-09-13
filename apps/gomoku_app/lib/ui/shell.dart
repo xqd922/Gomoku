@@ -171,19 +171,25 @@ class AccountMenuButton extends ConsumerWidget {
     final s = context.strings;
     final colors = Theme.of(context).colorScheme;
     final profile = ref.watch(authProvider).profile;
+    final identified = profile != null && !profile.isGuest;
     final avatar = Container(
       width: 40,
       height: 40,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: colors.tertiaryContainer,
-        borderRadius: BorderRadius.circular(16),
+        shape: BoxShape.circle,
+        color: identified
+            ? colors.tertiaryContainer
+            : colors.surfaceContainerHighest,
+        border: identified ? null : Border.all(color: colors.outlineVariant),
       ),
       child: ExcludeSemantics(
-        child: profile == null || profile.isGuest || profile.nickname.isEmpty
+        child: !identified || profile.nickname.isEmpty
             ? Icon(
                 Icons.person_outline_rounded,
-                color: colors.onTertiaryContainer,
+                color: identified
+                    ? colors.onTertiaryContainer
+                    : colors.onSurfaceVariant,
               )
             : Text(
                 profile.nickname.characters.first.toUpperCase(),

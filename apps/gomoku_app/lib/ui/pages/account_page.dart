@@ -28,6 +28,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   final _code = TextEditingController();
   late final TextEditingController _nickname;
   _AccountMode _mode = _AccountMode.login;
+  String _account = '1';
   String? _requestId;
   bool _busy = false;
   bool _obscure = true;
@@ -73,7 +74,12 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     try {
       switch (_mode) {
         case _AccountMode.login:
-          await auth.login(_email.text.trim(), _password.text);
+          final identifier =
+              ref.read(serviceConfigProvider).asData?.value.privateAccounts ==
+                  true
+              ? _account
+              : _email.text.trim();
+          await auth.login(identifier, _password.text);
           if (!mounted) return;
           _nickname.text = ref.read(authProvider).profile!.nickname;
           TextInput.finishAutofillContext();
@@ -331,6 +337,59 @@ class _AccountPageState extends ConsumerState<AccountPage> {
               ),
             ),
           )
+        else if (privateLogin && _mode == _AccountMode.login)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: AutofillGroup(
+                child: Form(
+                  key: _form,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        s.t('login'),
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        s.t('pickAccount'),
+                        style: Theme.of(context).textTheme.labelLarge
+                            ?.copyWith(color: colors.primary),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          for (final account in const ['1', '2']) ...[
+                            if (account == '2') const SizedBox(width: 12),
+                            Expanded(child: _accountCard(account)),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      _passwordField(
+                        enabled: !_busy && !blocked,
+                        numeric: true,
+                      ),
+                      if (_serverError != null && _errorField == 'form') ...[
+                        const SizedBox(height: 18),
+                        InlineNotice(message: _serverError!, error: true),
+                      ],
+                      const SizedBox(height: 24),
+                      _submitButton(
+                        submitLabel,
+                        enabled:
+                            !_busy &&
+                            !blocked &&
+                            !auth.resolving &&
+                            capabilities.asData != null,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          )
         else
           Card(
             child: Padding(
@@ -455,60 +514,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                       ],
                       if (_mode == _AccountMode.login || verify) ...[
                         const SizedBox(height: 18),
-                        TextFormField(
-                          key: const ValueKey('account-password'),
-                          controller: _password,
-                          enabled: !_busy && !blocked,
-                          obscureText: _obscure,
-                          autofillHints: [
-                            _mode == _AccountMode.login
-                                ? AutofillHints.password
-                                : AutofillHints.newPassword,
-                          ],
-                          textInputAction: _mode == _AccountMode.register
-                              ? TextInputAction.next
-                              : TextInputAction.done,
-                          onFieldSubmitted: (_) {
-                            if (_mode != _AccountMode.register) _submit();
-                          },
-                          decoration: InputDecoration(
-                            labelText: s.t('password'),
-                            errorText: _errorField == 'password'
-                                ? _serverError
-                                : null,
-                            helperText: _mode == _AccountMode.login
-                                ? null
-                                : s.t('passwordHint'),
-                            prefixIcon: const Icon(Icons.lock_outline_rounded),
-                            suffixIcon: IconButton(
-                              tooltip: s.t(
-                                _obscure ? 'showPassword' : 'hidePassword',
-                              ),
-                              onPressed: () =>
-                                  setState(() => _obscure = !_obscure),
-                              icon: Icon(
-                                _obscure
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                              ),
-                            ),
-                          ),
-                          onChanged: (_) {
-                            if (_errorField == 'password') {
-                              setState(() => _errorField = null);
-                            }
-                          },
-                          validator: (value) =>
-                              value != null &&
-                                  value.length >=
-                                      (_mode == _AccountMode.login ? 1 : 8)
-                              ? null
-                              : s.t(
-                                  _mode == _AccountMode.login
-                                      ? 'passwordError'
-                                      : 'passwordHint',
-                                ),
-                        ),
+                        _passwordField(enabled: !_busy && !blocked),
                       ],
                       if (_mode == _AccountMode.register && verify) ...[
                         const SizedBox(height: 18),
@@ -543,28 +549,13 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                         InlineNotice(message: _serverError!, error: true),
                       ],
                       const SizedBox(height: 24),
-                      FilledButton.icon(
-                        key: const ValueKey('account-submit'),
-                        onPressed:
-                            _busy ||
-                                blocked ||
-                                auth.resolving ||
-                                capabilities.asData == null
-                            ? null
-                            : _submit,
-                        icon: _busy
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Icon(
-                                _mode == _AccountMode.login
-                                    ? Icons.login_rounded
-                                    : Icons.arrow_forward_rounded,
-                              ),
-                        label: Text(s.t(submitLabel)),
+                      _submitButton(
+                        submitLabel,
+                        enabled:
+                            !_busy &&
+                            !blocked &&
+                            !auth.resolving &&
+                            capabilities.asData != null,
                       ),
                       const SizedBox(height: 10),
                       if (_mode == _AccountMode.login && allowEmail)
@@ -592,4 +583,120 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       ],
     );
   }
+
+  Widget _accountCard(String account) {
+    final s = context.strings;
+    final colors = Theme.of(context).colorScheme;
+    final selected = _account == account;
+    return Semantics(
+      checked: selected,
+      button: true,
+      child: Material(
+        color: selected
+            ? colors.primaryContainer
+            : colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppShape.card),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppShape.card),
+          onTap: _busy ? null : () => setState(() => _account = account),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            decoration: selected
+                ? null
+                : BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppShape.card),
+                    border: Border.all(color: colors.outlineVariant),
+                  ),
+            child: Column(
+              children: [
+                Icon(
+                  selected
+                      ? Icons.person_rounded
+                      : Icons.person_outline_rounded,
+                  color: selected
+                      ? colors.onPrimaryContainer
+                      : colors.onSurfaceVariant,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  s.t(account == '1' ? 'accountOne' : 'accountTwo'),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: selected
+                        ? colors.onPrimaryContainer
+                        : colors.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _passwordField({required bool enabled, bool numeric = false}) {
+    final s = context.strings;
+    return TextFormField(
+      key: const ValueKey('account-password'),
+      controller: _password,
+      enabled: enabled,
+      obscureText: _obscure,
+      autofillHints: [
+        _mode == _AccountMode.login
+            ? AutofillHints.password
+            : AutofillHints.newPassword,
+      ],
+      keyboardType: numeric ? TextInputType.number : null,
+      textInputAction: _mode == _AccountMode.register
+          ? TextInputAction.next
+          : TextInputAction.done,
+      onFieldSubmitted: (_) {
+        if (_mode != _AccountMode.register) _submit();
+      },
+      decoration: InputDecoration(
+        labelText: s.t('password'),
+        errorText: _errorField == 'password' ? _serverError : null,
+        helperText: _mode == _AccountMode.login
+            ? (numeric ? s.t('privatePasswordHint') : null)
+            : s.t('passwordHint'),
+        prefixIcon: const Icon(Icons.lock_outline_rounded),
+        suffixIcon: IconButton(
+          tooltip: s.t(_obscure ? 'showPassword' : 'hidePassword'),
+          onPressed: () => setState(() => _obscure = !_obscure),
+          icon: Icon(
+            _obscure
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+          ),
+        ),
+      ),
+      onChanged: (_) {
+        if (_errorField == 'password') {
+          setState(() => _errorField = null);
+        }
+      },
+      validator: (value) =>
+          value != null && value.length >= (_mode == _AccountMode.login ? 1 : 8)
+          ? null
+          : s.t(_mode == _AccountMode.login ? 'passwordError' : 'passwordHint'),
+    );
+  }
+
+  Widget _submitButton(String label, {required bool enabled}) =>
+      FilledButton.icon(
+        key: const ValueKey('account-submit'),
+        onPressed: enabled ? _submit : null,
+        icon: _busy
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(
+                _mode == _AccountMode.login
+                    ? Icons.login_rounded
+                    : Icons.arrow_forward_rounded,
+              ),
+        label: Text(context.strings.t(label)),
+      );
 }
