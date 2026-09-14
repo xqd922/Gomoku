@@ -1,0 +1,41 @@
+{
+  "version": "1.2.4+10204",
+  "releaseDecision": {
+    "authorizedBy": "user",
+    "date": "2026-09-14",
+    "instruction": "用户反馈三处对局体验问题(棋盘中央光标框、无胜利庆祝、结算时布局上跳)并要求修复后发版。本轮逐项修复;构建与自动检查仍须全部通过,真机验收沿用 v1.2.0 的授权继续豁免,不记为已通过。",
+    "waivedChecks": ["androidManual", "windowsRuntime", "webRuntime"]
+  },
+  "builds": {
+    "status": "passed",
+    "evidence": "本版本功能提交 3587cd3 的 main 流水线已全部通过：六端客户端、Debian 12 服务端、规则/后端/浏览器自动验收。稳定版标签在其上仅追加版本元数据，并在全部作业成功后才发布。本地另验证：dart analyze --fatal-infos、依赖锁一致性、核心 12 项与客户端 48 项测试（含新增布局动画的 reduce-motion 回归路径）。"
+  },
+  "online": {
+    "status": "passed",
+    "evidence": "生产站点已通过 verify_production.dart 60 分钟验证（219 轮 1971 步、零传输重试，artifacts/production/capacity-1789319112917.json）。v1.2.4 为纯客户端界面变更，不触及联机协议与服务端。"
+  },
+  "capacity60Minutes": {
+    "status": "passed",
+    "evidence": "2026-09-13T17:05–18:05Z 生产站点连续 60 分钟双账号 10 客户端对局：3611 秒、219 轮、1971 步、P95 507 ms、传输重试 0 次（artifacts/production/capacity-1789319112917.json）。v1.2.4 不影响容量路径。"
+  },
+  "backupRestore": {
+    "status": "passed",
+    "evidence": "2026-09-12T13:57Z 生产库转储恢复演练通过（SHA256 69614d3b3f17616aa880855157b1d177543bc839aa0dfd95760b70b71fac989b）；每次 install 前服务端自动执行并校验 pg_dump 备份。v1.2.4 不改变迁移结构。"
+  },
+  "existingServices": {
+    "status": "passed",
+    "evidence": "v1.2.2 生产部署报告确认五个既有服务 PID 全部未变、磁盘余量充足、上一版可回滚（artifacts/production/deployment-v122.json）。v1.2.4 为纯客户端发行，不触碰服务端。"
+  },
+  "androidManual": {
+    "status": "waived",
+    "evidence": "v1.2.0 候选 APK 已通过用户手动验收。v1.2.2–v1.2.4 的界面改动（含本轮胜利庆祝与光标修正）未记录新一轮真机回归；新增路径已有界面测试覆盖。"
+  },
+  "windowsRuntime": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 记录：RC2 通过 Windows 11 实机启动、数据保留与完整输入路径。本轮键盘光标改动影响 Windows 键盘路径，待实机复核；完整的 Windows 对 Web 对局仍未记录。"
+  },
+  "webRuntime": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 记录；最终构建包的浏览器回归待补。现有浏览器自动验收已随 main 流水线通过。"
+  }
+}
