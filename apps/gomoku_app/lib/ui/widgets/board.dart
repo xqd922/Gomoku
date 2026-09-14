@@ -111,13 +111,17 @@ class GameBoard extends StatefulWidget {
   State<GameBoard> createState() => _GameBoardState();
 }
 
-class _GameBoardState extends State<GameBoard>
-    with SingleTickerProviderStateMixin {
+class _GameBoardState extends State<GameBoard> with TickerProviderStateMixin {
   final _focus = FocusNode(debugLabel: 'Gomoku board');
   final _audio = AudioPlayer();
   late final AnimationController _animation = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 230),
+    value: 1,
+  );
+  late final AnimationController _celebration = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
     value: 1,
   );
   BoardPoint? _selected;
@@ -126,6 +130,10 @@ class _GameBoardState extends State<GameBoard>
   PointerDeviceKind _pointer = PointerDeviceKind.mouse;
   bool _moving = false;
   bool _focused = false;
+  // The keyboard cursor only appears along keyboard paths: focus gained without
+  // pointer or semantics activation, or an arrow-key navigation.
+  bool _cursorVisible = false;
+  bool _cursorSuppressed = false;
   Size _paintSize = Size.zero;
   late BoardInteractionController _interaction;
   @override
@@ -145,6 +153,7 @@ class _GameBoardState extends State<GameBoard>
       () {
         if (!mounted) return;
         setState(() => _selected = null);
+        _cursorSuppressed = true;
         _publish();
         _focus.requestFocus();
       },
@@ -180,6 +189,20 @@ class _GameBoardState extends State<GameBoard>
         _animation.forward(from: 0);
       }
     }
+    if (!old.game.isOver &&
+        widget.game.isOver &&
+        widget.game.result?.reason == EndReason.five) {
+      _selected = null;
+      if (widget.settings.reduceMotion ||
+          MediaQuery.maybeOf(context)?.disableAnimations == true) {
+        _celebration.value = 1;
+      } else {
+        _celebration.forward(from: 0);
+      }
+      if (widget.settings.haptics && DesignCapabilities.supportsHaptics) {
+        HapticFeedback.mediumImpact();
+      }
+    }
     if (!_canPlay) _selected = null;
     _publish(deferred: true);
   }
@@ -190,6 +213,7 @@ class _GameBoardState extends State<GameBoard>
     if (widget.interaction == null) _interaction.dispose();
     _focus.dispose();
     _animation.dispose();
+    _celebration.dispose();
     _audio.dispose();
     super.dispose();
   }
@@ -216,6 +240,7 @@ class _GameBoardState extends State<GameBoard>
       return;
     }
     // Accessibility activation has no pointer event to focus the board.
+    _cursorSuppressed = true;
     _focus.requestFocus();
     final touch =
         _pointer == PointerDeviceKind.touch ||
@@ -296,6 +321,7 @@ class _GameBoardState extends State<GameBoard>
     }
     setState(() {
       _cursor = BoardPoint(row.clamp(0, 14), col.clamp(0, 14));
+      _cursorVisible = true;
       _selected = _canPlay && widget.game.at(_cursor.row, _cursor.col) == null
           ? _cursor
           : null;
@@ -315,10 +341,19 @@ class _GameBoardState extends State<GameBoard>
         Focus(
           focusNode: _focus,
           onKeyEvent: _key,
-          onFocusChange: (value) => setState(() => _focused = value),
+          onFocusChange: (value) => setState(() {
+            _focused = value;
+            if (!value) {
+              _cursorVisible = false;
+            } else if (!_cursorSuppressed) {
+              _cursorVisible = true;
+            }
+            _cursorSuppressed = false;
+          }),
           child: Listener(
             onPointerDown: (event) {
               _pointer = event.kind;
+              _cursorSuppressed = true;
               _focus.requestFocus();
             },
             child: MouseRegion(
@@ -343,7 +378,10 @@ class _GameBoardState extends State<GameBoard>
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(AppShape.card),
                           child: AnimatedBuilder(
-                            animation: _animation,
+                            animation: Listenable.merge([
+                              _animation,
+                              _celebration,
+                            ]),
                             builder: (context, _) => CustomPaint(
                               key: const ValueKey('game-board'),
                               size: _paintSize,
@@ -360,7 +398,7 @@ class _GameBoardState extends State<GameBoard>
                                 labelColor: colors.onSurfaceVariant,
                                 selected: _selected,
                                 hover: _canPlay ? _hover : null,
-                                cursor: _focused && !widget.readOnly
+                                cursor: _focused && _cursorVisible
                                     ? _cursor
                                     : null,
                                 showNumbers:
@@ -369,6 +407,7 @@ class _GameBoardState extends State<GameBoard>
                                 progress: Curves.easeOutBack.transform(
                                   _animation.value,
                                 ),
+                                celebration: _celebration.value,
                                 strings: strings,
                                 onSelect: _canPlay
                                     ? (point) =>
@@ -448,6 +487,7 @@ class _BoardPainter extends CustomPainter {
     required this.cursor,
     required this.showNumbers,
     required this.progress,
+    required this.celebration,
     required this.strings,
     this.onSelect,
   });
@@ -456,7 +496,7 @@ class _BoardPainter extends CustomPainter {
   final Color accent, background, gridColor, labelColor;
   final BoardPoint? selected, hover, cursor;
   final bool showNumbers;
-  final double progress;
+  final double progress, celebration;
   final AppStrings strings;
   final void Function(BoardPoint)? onSelect;
 
@@ -512,7 +552,7 @@ class _BoardPainter extends CustomPainter {
         _offset(line.first, step),
         _offset(line.last, step),
         Paint()
-          ..color = accent.withValues(alpha: .23)
+          ..color = accent.withValues(alpha: .23 * celebration.clamp(0, 1))
           ..strokeWidth = step * .8
           ..strokeCap = StrokeCap.round,
       );
@@ -520,7 +560,17 @@ class _BoardPainter extends CustomPainter {
     for (var i = 0; i < game.moves.length; i++) {
       final move = game.moves[i];
       final point = _offset(move.point, step);
-      final scale = i == game.moves.length - 1 ? .7 + .3 * progress : 1.0;
+      var pulse = 0.0;
+      if (celebration < 1 && line != null && line.contains(move.point)) {
+        final index = line.indexOf(move.point);
+        final phase = (celebration * 900 - index * 90) / 300;
+        if (phase > 0 && phase < 1) pulse = math.sin(phase * math.pi);
+      }
+      final scale =
+          (i == game.moves.length - 1 && !game.isOver
+              ? .7 + .3 * progress
+              : 1.0) +
+          .32 * pulse;
       final radius = step * .405 * scale;
       canvas.drawCircle(
         point + Offset(0, step * .05),

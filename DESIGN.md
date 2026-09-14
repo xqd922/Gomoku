@@ -169,7 +169,7 @@ Rounding scale, largest to smallest: hero notch 88/56 (asymmetric home banner co
 
 ## Motion & Interaction
 
-Feedback 180ms, page transitions 320ms, theme change 280ms. Stone placement uses easeOutBack over 230ms (scale settle); lists and controls may stagger but must stay under 320ms. All motion collapses to zero when `MediaQuery.disableAnimationsOf` or the in-app reduce-motion setting is active. Animate implicit only (transform/opacity equivalents in Flutter); never block input on animation.
+Feedback 180ms, page transitions 320ms, theme change 280ms. Stone placement uses easeOutBack over 230ms (scale settle). A five-in-a-row win triggers the single loud moment in the game: the winning stones pulse outward one after another along the line (~900ms, staggered 90ms), the accent line wash fades in with them, and a medium haptic fires — all suppressed by the reduce-motion setting. The controls area grows and shrinks with an eased 280ms size change so the board settles instead of jumping; when motion is disabled the area changes size instantly. All motion collapses to zero when `MediaQuery.disableAnimationsOf` or the in-app reduce-motion setting is active. Animate implicit only (transform/opacity equivalents in Flutter); never block input on animation.
 
 ## Accessibility
 

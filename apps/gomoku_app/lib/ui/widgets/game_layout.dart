@@ -71,7 +71,7 @@ class GameScaffold extends StatelessWidget {
                       children: [
                         status,
                         const SizedBox(height: 20),
-                        controls,
+                        _AnimatedControls(child: controls),
                         if (details != null) ...[
                           const SizedBox(height: 24),
                           details!,
@@ -147,13 +147,35 @@ class GameScaffold extends StatelessWidget {
                   top: Radius.circular(AppShape.card),
                 ),
               ),
-              child: controls,
+              child: _AnimatedControls(child: controls),
             ),
           ],
         );
       },
     ),
   );
+}
+
+/// Grows and shrinks with the controls' state change so the board settles
+/// instead of jumping. Reduce-motion renders without the wrapper entirely:
+/// a zero-duration AnimatedSize completes synchronously inside layout.
+class _AnimatedControls extends StatelessWidget {
+  const _AnimatedControls({required this.child});
+  final Widget child;
+  @override
+  Widget build(BuildContext context) {
+    final duration = AppMotion.duration(
+      context,
+      const Duration(milliseconds: 280),
+    );
+    if (duration <= Duration.zero) return child;
+    return AnimatedSize(
+      duration: duration,
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: child,
+    );
+  }
 }
 
 class MoveControls extends StatelessWidget {
