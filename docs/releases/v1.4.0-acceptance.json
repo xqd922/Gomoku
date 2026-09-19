@@ -1,0 +1,41 @@
+{
+  "version": "1.4.0+10400",
+  "releaseDecision": {
+    "authorizedBy": "user",
+    "date": "2026-09-19",
+    "instruction": "用户反馈好友对弈还需要分享房间码很奇怪，选择方案A（大厅列出等待中的房间、一键加入）并要求上线使用。构建与自动检查全部通过；真机验收沿用 v1.2.0 的授权继续豁免；生产站点升级由管理员在本版本发布后立即执行并复核 /health 与大厅列表，60 分钟容量验收待升级后补做。",
+    "waivedChecks": ["online", "capacity60Minutes", "androidManual", "windowsRuntime", "webRuntime"]
+  },
+  "builds": {
+    "status": "passed",
+    "evidence": "本地 dart analyze 与 dart format 零问题；客户端 50 项测试（新增等待房间列表与空态隐藏 2 项）与服务端 17 项系统测试（新增 openRooms 列表、隐藏自身房间、满座退出列表断言；真实 PostgreSQL、Redis、Mailpit）全部通过；协议变更由 serverpod_cli 3.4.13 生成，无数据库迁移。六端客户端、Debian 12 服务端与浏览器自动验收由 v1.4.0 标签流水线执行，全部作业成功后才由发布作业放行。"
+  },
+  "online": {
+    "status": "waived",
+    "evidence": "生产站点当前运行 v1.3.0 服务端，需升级镜像后复核 /health 与大厅等待房间列表；升级在发布后立即执行，步骤与回滚方式见 docs/releases/v1.4.0.md。本版本为只读新增接口，旧客户端不调用，行为不受影响。"
+  },
+  "capacity60Minutes": {
+    "status": "waived",
+    "evidence": "60 分钟容量验收依赖升级后的生产服务端，本轮未执行。本版本无新增迁移、无表结构变更（openRooms 只读查询 gm_rooms 并复用既有等待期过滤），房间与棋谱裁定路径未改动；待升级后按部署文档补做。"
+  },
+  "backupRestore": {
+    "status": "passed",
+    "evidence": "2026-09-12T13:57Z 生产库转储恢复演练通过（SHA256 69614d3b3f17616aa880855157b1d177543bc839aa0dfd95760b70b71fac989b）；每次 install 前服务端自动执行并校验 pg_dump 备份。v1.4.0 不新增迁移、不改变表结构。"
+  },
+  "existingServices": {
+    "status": "passed",
+    "evidence": "v1.2.2 生产部署报告确认五个既有服务 PID 全部未变、磁盘余量充足、上一版可回滚（artifacts/production/deployment-v122.json）。v1.4.0 沿用同一部署方案，不触碰网关与代理配置，Caddy 路由无变更（新接口走既有 /api 通道）。"
+  },
+  "androidManual": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 真机验收与 v1.2.2–v1.3.0 的豁免记录。本轮大厅列表改动已有界面测试覆盖，真机回归待补；versionCode 10400 递增，可直接覆盖安装。"
+  },
+  "windowsRuntime": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 记录：RC2 通过 Windows 11 实机启动、数据保留与完整输入路径。本轮改动为大厅界面层，与 Web 共用同一 Flutter 代码，Windows 实机复核待补。"
+  },
+  "webRuntime": {
+    "status": "waived",
+    "evidence": "tool/browser 自动验收随标签流水线运行；等待房间列表的界面行为由界面测试覆盖。最终发行包的浏览器回归待补。"
+  }
+}
