@@ -18,7 +18,7 @@
 
 ## 下载
 
-[下载 Gomoku v1.2.4](https://github.com/xqd922/Gomoku/releases/tag/v1.2.4)：Actions 构建的六端发行文件、SHA-256 校验和及源码版本记录。v1.2.4 补上胜利庆祝动效并修正棋盘光标与结算布局；v1.2.3 以 DESIGN.md 统一设计令牌与棋子色板；v1.2.2 让首页聚焦对弈并新增私有账号专用登录；v1.2.1 修复服务端房间裁定与离线登出的两处边界逻辑；v1.2.0 接入正式站点；v1.1.0 带来整体 Material 3 Expressive 界面改版；v1.0.0 是 Flutter / Serverpod 架构的首个版本，旧版 Tauri 源码仍可通过 v0.3.0 等标签查看。
+[下载 Gomoku v1.3.0](https://github.com/xqd922/Gomoku/releases/tag/v1.3.0)：Actions 构建的六端发行文件、SHA-256 校验和及源码版本记录。v1.3.0 将登录统一为邮箱账户并移除私有账号模式；v1.2.4 补上胜利庆祝动效并修正棋盘光标与结算布局；v1.2.3 以 DESIGN.md 统一设计令牌与棋子色板；v1.2.2 让首页聚焦对弈；v1.2.1 修复服务端房间裁定与离线登出的两处边界逻辑；v1.2.0 接入正式站点；v1.1.0 带来整体 Material 3 Expressive 界面改版；v1.0.0 是 Flutter / Serverpod 架构的首个版本，旧版 Tauri 源码仍可通过 v0.3.0 等标签查看。
 
 v1.2 正式版接入 <https://gomoku.xqd.pp.ua>，账号由管理员私下提供。发行门槛见 [线上与实机验收](docs/V1_2_ACCEPTANCE.md)。v1.1.0 及更早的发行包未接入正式服务器。也可以按 [部署说明](docs/DEPLOYMENT.md) 自建，低内存 Debian 12 主机使用 [原生部署方案](docs/NATIVE_DEPLOYMENT.md)。iOS 文件为无签名构建，不能直接安装。
 
