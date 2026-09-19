@@ -19,13 +19,13 @@ python3 /opt/gomoku/native/manage.py status
 
 ## 账户管理
 
-管理员通过 SSH 私下查看 `initial-accounts.json` 并交付给玩家。两个账号可直接输入 `1` 或 `2` 登录，也保留原邮箱登录。新部署生成两个独立的 8 位随机数字密码，客户端和公开发行包不包含密码。已有部署升级时补齐简易账号，不改变原密码、身份或棋谱。需要修改密码时运行：
+登录统一使用邮箱地址和密码；历史短别名 `1`、`2` 不再是登录名。管理员通过 SSH 私下查看 `initial-accounts.json`，把其中的邮箱（如 `player1@域名`、`player2@域名`）和密码交付给玩家。新部署生成两个独立的 8 位随机数字密码，客户端和公开发行包不包含密码。已有部署升级时补齐账号，不改变原密码、身份或棋谱。需要修改密码时运行：
 
 ```sh
-python3 /opt/gomoku/native/manage.py reset-password 1
+python3 /opt/gomoku/native/manage.py reset-password player1@gomoku.xqd.pp.ua
 ```
 
-密码在终端中不回显，不作为命令参数传入；重置撤销旧会话。初始文件是初次交付记录，重置后不再代表现有密码。私有模式拒绝所有非预置身份的联机、订阅和同步操作。可用 `GOMOKU_AUTH_MODE=email` 保留原自建邮件模式，另行配置 SMTP。
+密码在终端中不回显，不作为命令参数传入；重置撤销旧会话。初始文件是初次交付记录，重置后不再代表现有密码。`reset-password` 仍接受别名 `1`、`2` 指代预置账号。注册和忘记密码的验证码邮件需要配置 `runtime.env` 中的 `SMTP_*`；未配置 SMTP 的部署由管理员预置账号并交付。
 
 ## 备份、恢复和回滚
 

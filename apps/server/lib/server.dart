@@ -11,10 +11,10 @@ import 'package:serverpod_auth_idp_server/providers/email.dart';
 import 'src/auth/session_auth.dart';
 import 'src/generated/endpoints.dart';
 import 'src/generated/protocol.dart';
+import 'src/services/account_admin.dart';
 import 'src/services/app_config.dart';
 import 'src/services/database.dart';
 import 'src/services/rooms.dart';
-import 'src/services/private_accounts.dart';
 import 'src/web/routes/app_config_route.dart';
 import 'src/web/routes/auth_route.dart';
 import 'src/web/routes/health_route.dart';
@@ -62,7 +62,7 @@ Future<void> run(List<String> args) async {
       authenticateSession(session, token, config);
   pod.webServer.addRoute(AuthRoute(config), '/auth/**');
   pod.webServer.addRoute(HealthRoute(), '/health');
-  pod.webServer.addRoute(AppConfigRoute(config), '/app-config');
+  pod.webServer.addRoute(AppConfigRoute(), '/app-config');
   if (adminOperation != null) {
     // Maintenance mode never listens on application ports.
     final session = await pod.createSession(enableLogging: false);
@@ -70,7 +70,7 @@ Future<void> run(List<String> args) async {
       await migrateApplication(session);
       switch (adminOperation.split('=').last) {
         case 'provision':
-          await PrivateAccounts.provision(
+          await AccountAdmin.provision(
             session,
             File(config.get('GOMOKU_ACCOUNTS_FILE')),
           );
@@ -78,7 +78,7 @@ Future<void> run(List<String> args) async {
           final input = jsonDecode(
             await File(config.get('GOMOKU_RESET_FILE')).readAsString(),
           ) as Map<String, dynamic>;
-          await PrivateAccounts.resetPassword(
+          await AccountAdmin.resetPassword(
             session,
             input['email'] as String,
             input['password'] as String,
@@ -160,9 +160,7 @@ Future<void> run(List<String> args) async {
       }
     }),
   );
-  stdout.writeln(
-    'Gomoku ${config.version} is ready (${config.privateAccounts ? 'private' : 'email'} authentication).',
-  );
+  stdout.writeln('Gomoku ${config.version} is ready (email authentication).');
   if (!Platform.isWindows) {
     ProcessSignal.sigterm.watch().listen((_) async {
       for (final timer in timers) {
@@ -180,9 +178,6 @@ Future<void> _sendCode(
   String code,
   bool reset,
 ) async {
-  if (config.privateAccounts) {
-    throw StateError('Email delivery is disabled in private mode.');
-  }
   final ssl = config.get('SMTP_SSL', 'false') == 'true';
   final username = config.get('SMTP_USERNAME');
   final server = SmtpServer(

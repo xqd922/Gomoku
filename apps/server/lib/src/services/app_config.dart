@@ -5,7 +5,6 @@ final class AppConfig {
   final Map<String, String> values;
   static late AppConfig current;
 
-  bool get privateAccounts => get('GOMOKU_AUTH_MODE', 'email') == 'private';
   String get version => get(
     'GOMOKU_VERSION',
     const String.fromEnvironment('GOMOKU_VERSION', defaultValue: '1.2.4'),
@@ -27,9 +26,6 @@ final class AppConfig {
       }
     }
     result.addAll(Platform.environment);
-    if (!{'email', 'private'}.contains(result['GOMOKU_AUTH_MODE'] ?? 'email')) {
-      throw StateError('GOMOKU_AUTH_MODE must be email or private.');
-    }
     return AppConfig._(result);
   }
 

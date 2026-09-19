@@ -6,65 +6,41 @@ import 'package:serverpod_auth_idp_server/core.dart';
 import 'package:serverpod_auth_idp_server/providers/email.dart';
 import 'package:uuid/uuid.dart' as uuid;
 
-import '../generated/protocol.dart';
-import 'app_config.dart';
 import 'database.dart';
 import 'players.dart';
 
-final class PrivateAccounts {
-  /// Short login names identify the existing fixed accounts. Email remains a
-  /// compatible login identifier, including for already-installed clients.
+/// Administration for deployments without reachable SMTP, where self-service
+/// registration cannot work: it seeds verified email accounts and resets
+/// passwords. Signing in itself is always the regular email flow.
+final class AccountAdmin {
+  /// Legacy short aliases ("1"/"2") from earlier private-mode deployments
+  /// still resolve for admin password resets. Email remains the only sign-in
+  /// identifier.
   static Future<String> resolveEmail(
     Session session,
     String identifier, {
     Transaction? transaction,
   }) async {
     final normalized = identifier.trim().toLowerCase();
-    if (!AppConfig.current.privateAccounts || normalized.contains('@')) {
-      return normalized;
-    }
+    if (normalized.contains('@')) return normalized;
     final account = await rows(
       session,
       'SELECT email FROM gm_private_accounts WHERE login_name=@login',
       params: {'login': normalized},
       transaction: transaction,
     );
-    if (account.length != 1) throw AppException(code: 'invalid_credentials');
+    if (account.length != 1) {
+      throw StateError('No managed account matches this alias.');
+    }
     return account.single['email'] as String;
   }
 
-  static Future<bool> allowed(
-    Session session,
-    String authId, {
-    Transaction? transaction,
-  }) async {
-    if (!AppConfig.current.privateAccounts) return true;
-    if (!applicationDatabaseReady) return false;
-    return (await rows(
-      session,
-      '''SELECT 1 FROM gm_private_accounts a JOIN gm_players p ON p.id=a.player_id
-         WHERE p.auth_user_id=CAST(@auth AS uuid) AND NOT p.is_guest AND p.merged_into IS NULL''',
-      params: {'auth': authId},
-      transaction: transaction,
-    )).isNotEmpty;
-  }
-
-  static Future<void> requireAllowed(
-    Session session,
-    String authId, {
-    Transaction? transaction,
-  }) async {
-    if (!await allowed(session, authId, transaction: transaction)) {
-      throw AppException(code: 'account_not_allowed');
-    }
-  }
-
-  /// A local administrator supplies the two accounts through a private file.
+  /// A local administrator supplies the accounts through a private file.
   /// Existing accounts are never taken over or reset by rerunning provisioning.
   static Future<void> provision(Session session, File file) async {
     final value = jsonDecode(await file.readAsString());
     if (value is! List || value.length != 2) {
-      throw StateError('Exactly two private accounts are required.');
+      throw StateError('Exactly two managed accounts are required.');
     }
     final accounts = value.indexed.map((item) {
       final (index, entry) = item;
@@ -78,7 +54,7 @@ final class PrivateAccounts {
           password.length < 8 ||
           password.length > 128) {
         throw const FormatException(
-          'Private accounts require login 1 or 2, an email and an 8–128 character password.',
+          'Managed accounts require login 1 or 2, an email and an 8–128 character password.',
         );
       }
       return (
@@ -193,7 +169,7 @@ final class PrivateAccounts {
         params: {'email': resolvedEmail},
         transaction: transaction,
       );
-      if (account.length != 1) throw StateError('Private account not found.');
+      if (account.length != 1) throw StateError('Managed account not found.');
       await AuthServices.instance.emailIdp.admin.setPassword(
         session,
         email: resolvedEmail,

@@ -2,21 +2,18 @@ import 'dart:convert';
 
 import 'package:serverpod/serverpod.dart';
 
-import '../../services/app_config.dart';
-
+/// Every deployment signs in with email accounts. The flags remain in the
+/// payload so slightly older clients keep parsing the configuration.
 final class AppConfigRoute extends Route {
-  AppConfigRoute(this.config);
-  final AppConfig config;
-
   @override
   Future<Response> handleCall(Session session, Request request) async =>
       Response.ok(
         body: Body.fromString(
           jsonEncode({
-            'authMode': config.privateAccounts ? 'private' : 'email',
-            'guestOnline': !config.privateAccounts,
-            'registration': !config.privateAccounts,
-            'passwordReset': !config.privateAccounts,
+            'authMode': 'email',
+            'guestOnline': true,
+            'registration': true,
+            'passwordReset': true,
           }),
           mimeType: MimeType.json,
         ),

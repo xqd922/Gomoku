@@ -151,7 +151,6 @@ final class ServiceConfig {
   const ServiceConfig({required this.authMode, required this.guestOnline});
   final String authMode;
   final bool guestOnline;
-  bool get privateAccounts => authMode == 'private';
   factory ServiceConfig.fromJson(Map<String, dynamic> value) {
     final mode = value['authMode'];
     final guest = value['guestOnline'];

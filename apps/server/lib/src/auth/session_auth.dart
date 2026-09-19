@@ -6,7 +6,6 @@ import 'package:serverpod_auth_idp_server/core.dart';
 import '../generated/protocol.dart';
 import '../services/app_config.dart';
 import '../services/database.dart';
-import '../services/private_accounts.dart';
 
 String? header(Request? request, String name) =>
     request?.headers[name]?.firstOrNull;
@@ -69,9 +68,5 @@ Future<AuthenticationInfo?> authenticateSession(
     session,
     token,
   );
-  if (auth != null &&
-      !await PrivateAccounts.allowed(session, auth.userIdentifier)) {
-    return null;
-  }
   return auth;
 }

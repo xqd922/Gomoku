@@ -28,7 +28,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   final _code = TextEditingController();
   late final TextEditingController _nickname;
   _AccountMode _mode = _AccountMode.login;
-  String _account = '1';
   String? _requestId;
   bool _busy = false;
   bool _obscure = true;
@@ -74,12 +73,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     try {
       switch (_mode) {
         case _AccountMode.login:
-          final identifier =
-              ref.read(serviceConfigProvider).asData?.value.privateAccounts ==
-                  true
-              ? _account
-              : _email.text.trim();
-          await auth.login(identifier, _password.text);
+          await auth.login(_email.text.trim(), _password.text);
           if (!mounted) return;
           _nickname.text = ref.read(authProvider).profile!.nickname;
           TextInput.finishAutofillContext();
@@ -168,7 +162,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     final auth = ref.watch(authProvider);
     final capabilities = ref.watch(serviceConfigProvider);
     final allowEmail = capabilities.asData?.value.authMode == 'email';
-    final privateLogin = capabilities.asData?.value.privateAccounts == true;
     final profile = auth.profile;
     final signedIn = profile != null && !profile.isGuest;
     final sync = ref.watch(syncProvider);
@@ -190,6 +183,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     return PageFrame(
       maxWidth: AppLayout.reading,
       children: [
+        PageHeading(title: s.t('accountTitle'), subtitle: s.t('accountBody')),
+        const SizedBox(height: 22),
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -337,59 +332,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
               ),
             ),
           )
-        else if (privateLogin && _mode == _AccountMode.login)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: AutofillGroup(
-                child: Form(
-                  key: _form,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        s.t('login'),
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        s.t('pickAccount'),
-                        style: Theme.of(context).textTheme.labelLarge
-                            ?.copyWith(color: colors.primary),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          for (final account in const ['1', '2']) ...[
-                            if (account == '2') const SizedBox(width: 12),
-                            Expanded(child: _accountCard(account)),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      _passwordField(
-                        enabled: !_busy && !blocked,
-                        numeric: true,
-                      ),
-                      if (_serverError != null && _errorField == 'form') ...[
-                        const SizedBox(height: 18),
-                        InlineNotice(message: _serverError!, error: true),
-                      ],
-                      const SizedBox(height: 24),
-                      _submitButton(
-                        submitLabel,
-                        enabled:
-                            !_busy &&
-                            !blocked &&
-                            !auth.resolving &&
-                            capabilities.asData != null,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          )
         else
           Card(
             child: Padding(
@@ -445,39 +387,23 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                         key: const ValueKey('account-email'),
                         controller: _email,
                         enabled: !_busy && !verify && !blocked,
-                        autofillHints: [
-                          privateLogin
-                              ? AutofillHints.username
-                              : AutofillHints.email,
-                        ],
-                        keyboardType: privateLogin
-                            ? TextInputType.text
-                            : TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
+                        keyboardType: TextInputType.emailAddress,
                         autocorrect: false,
                         textInputAction: TextInputAction.next,
                         decoration: InputDecoration(
-                          labelText: s.t(privateLogin ? 'loginName' : 'email'),
-                          helperText: privateLogin
-                              ? s.t('privateLoginHint')
-                              : null,
-                          prefixIcon: Icon(
-                            privateLogin
-                                ? Icons.person_outline_rounded
-                                : Icons.alternate_email_rounded,
+                          labelText: s.t('email'),
+                          prefixIcon: const Icon(
+                            Icons.alternate_email_rounded,
                           ),
                         ),
                         validator: (value) =>
                             value != null &&
-                                ((privateLogin &&
-                                        {'1', '2'}.contains(value.trim())) ||
-                                    RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
-                                        .hasMatch(value.trim()))
+                                RegExp(
+                                  r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                                ).hasMatch(value.trim())
                             ? null
-                            : s.t(
-                                privateLogin
-                                    ? 'privateLoginError'
-                                    : 'emailError',
-                              ),
+                            : s.t('emailError'),
                       ),
                       if (verify) ...[
                         const SizedBox(height: 18),
@@ -584,58 +510,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     );
   }
 
-  Widget _accountCard(String account) {
-    final s = context.strings;
-    final colors = Theme.of(context).colorScheme;
-    final selected = _account == account;
-    return Semantics(
-      checked: selected,
-      button: true,
-      child: Material(
-        color: selected
-            ? colors.primaryContainer
-            : colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppShape.card),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppShape.card),
-          onTap: _busy ? null : () => setState(() => _account = account),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            decoration: selected
-                ? null
-                : BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppShape.card),
-                    border: Border.all(color: colors.outlineVariant),
-                  ),
-            child: Column(
-              children: [
-                Icon(
-                  selected
-                      ? Icons.person_rounded
-                      : Icons.person_outline_rounded,
-                  color: selected
-                      ? colors.onPrimaryContainer
-                      : colors.onSurfaceVariant,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  s.t(account == '1' ? 'accountOne' : 'accountTwo'),
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: selected
-                        ? colors.onPrimaryContainer
-                        : colors.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _passwordField({required bool enabled, bool numeric = false}) {
+  Widget _passwordField({required bool enabled}) {
     final s = context.strings;
     return TextFormField(
       key: const ValueKey('account-password'),
@@ -647,7 +522,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
             ? AutofillHints.password
             : AutofillHints.newPassword,
       ],
-      keyboardType: numeric ? TextInputType.number : null,
+      keyboardType: null,
       textInputAction: _mode == _AccountMode.register
           ? TextInputAction.next
           : TextInputAction.done,
@@ -657,9 +532,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       decoration: InputDecoration(
         labelText: s.t('password'),
         errorText: _errorField == 'password' ? _serverError : null,
-        helperText: _mode == _AccountMode.login
-            ? (numeric ? s.t('privatePasswordHint') : null)
-            : s.t('passwordHint'),
+        helperText: _mode == _AccountMode.login ? null : s.t('passwordHint'),
         prefixIcon: const Icon(Icons.lock_outline_rounded),
         suffixIcon: IconButton(
           tooltip: s.t(_obscure ? 'showPassword' : 'hidePassword'),

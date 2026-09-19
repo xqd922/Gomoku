@@ -92,13 +92,6 @@ class AppStrings {
     'emailStep': ('第 1 步 · 邮箱', 'Step 1 · Email'),
     'verifyStep': ('第 2 步 · 验证并完成', 'Step 2 · Verify and finish'),
     'emailError': ('请输入有效的邮箱地址', 'Enter a valid email address'),
-    'pickAccount': ('选择账号', 'Choose account'),
-    'accountOne': ('账号 1', 'Account 1'),
-    'accountTwo': ('账号 2', 'Account 2'),
-    'privatePasswordHint': (
-      '管理员提供的 8 位数字密码',
-      'The 8-digit password from your administrator',
-    ),
     'passwordError': ('请输入密码', 'Enter your password'),
     'codeError': ('请输入邮件中的验证码', 'Enter the code from your email'),
     'error.local_game_updated': (
@@ -346,7 +339,7 @@ class AppStrings {
     'about': ('关于', 'About'),
     'aboutBody': (
       'Gomoku 1.2.4\n给专注一点空间，给朋友一点时间。',
-      'Gomoku 1.2.3\nA little space to focus. A little time for friends.',
+      'Gomoku 1.2.4\nA little space to focus. A little time for friends.',
     ),
     'storageWarning': (
       '当前浏览器无法长期保存棋谱。关闭页面前，请登录并完成同步。',
