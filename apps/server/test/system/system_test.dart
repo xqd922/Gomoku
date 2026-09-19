@@ -521,4 +521,30 @@ void main() {
       expect(missingOrigin.statusCode, 403);
     },
   );
+
+  test(
+    'waiting rooms are listed for one-tap joining, hidden from their host',
+    () async {
+      final host = await guest(first, 'Host');
+      final watcher = await guest(second, 'Watcher');
+      final room = await host.client.room.createRoom(ids.v4());
+      final listed = await watcher.client.room.openRooms();
+      final entry = listed.singleWhere(
+        (item) => item.roomId == room.roomId,
+        orElse: () => throw StateError('Open room was not listed.'),
+      );
+      expect(entry.code, room.code);
+      expect(entry.hostName, 'Host');
+      expect(
+        (await host.client.room.openRooms()).map((item) => item.roomId),
+        isNot(contains(room.roomId)),
+      );
+      // Once the seat is taken the room leaves the list again.
+      await watcher.client.room.joinRoom(room.code, ids.v4());
+      expect(
+        (await watcher.client.room.openRooms()).map((item) => item.roomId),
+        isNot(contains(room.roomId)),
+      );
+    },
+  );
 }

@@ -15,6 +15,8 @@ class RoomEndpoint extends Endpoint {
     String commandId,
   ) => Rooms.join(session, code, commandId);
   Future<RoomSnapshot?> activeRoom(Session session) => Rooms.active(session);
+  Future<List<RoomSnapshot>> openRooms(Session session) =>
+      Rooms.openList(session);
   Future<RoomSnapshot> snapshot(Session session, String roomId) =>
       Rooms.get(session, roomId);
   Future<RoomSnapshot> command(

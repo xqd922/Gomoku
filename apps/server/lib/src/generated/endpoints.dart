@@ -152,6 +152,14 @@ class Endpoints extends _i1.EndpointDispatch {
               ) async =>
                   (endpoints['room'] as _i3.RoomEndpoint).activeRoom(session),
         ),
+        'openRooms': _i1.MethodConnector(
+          name: 'openRooms',
+          params: {},
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async => (endpoints['room'] as _i3.RoomEndpoint).openRooms(session),
+        ),
         'snapshot': _i1.MethodConnector(
           name: 'snapshot',
           params: {

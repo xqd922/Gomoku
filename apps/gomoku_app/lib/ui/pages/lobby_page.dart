@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gomoku_client/gomoku_client.dart';
 
 import '../../data/api.dart';
 import '../../design/tokens.dart';
@@ -94,6 +95,14 @@ class _LobbyPageState extends ConsumerState<LobbyPage> {
     }
   }
 
+  Future<void> _joinOpen(RoomSnapshot room) async {
+    setState(() {
+      _joining = true;
+      _code.text = room.code;
+    });
+    await _start();
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(authProvider, (previous, next) {
@@ -104,6 +113,7 @@ class _LobbyPageState extends ConsumerState<LobbyPage> {
     });
     final s = context.strings;
     final colors = Theme.of(context).colorScheme;
+    final openRooms = ref.watch(lobbyRoomsProvider).asData?.value;
     final active = ref.watch(activeRoomProvider).asData?.value;
     final health = ref.watch(backendHealthProvider);
     final capabilities = ref.watch(serviceConfigProvider);
@@ -170,6 +180,27 @@ class _LobbyPageState extends ConsumerState<LobbyPage> {
                 }),
         ),
         const SizedBox(height: 20),
+        if (openRooms != null && openRooms.isNotEmpty) ...[
+          Text(
+            s.t('openRoomsTitle'),
+            style: Theme.of(context).textTheme.labelLarge
+                ?.copyWith(color: colors.primary),
+          ),
+          const SizedBox(height: 12),
+          for (final room in openRooms)
+            Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: ListTile(
+                leading: const Icon(Icons.person_outline_rounded),
+                title: Text(s.t('openRoomsBody', {'name': room.hostName})),
+                trailing: FilledButton.tonal(
+                  onPressed: _busy ? null : () => _joinOpen(room),
+                  child: Text(s.t('join')),
+                ),
+              ),
+            ),
+          const SizedBox(height: 4),
+        ],
         Container(
           padding: const EdgeInsets.all(AppSpacing.section),
           decoration: BoxDecoration(

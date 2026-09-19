@@ -242,6 +242,35 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('waiting rooms appear in the lobby and join with one tap', (
+    tester,
+  ) async {
+    final app = await pumpGomoku(
+      tester,
+      lobbyRooms: [uiRoom().copyWith(hostName: 'Zero')],
+    );
+    await openRoute(tester, app, '/lobby');
+    expect(find.text('Waiting rooms'), findsOneWidget);
+    expect(find.text('Zero is waiting to play'), findsOneWidget);
+    await tester.tap(find.text('Join'));
+    await tester.pumpAndSettle();
+    expect(app.online.joinedCodes, ['ABC234']);
+    expect(
+      app.router.routeInformationProvider.value.uri.path,
+      '/room/room-test',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the lobby hides the waiting-rooms section when it is empty', (
+    tester,
+  ) async {
+    final app = await pumpGomoku(tester);
+    await openRoute(tester, app, '/lobby');
+    expect(find.text('Waiting rooms'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'replay updates when a just-finished record reaches local storage',
     (tester) async {

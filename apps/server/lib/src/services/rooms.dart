@@ -195,6 +195,32 @@ final class Rooms {
     return room.status == RoomStatus.closed ? null : room;
   }
 
+  /// Waiting rooms other players can join without a shared code. The caller's
+  /// own rooms are hidden: joining them is meaningless, and a seat with a
+  /// waiting guest (rematch) is never listed because guest_id is already set.
+  static Future<List<RoomSnapshot>> openList(Session session) async {
+    final caller = await Players.current(session);
+    await checkRateLimit(session, 'room-open:${caller.playerId}', limit: 60);
+    final result = await rows(
+      session,
+      '''SELECT r.payload, p.nickname AS host_name
+         FROM gm_rooms r JOIN gm_players p ON p.id = r.host_id
+         WHERE r.status = 'waiting' AND r.guest_id IS NULL
+           AND r.updated_at > @fresh AND r.host_id <> @caller
+         ORDER BY r.updated_at DESC
+         LIMIT 20''',
+      params: {
+        'fresh': now.subtract(waitingLifetime),
+        'caller': caller.playerId,
+      },
+    );
+    return [
+      for (final row in result)
+        _decode(row['payload'] as String)
+          ..hostName = row['host_name'] as String,
+    ];
+  }
+
   static Future<RoomSnapshot> get(Session session, String roomId) async {
     validateId(roomId);
     final player = await Players.current(session);

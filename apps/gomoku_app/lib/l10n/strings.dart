@@ -116,6 +116,8 @@ class AppStrings {
     'localBody': ('把屏幕变成你们的棋盘。', 'Two players. One happy screen.'),
     'createRoom': ('创建房间', 'Create a room'),
     'joinRoom': ('加入房间', 'Join a room'),
+    'openRoomsTitle': ('等待中的房间', 'Waiting rooms'),
+    'openRoomsBody': ('{name} 在等你加入', '{name} is waiting to play'),
     'haveCode': ('已经有房间码？', 'Have a room code?'),
     'roomCode': ('六位房间码', 'Six-character room code'),
     'join': ('加入', 'Join'),

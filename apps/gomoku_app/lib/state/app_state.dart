@@ -27,6 +27,25 @@ final serviceConfigProvider = FutureProvider<ServiceConfig>(
   (ref) => ref.watch(apiProvider).serviceConfig(),
 );
 
+/// Polls the server for rooms that are waiting for an opponent so a signed-in
+/// friend can join with one tap. Failures (offline, no session yet) surface as
+/// an empty list and the lobby section simply disappears. Rebuilds when the
+/// session appears or disappears so the first fetch after sign-in is immediate.
+final lobbyRoomsProvider = StreamProvider.autoDispose<List<RoomSnapshot>>((
+  ref,
+) async* {
+  ref.watch(authProvider.select((auth) => auth.hasSession));
+  final api = ref.watch(apiProvider);
+  while (true) {
+    try {
+      yield await api.client.room.openRooms();
+    } catch (_) {
+      yield const <RoomSnapshot>[];
+    }
+    await Future<void>.delayed(const Duration(seconds: 5));
+  }
+});
+
 final class AuthState {
   const AuthState({
     this.profile,

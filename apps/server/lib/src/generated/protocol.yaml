@@ -6,6 +6,7 @@ room:
   - createRoom:
   - joinRoom:
   - activeRoom:
+  - openRooms:
   - snapshot:
   - command:
   - heartbeat:

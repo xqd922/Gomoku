@@ -25,6 +25,9 @@ import 'room_command.dart' as _i8;
 import 'room_snapshot.dart' as _i9;
 import 'room_status.dart' as _i10;
 import 'sync_page.dart' as _i11;
+
+import 'package:gomoku_server/src/generated/room_snapshot.dart' as _i12;
+
 export 'app_exception.dart';
 export 'player_profile.dart';
 export 'room_action.dart';
@@ -120,6 +123,12 @@ class Protocol extends _i1.SerializationManagerServer {
     }
     if (t == List<String>) {
       return (data as List).map((e) => deserialize<String>(e)).toList() as T;
+    }
+    if (t == List<_i12.RoomSnapshot>) {
+      return (data as List)
+              .map((e) => deserialize<_i12.RoomSnapshot>(e))
+              .toList()
+          as T;
     }
     try {
       return _i3.Protocol().deserialize<T>(data, t);

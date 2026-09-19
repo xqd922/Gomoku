@@ -129,6 +129,7 @@ class UiOnline extends OnlineController {
   UiOnline(this.initial);
   final OnlineState initial;
   final sent = <RoomAction>[];
+  final joinedCodes = <String>[];
   @override
   OnlineState build() => initial;
   void receive(RoomSnapshot room, {bool connected = true}) {
@@ -137,6 +138,12 @@ class UiOnline extends OnlineController {
 
   @override
   Future<void> load(String roomId) async {}
+  @override
+  Future<RoomSnapshot> join(String code) async {
+    joinedCodes.add(code);
+    return uiRoom();
+  }
+
   @override
   Future<void> send(RoomAction action, {int? row, int? col}) async {
     sent.add(action);
@@ -182,6 +189,7 @@ Future<UiHarness> pumpGomoku(
   Stream<List<GameRecord>>? recordStream,
   GameRecord? local,
   RoomSnapshot? room,
+  List<RoomSnapshot> lobbyRooms = const [],
   bool connected = true,
   ServiceConfig serviceConfig = const ServiceConfig(
     authMode: 'email',
@@ -245,6 +253,7 @@ Future<UiHarness> pumpGomoku(
         ),
         localGameProvider.overrideWith(() => UiLocal(local ?? uiRecord())),
         onlineProvider.overrideWith(() => online),
+        lobbyRoomsProvider.overrideWith((_) => Stream.value(lobbyRooms)),
         activeRoomProvider.overrideWith((ref) async {
           final room = ref.watch(onlineProvider).room;
           return room?.status == RoomStatus.closed ? null : room;

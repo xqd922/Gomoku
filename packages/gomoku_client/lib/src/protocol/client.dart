@@ -90,6 +90,13 @@ class EndpointRoom extends _i1.EndpointRef {
         {},
       );
 
+  _i2.Future<List<_i5.RoomSnapshot>> openRooms() =>
+      caller.callServerEndpoint<List<_i5.RoomSnapshot>>(
+        'room',
+        'openRooms',
+        {},
+      );
+
   _i2.Future<_i5.RoomSnapshot> snapshot(String roomId) =>
       caller.callServerEndpoint<_i5.RoomSnapshot>(
         'room',
