@@ -86,7 +86,6 @@ class _LocalPageState extends ConsumerState<LocalPage> {
       if (!_starting && _error == null) Future.microtask(_start);
       return SectionScaffold(
         title: s.t('localMatch'),
-        compact: true,
         child: Center(
           child: _error == null
               ? const CircularProgressIndicator()

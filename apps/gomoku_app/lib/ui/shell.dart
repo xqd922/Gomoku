@@ -50,12 +50,12 @@ class _AppShellState extends State<AppShell>
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        toolbarHeight: 64,
+        toolbarHeight: 56,
         titleSpacing: inset,
         title: const Row(
           children: [
             BrandMark(size: 32),
-            SizedBox(width: 10),
+            SizedBox(width: AppSpacing.tight),
             Text('Gomoku'),
           ],
         ),
@@ -104,12 +104,10 @@ class SectionScaffold extends StatelessWidget {
     required this.child,
     this.fallback = '/',
     this.actions = const [],
-    this.compact = false,
   });
   final String title, fallback;
   final Widget child;
   final List<Widget> actions;
-  final bool compact;
   @override
   Widget build(BuildContext context) {
     void back() => context.canPop() ? context.pop() : context.go(fallback);
@@ -120,7 +118,7 @@ class SectionScaffold extends StatelessWidget {
       },
       child: Scaffold(
         appBar: AppBar(
-          toolbarHeight: compact ? 56 : 64,
+          toolbarHeight: 56,
           leading: IconButton(
             tooltip: context.strings.t('back'),
             onPressed: back,
@@ -153,10 +151,10 @@ class StorageNotice extends StatelessWidget {
         : Container(
             width: double.infinity,
             color: Theme.of(context).colorScheme.errorContainer,
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.content),
             child: Text(
               context.strings.t('storageWarning'),
-              style: TextStyle(
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onErrorContainer,
               ),
             ),
@@ -291,12 +289,12 @@ class _AccountSummary extends ConsumerWidget {
             profile?.nickname ?? s.t('guest'),
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.tight),
           Text(
             s.t(guest ? 'guest' : 'registeredPlayer'),
             style: Theme.of(context).textTheme.labelMedium,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.tight),
           Text(
             s.t(status),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(

@@ -129,8 +129,8 @@ abstract final class AppTheme {
         filled: true,
         fillColor: colors.surfaceContainerHighest,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 18,
+          horizontal: AppSpacing.content,
+          vertical: AppSpacing.content,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppShape.field),
@@ -166,10 +166,16 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(AppShape.thumb),
         ),
         labelStyle: text.labelLarge,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.content,
+          vertical: AppSpacing.tight,
+        ),
       ),
       listTileTheme: ListTileThemeData(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.content,
+          vertical: AppSpacing.tight,
+        ),
         iconColor: colors.onSurfaceVariant,
         titleTextStyle: text.titleMedium,
         subtitleTextStyle: text.bodyMedium?.copyWith(

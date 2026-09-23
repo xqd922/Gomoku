@@ -154,7 +154,6 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
           _error ?? (needsLogin ? const ApiFailure('login_required') : null);
       return SectionScaffold(
         title: s.t('friendMatch'),
-        compact: true,
         child: error == null
             ? const Center(child: CircularProgressIndicator())
             : PageFrame(

@@ -43,9 +43,11 @@ class SettingsPage extends ConsumerWidget {
               const SizedBox(height: 10),
               Text(
                 s.t('preferencesCaption'),
-                style: TextStyle(color: colors.onTertiaryContainer),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: colors.onTertiaryContainer,
+                ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: AppSpacing.section),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
@@ -80,19 +82,27 @@ class SettingsPage extends ConsumerWidget {
                             decoration: BoxDecoration(
                               color: Color(seed),
                               borderRadius: BorderRadius.circular(
-                                settings.seed == seed &&
-                                        !(settings.dynamicColor &&
-                                            dynamicSupported)
-                                    ? 18
-                                    : 28,
+                                AppShape.card,
                               ),
                             ),
                             child:
                                 settings.seed == seed &&
                                     !(settings.dynamicColor && dynamicSupported)
-                                ? const Icon(
-                                    Icons.check_rounded,
-                                    color: Colors.white,
+                                ? Center(
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        color: colors.surface,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: SizedBox.square(
+                                        dimension: 28,
+                                        child: Icon(
+                                          Icons.check_rounded,
+                                          size: 18,
+                                          color: colors.primary,
+                                        ),
+                                      ),
+                                    ),
                                   )
                                 : null,
                           ),
@@ -102,7 +112,7 @@ class SettingsPage extends ConsumerWidget {
                 ],
               ),
               if (settings.dynamicColor && dynamicSupported) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: AppSpacing.content),
                 Text(s.t('colorFromSystem')),
               ],
             ],

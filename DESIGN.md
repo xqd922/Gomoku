@@ -25,8 +25,6 @@ tokens:
     menu: "24px"
     card: "28px"
     feature: "32px"
-    hero-notch-compact: "56px"
-    hero-notch-wide: "88px"
   spacing:
     tight: "8px"
     content: "16px"
@@ -130,10 +128,10 @@ Single family: **NotoSansSC** for both CJK and Latin (offline-bundled, no web fo
 
 | Style | Weight | Notes |
 | --- | --- | --- |
-| displayLarge | w700, 56px | Hero headline; negative tracking (-1.8) for Latin only, 0 for CJK |
+| displayLarge | w700, 56px | Reserved for rare display moments; negative tracking (-1.8) for Latin only, 0 for CJK |
 | displayMedium | w700, 44px | Section heroes |
 | displaySmall | w700, 36px | Compact heroes |
-| headlineLarge/Medium | w700–w600 | Page titles |
+| headlineLarge/Medium | w700–w600 | Page titles and the home banner |
 | headlineSmall | w600 | Card titles |
 | titleLarge / titleMedium / titleSmall | w600 | List titles, labels |
 | bodyLarge / bodyMedium | 400, height 1.5 (CJK) / 1.4 (Latin) | Relaxed leading for CJK density |
@@ -149,16 +147,16 @@ Elevation is expressed through **surface color, not shadows**: all chrome sits a
 
 ## Shapes
 
-Rounding scale, largest to smallest: hero notch 88/56 (asymmetric home banner corner), feature 32 (dialogs, bottom sheets, hero banner base), card 28 (cards, list group ends), menu 24 (pop-up menus, notices, record tiles), field 20 (inputs, snackbars), thumb 14 (chips, small previews), joined 6 (connected list-group middles). Primary buttons are stadium-shaped (full pill). Corner radii are never mixed arbitrarily within one component group.
+Rounding scale, largest to smallest: feature 32 (dialogs, bottom sheets, home banner), card 28 (cards, player strips, settings swatches), menu 24 (pop-up menus, notices, record tiles), field 20 (inputs, snackbars, shortcut icon wells), thumb 14 (chips, small previews), joined 6 (reserved for tightly joined controls). Primary buttons are stadium-shaped (full pill). Corner radii are never mixed arbitrarily within one component group.
 
 ## Components
 
-- **Primary button (filled):** stadium shape, minimum height 56px, primary fill, icon + label, disabled at reduced opacity. The home hero uses an inverted fill (onPrimary over primary) so it reads as the single loudest action.
+- **Primary button (filled):** stadium shape, minimum height 56px, primary fill, icon + label, disabled at reduced opacity. The home banner uses primaryContainer with onPrimaryContainer text; the filled primary button on that banner is the single loudest action.
 - **Secondary buttons (outlined / tonal):** stadium shape, height 52px, outline variant or secondary container fill.
 - **Text buttons / icon buttons:** minimum 48×48 touch target.
 - **Inputs:** filled with surfaceContainerHighest, borderless at rest, 2px primary border on focus, error border in error color, 20px radius, label inside the field, error text below (max 3 lines).
 - **Cards:** surfaceContainerLow, 28px radius, elevation 0, zero external margin (spacing is composed by parents).
-- **List groups:** connected rows joined at 6px radius, capped with 28px on the outer ends.
+- **List groups:** one surfaceContainerLow card at 28px radius. Rows are separated by a hairline divider, not by gaps or mixed corner radii.
 - **Dialogs:** surfaceContainerHigh, 32px radius. **Bottom sheets:** surfaceContainerLow, 32px top radius, drag handle shown. **Menus:** surfaceContainerHigh, 24px radius.
 - **Snackbars:** floating, 20px radius, used for all error feedback (never blocking dialogs for recoverable errors).
 - **Notices (inline):** secondaryContainer at rest, errorContainer for failures, 24px radius, icon + message + optional right-aligned action, live-region semantics.

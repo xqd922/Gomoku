@@ -23,7 +23,12 @@ class PageFrame extends StatelessWidget {
       final pad = AppLayout.pageInset(constraints.maxWidth);
       return SingleChildScrollView(
         key: scrollKey,
-        padding: EdgeInsets.fromLTRB(pad, 20, pad, 32),
+        padding: EdgeInsets.fromLTRB(
+          pad,
+          AppSpacing.section,
+          pad,
+          AppSpacing.page,
+        ),
         child: Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
@@ -51,7 +56,7 @@ class PageHeading extends StatelessWidget {
   final Widget? action;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 20),
+    padding: const EdgeInsets.only(bottom: AppSpacing.section),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -66,7 +71,7 @@ class PageHeading extends StatelessWidget {
         ),
         if (subtitle != null)
           Padding(
-            padding: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.only(top: AppSpacing.tight),
             child: Text(
               subtitle!,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -95,7 +100,10 @@ class StatusPill extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final ink = color ?? colors.onSecondaryContainer;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.content,
+        vertical: AppSpacing.tight,
+      ),
       decoration: BoxDecoration(
         color: background ?? colors.secondaryContainer,
         borderRadius: BorderRadius.circular(999),
@@ -105,7 +113,7 @@ class StatusPill extends StatelessWidget {
         children: [
           if (icon != null) ...[
             Icon(icon, size: 14, color: ink),
-            const SizedBox(width: 6),
+            const SizedBox(width: AppSpacing.tight),
           ],
           Text(
             label,
@@ -197,7 +205,7 @@ class RecordTile extends StatelessWidget {
                       resultLabel(record.game, s),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: AppSpacing.tight),
                     Text(
                       s.t('players', {
                         'black': record.blackName,
@@ -205,7 +213,7 @@ class RecordTile extends StatelessWidget {
                       }),
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.tight),
                     Text(
                       '${s.t(record.source == RecordSource.local ? 'localMatch' : 'friendMatch')} · ${s.t('moves', {'n': record.game.moves.length})} · ${record.updatedAt.toLocal().hour.toString().padLeft(2, '0')}:${record.updatedAt.toLocal().minute.toString().padLeft(2, '0')}',
                       style: Theme.of(context).textTheme.bodySmall
@@ -234,9 +242,12 @@ class EmptyGames extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.section,
+        vertical: AppSpacing.page,
+      ),
       decoration: BoxDecoration(
-        border: Border.all(color: colors.outlineVariant.withValues(alpha: .55)),
+        color: colors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppShape.card),
       ),
       child: Column(
@@ -257,14 +268,14 @@ class EmptyGames extends StatelessWidget {
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleSmall,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.tight),
           Text(
             context.strings.t('emptyHistoryBody'),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall
                 ?.copyWith(color: colors.onSurfaceVariant),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppSpacing.content),
           FilledButton.tonalIcon(
             onPressed: () => context.go('/'),
             icon: const Icon(Icons.add_rounded),
@@ -284,13 +295,13 @@ class _RecordPreview extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(
       Offset.zero & size,
-      Paint()..color = colors.surfaceContainerHighest,
+      Paint()..color = BoardPalette.canvas(colors.brightness),
     );
-    const pad = 7.0;
+    const pad = 8.0;
     final step = (size.width - pad * 2) / 14;
     final grid = Paint()
-      ..color = colors.outlineVariant
-      ..strokeWidth = .45;
+      ..color = BoardPalette.grid(colors.brightness)
+      ..strokeWidth = .6;
     for (var i = 0; i < 15; i++) {
       final p = pad + i * step;
       canvas.drawLine(Offset(p, pad), Offset(p, size.height - pad), grid);
@@ -321,28 +332,37 @@ class SettingsGroup extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.content,
+            AppSpacing.tight,
+            AppSpacing.content,
+            AppSpacing.content,
+          ),
           child: Text(
             title,
-            style: Theme.of(context).textTheme.titleSmall
-                ?.copyWith(color: colors.primary),
-          ),
-        ),
-        for (var i = 0; i < children.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 3),
-            child: Material(
-              color: colors.surfaceContainerLow,
-              clipBehavior: Clip.antiAlias,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(i == 0 ? AppShape.card : AppShape.joined),
-                bottom: Radius.circular(
-                  i == children.length - 1 ? AppShape.card : AppShape.joined,
-                ),
-              ),
-              child: children[i],
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: colors.onSurfaceVariant,
             ),
           ),
+        ),
+        Material(
+          color: colors.surfaceContainerLow,
+          clipBehavior: Clip.antiAlias,
+          borderRadius: BorderRadius.circular(AppShape.card),
+          child: Column(
+            children: [
+              for (var i = 0; i < children.length; i++) ...[
+                if (i > 0)
+                  Divider(
+                    height: 1,
+                    indent: AppSpacing.content,
+                    endIndent: AppSpacing.content,
+                  ),
+                children[i],
+              ],
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -383,7 +403,12 @@ class InlineNotice extends StatelessWidget {
                 Icon(icon, size: 22, color: foreground),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(message, style: TextStyle(color: foreground)),
+                  child: Text(
+                    message,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: foreground,
+                    ),
+                  ),
                 ),
               ],
             ),

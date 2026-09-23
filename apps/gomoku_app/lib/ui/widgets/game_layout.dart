@@ -30,7 +30,6 @@ class GameScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SectionScaffold(
     title: title,
-    compact: true,
     actions: actions,
     fallback: fallback,
     child: LayoutBuilder(
@@ -275,15 +274,15 @@ class PlayerStrip extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     Widget player(String name, Stone stone, bool? online) => Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.content,
+          vertical: AppSpacing.tight,
+        ),
         decoration: BoxDecoration(
           color: activeStone == stone
               ? colors.secondaryContainer
               : colors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(activeStone == stone ? 20 : 28),
-          border: Border.all(
-            color: activeStone == stone ? colors.secondary : Colors.transparent,
-          ),
+          borderRadius: BorderRadius.circular(AppShape.card),
         ),
         child: Row(
           children: [
@@ -391,7 +390,7 @@ class _ResultMomentState extends ConsumerState<ResultMoment> {
                     ?.copyWith(color: colors.onTertiaryContainer),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.content),
             widget.child,
           ],
         ),

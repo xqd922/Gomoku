@@ -63,17 +63,12 @@ class _HomePageState extends ConsumerState<HomePage> {
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= AppLayout.compact;
             return Container(
-              padding: EdgeInsets.all(wide ? 32 : 24),
+              padding: EdgeInsets.all(
+                wide ? AppSpacing.page : AppSpacing.section,
+              ),
               decoration: BoxDecoration(
-                color: colors.primary,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(AppShape.feature),
-                  topRight: Radius.circular(
-                    wide ? AppShape.heroNotchWide : AppShape.heroNotchCompact,
-                  ),
-                  bottomLeft: const Radius.circular(AppShape.feature),
-                  bottomRight: const Radius.circular(AppShape.feature),
-                ),
+                color: colors.primaryContainer,
+                borderRadius: BorderRadius.circular(AppShape.feature),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -91,43 +86,37 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   (wide
                                           ? Theme.of(context)
                                                 .textTheme
-                                                .displayLarge
+                                                .headlineLarge
                                           : Theme.of(context)
                                                 .textTheme
-                                                .displayMedium)
-                                      ?.copyWith(color: colors.onPrimary),
+                                                .headlineMedium)
+                                      ?.copyWith(
+                                        color: colors.onPrimaryContainer,
+                                      ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: AppSpacing.tight),
                             Text(
                               s.t(resume ? 'resumeCaption' : 'homeCaption'),
                               style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(color: colors.onPrimary),
+                                  ?.copyWith(color: colors.onPrimaryContainer),
                             ),
                           ],
                         ),
                       ),
                       if (wide) ...[
-                        const SizedBox(width: 28),
-                        ExcludeSemantics(
-                          child: _PlayArtwork(color: colors.onPrimary),
-                        ),
+                        const SizedBox(width: AppSpacing.section),
+                        const ExcludeSemantics(child: _PlayArtwork()),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: AppSpacing.section),
                   Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
+                    spacing: AppSpacing.content,
+                    runSpacing: AppSpacing.content,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      FilledButton(
+                      FilledButton.icon(
                         key: const ValueKey('start-game'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: colors.onPrimary,
-                          foregroundColor: colors.primary,
-                          minimumSize: const Size(180, 64),
-                          textStyle: Theme.of(context).textTheme.titleMedium,
-                        ),
                         onPressed: _starting
                             ? null
                             : () {
@@ -137,18 +126,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   _local();
                                 }
                               },
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              _starting
-                                  ? Icons.hourglass_top_rounded
-                                  : Icons.play_arrow_rounded,
-                            ),
-                            const SizedBox(width: 10),
-                            Flexible(child: Text(s.t(primaryLabel))),
-                          ],
+                        icon: Icon(
+                          _starting
+                              ? Icons.hourglass_top_rounded
+                              : Icons.play_arrow_rounded,
                         ),
+                        label: Text(s.t(primaryLabel)),
                       ),
                       Text(
                         active != null
@@ -157,7 +140,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                             ? s.t('moves', {'n': unfinished.game.moves.length})
                             : s.t('rules'),
                         style: Theme.of(context).textTheme.labelLarge
-                            ?.copyWith(color: colors.onPrimary),
+                            ?.copyWith(color: colors.onPrimaryContainer),
                       ),
                     ],
                   ),
@@ -166,7 +149,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             );
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.content),
         LayoutBuilder(
           builder: (context, constraints) {
             final friend = _PlayShortcut(
@@ -188,14 +171,18 @@ class _HomePageState extends ConsumerState<HomePage> {
             if (active == null && unfinished == null) return friend;
             if (constraints.maxWidth < AppLayout.compact) {
               return Column(
-                children: [friend, const SizedBox(height: 12), local],
+                children: [
+                  friend,
+                  const SizedBox(height: AppSpacing.content),
+                  local,
+                ],
               );
             }
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(child: friend),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.content),
                 Expanded(child: local),
               ],
             );
@@ -230,8 +217,17 @@ class _PlayShortcut extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.section),
         child: Row(
           children: [
-            Icon(icon, size: 32, color: foreground),
-            const SizedBox(width: 18),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: foreground.withValues(alpha: .12),
+                borderRadius: BorderRadius.circular(AppShape.field),
+              ),
+              child: SizedBox.square(
+                dimension: 48,
+                child: Icon(icon, color: foreground),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.content),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,7 +237,7 @@ class _PlayShortcut extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge
                         ?.copyWith(color: foreground),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: AppSpacing.tight),
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodyMedium
@@ -250,7 +246,7 @@ class _PlayShortcut extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: AppSpacing.tight),
             Icon(Icons.arrow_forward_rounded, color: foreground),
           ],
         ),
@@ -260,8 +256,7 @@ class _PlayShortcut extends StatelessWidget {
 }
 
 class _PlayArtwork extends StatelessWidget {
-  const _PlayArtwork({required this.color});
-  final Color color;
+  const _PlayArtwork();
   @override
   Widget build(BuildContext context) => SizedBox(
     width: 160,
@@ -277,7 +272,9 @@ class _PlayArtwork extends StatelessWidget {
               width: 114,
               height: 114,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: .14),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: .14),
                 borderRadius: BorderRadius.circular(AppShape.feature),
               ),
               child: const Center(

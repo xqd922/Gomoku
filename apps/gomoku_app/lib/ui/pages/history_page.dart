@@ -112,7 +112,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.content),
                   if (signedIn && sync.error != null) ...[
                     InlineNotice(
                       message: s.error(sync.error!),
@@ -164,11 +164,16 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
               return frame(
                 item is String
                     ? Padding(
-                        padding: const EdgeInsets.fromLTRB(8, 20, 8, 12),
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.tight,
+                          AppSpacing.section,
+                          AppSpacing.tight,
+                          AppSpacing.content,
+                        ),
                         child: Text(
                           item,
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(color: colors.primary),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(color: colors.onSurfaceVariant),
                         ),
                       )
                     : Padding(
@@ -285,7 +290,6 @@ class _ReplayPageState extends ConsumerState<ReplayPage>
       return SectionScaffold(
         title: s.t('replay'),
         fallback: '/history',
-        compact: true,
         child: Center(
           child: value.isLoading
               ? const CircularProgressIndicator()
@@ -381,7 +385,7 @@ class _ReplayPageState extends ConsumerState<ReplayPage>
               s.t('matchDetails'),
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.tight),
             Text(dateLabel(record.updatedAt, s)),
             const SizedBox(height: 8),
             Text(
