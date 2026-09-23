@@ -1,0 +1,41 @@
+{
+  "version": "1.4.1+10401",
+  "releaseDecision": {
+    "authorizedBy": "user",
+    "date": "2026-09-23",
+    "instruction": "用户要求把已完成的界面细节优化推送并发布下一个版本。构建由 v1.4.1 标签流水线执行；真机验收沿用既有豁免；本版本无协议与数据库变更，生产服务端可不升级，升级后仅版本号变为 1.4.1。",
+    "waivedChecks": ["online", "capacity60Minutes", "androidManual", "windowsRuntime", "webRuntime"]
+  },
+  "builds": {
+    "status": "passed",
+    "evidence": "本地 dart analyze（apps/gomoku_app/lib/ui 与 lib/design）无问题；flutter test test/layout_test.dart test/game_flow_test.dart 共 33 项通过。无协议变更，无数据库迁移。六端客户端、Debian 12 服务端与浏览器自动验收由 v1.4.1 标签流水线执行，全部作业成功后才由发布作业放行。上述本地结果是自动检查，不是真机验收，也不能代替尚未跑完的标签流水线。"
+  },
+  "online": {
+    "status": "waived",
+    "evidence": "生产站点可继续运行 v1.4.0 服务端：本版本无新增接口、无裁定变更。若升级镜像，/health 的版本号应变为 1.4.1；步骤与回滚方式见 docs/releases/v1.4.1.md。"
+  },
+  "capacity60Minutes": {
+    "status": "waived",
+    "evidence": "本版本无新增迁移、无表结构变更，房间与棋谱裁定路径未改动。60 分钟容量验收本轮未执行。"
+  },
+  "backupRestore": {
+    "status": "passed",
+    "evidence": "2026-09-12T13:57Z 生产库转储恢复演练通过（SHA256 69614d3b3f17616aa880855157b1d177543bc839aa0dfd95760b70b71fac989b）；每次 install 前服务端自动执行并校验 pg_dump 备份。v1.4.1 不新增迁移、不改变表结构。"
+  },
+  "existingServices": {
+    "status": "passed",
+    "evidence": "v1.2.2 生产部署报告确认五个既有服务 PID 全部未变、磁盘余量充足、上一版可回滚（artifacts/production/deployment-v122.json）。v1.4.1 沿用同一部署方案，不触碰网关与代理配置，Caddy 路由无变更。"
+  },
+  "androidManual": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 真机验收与后续版本的豁免记录。本轮为界面细节调整，已有布局与对局流程测试覆盖，真机回归待补；versionCode 10401 递增，可直接覆盖安装。"
+  },
+  "windowsRuntime": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 记录：RC2 通过 Windows 11 实机启动、数据保留与完整输入路径。本轮改动为 Flutter 界面层，Windows 实机复核待补。"
+  },
+  "webRuntime": {
+    "status": "waived",
+    "evidence": "tool/browser 自动验收随标签流水线运行。本轮视觉调整未在最终发行包上做浏览器回归。"
+  }
+}

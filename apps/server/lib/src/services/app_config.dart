@@ -7,7 +7,7 @@ final class AppConfig {
 
   String get version => get(
     'GOMOKU_VERSION',
-    const String.fromEnvironment('GOMOKU_VERSION', defaultValue: '1.4.0'),
+    const String.fromEnvironment('GOMOKU_VERSION', defaultValue: '1.4.1'),
   );
   String get commit => get(
     'GOMOKU_COMMIT',
