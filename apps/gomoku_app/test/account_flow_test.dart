@@ -22,7 +22,7 @@ void main() {
       await tester.ensureVisible(login);
       await tester.tap(login);
       await tester.pumpAndSettle();
-      expect(app.router.routeInformationProvider.value.uri.path, '/account');
+      expect(app.router.routeInformationProvider.value.uri.path, '/me');
       expect(
         app
             .router
@@ -32,7 +32,6 @@ void main() {
             .queryParameters['returnTo'],
         '/lobby',
       );
-      expect(find.text('Your games, wherever you go.'), findsOneWidget);
       expect(find.byKey(const ValueKey('account-email')), findsOneWidget);
       expect(find.text('Create account'), findsOneWidget);
       expect(find.text('Forgot password?'), findsOneWidget);

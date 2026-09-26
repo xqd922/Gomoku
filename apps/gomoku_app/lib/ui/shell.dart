@@ -1,99 +1,182 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/database.dart';
+import '../design/motion.dart';
 import '../design/tokens.dart';
 import '../l10n/strings.dart';
-import '../state/app_state.dart';
+import '../state/settings.dart';
 import 'widgets/brand.dart';
 
-class AppShell extends StatefulWidget {
-  const AppShell({super.key, required this.navigationShell});
-  final StatefulNavigationShell navigationShell;
-  @override
-  State<AppShell> createState() => _AppShellState();
+class _Destination {
+  const _Destination(this.outline, this.filled, this.labelKey);
+  final IconData outline, filled;
+  final String labelKey;
 }
 
-class _AppShellState extends State<AppShell>
-    with SingleTickerProviderStateMixin {
-  late final _tabs = TabController(
-    length: 2,
-    vsync: this,
-    initialIndex: widget.navigationShell.currentIndex,
-  );
-  @override
-  void didUpdateWidget(AppShell oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_tabs.index != widget.navigationShell.currentIndex) {
-      _tabs.index = widget.navigationShell.currentIndex;
+const _destinations = [
+  _Destination(
+    Icons.sports_esports_outlined,
+    Icons.sports_esports_rounded,
+    'play',
+  ),
+  _Destination(
+    Icons.people_alt_outlined,
+    Icons.people_alt_rounded,
+    'tabOnline',
+  ),
+  _Destination(Icons.menu_book_outlined, Icons.menu_book_rounded, 'history'),
+  _Destination(Icons.person_outline_rounded, Icons.person_rounded, 'tabMe'),
+];
+
+/// Adaptive navigation: a bottom bar on compact screens, a side rail once the
+/// window expands — the tabs themselves stay kept-alive in an IndexedStack.
+class AppShell extends ConsumerWidget {
+  const AppShell({super.key, required this.navigationShell});
+  final StatefulNavigationShell navigationShell;
+
+  void _goBranch(BuildContext context, WidgetRef ref, int index) {
+    if (ref.read(settingsProvider).haptics &&
+        DesignCapabilities.supportsHaptics) {
+      HapticFeedback.selectionClick();
     }
-  }
-
-  @override
-  void dispose() {
-    _tabs.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final s = context.strings;
-    final width = MediaQuery.sizeOf(context).width;
-    final inset = AppLayout.pageInset(width);
-    final tabHeight = math.max(
-      48.0,
-      MediaQuery.textScalerOf(context).scale(16) + 22,
+    navigationShell.goBranch(
+      index,
+      initialLocation: index == navigationShell.currentIndex,
     );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.strings;
+    final wide = MediaQuery.sizeOf(context).width >= AppLayout.expanded;
+    final index = navigationShell.currentIndex;
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 56,
-        titleSpacing: inset,
-        title: const Row(
-          children: [
-            BrandMark(size: 32),
-            SizedBox(width: AppSpacing.tight),
-            Text('Gomoku'),
-          ],
-        ),
-        actions: [
-          const AccountMenuButton(),
-          SizedBox(width: inset - 4),
-        ],
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(tabHeight),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: width >= AppLayout.compact ? 420 : width,
-              ),
-              child: TabBar(
-                controller: _tabs,
-                onTap: (index) => widget.navigationShell.goBranch(index),
-                tabs: [
-                  Tab(height: tabHeight, text: s.t('play')),
-                  Tab(height: tabHeight, text: s.t('history')),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
       body: SafeArea(
         top: false,
         child: Column(
           children: [
             const StorageNotice(),
-            Expanded(child: widget.navigationShell),
+            Expanded(
+              child: wide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        NavigationRail(
+                          selectedIndex: index,
+                          onDestinationSelected: (value) =>
+                              _goBranch(context, ref, value),
+                          labelType: NavigationRailLabelType.all,
+                          leading: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              vertical: AppSpacing.content,
+                            ),
+                            child: BrandMark(size: 30),
+                          ),
+                          destinations: [
+                            for (final destination in _destinations)
+                              NavigationRailDestination(
+                                icon: Icon(destination.outline),
+                                selectedIcon: Icon(destination.filled),
+                                label: Text(s.t(destination.labelKey)),
+                              ),
+                          ],
+                        ),
+                        const VerticalDivider(width: 1),
+                        Expanded(
+                          child: _BranchEntrance(
+                            index: index,
+                            child: navigationShell,
+                          ),
+                        ),
+                      ],
+                    )
+                  : _BranchEntrance(index: index, child: navigationShell),
+            ),
           ],
         ),
       ),
+      bottomNavigationBar: wide
+          ? null
+          : NavigationBar(
+              selectedIndex: index,
+              onDestinationSelected: (value) => _goBranch(context, ref, value),
+              destinations: [
+                for (final destination in _destinations)
+                  NavigationDestination(
+                    icon: Icon(destination.outline),
+                    selectedIcon: Icon(destination.filled),
+                    label: s.t(destination.labelKey),
+                  ),
+              ],
+            ),
     );
   }
+}
+
+/// The newly selected branch fades and slides in; the IndexedStack keeps
+/// every branch alive underneath, so state survives the transition.
+class _BranchEntrance extends StatefulWidget {
+  const _BranchEntrance({required this.index, required this.child});
+  final int index;
+  final Widget child;
+  @override
+  State<_BranchEntrance> createState() => _BranchEntranceState();
+}
+
+class _BranchEntranceState extends State<_BranchEntrance>
+    with SingleTickerProviderStateMixin {
+  late final _entrance = AnimationController(
+    vsync: this,
+    duration: AppMotion.mid,
+  );
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    _play();
+  }
+
+  @override
+  void didUpdateWidget(_BranchEntrance old) {
+    super.didUpdateWidget(old);
+    if (old.index != widget.index) _play();
+  }
+
+  void _play() {
+    if (AppMotion.duration(context, AppMotion.mid) == Duration.zero) {
+      _entrance.value = 1;
+      return;
+    }
+    _entrance.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _entrance.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _entrance,
+    child: widget.child,
+    builder: (context, child) {
+      final t = AppCurves.decelerate.transform(_entrance.value);
+      return Opacity(
+        opacity: t.clamp(0, 1),
+        child: Transform.translate(
+          offset: Offset(0, (1 - t) * 8),
+          child: child,
+        ),
+      );
+    },
+  );
 }
 
 /// Secondary routes own their title and support direct deep-link entry.
@@ -159,164 +242,5 @@ class StorageNotice extends StatelessWidget {
               ),
             ),
           ),
-  );
-}
-
-class AccountMenuButton extends ConsumerWidget {
-  const AccountMenuButton({super.key});
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = context.strings;
-    final colors = Theme.of(context).colorScheme;
-    final profile = ref.watch(authProvider).profile;
-    final identified = profile != null && !profile.isGuest;
-    final avatar = Container(
-      width: 40,
-      height: 40,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: identified
-            ? colors.tertiaryContainer
-            : colors.surfaceContainerHighest,
-        border: identified ? null : Border.all(color: colors.outlineVariant),
-      ),
-      child: ExcludeSemantics(
-        child: !identified || profile.nickname.isEmpty
-            ? Icon(
-                Icons.person_outline_rounded,
-                color: identified
-                    ? colors.onTertiaryContainer
-                    : colors.onSurfaceVariant,
-              )
-            : Text(
-                profile.nickname.characters.first.toUpperCase(),
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(color: colors.onTertiaryContainer),
-              ),
-      ),
-    );
-    void open(String path) {
-      if (context.mounted) context.push(path);
-    }
-
-    if (MediaQuery.sizeOf(context).width >= AppLayout.compact) {
-      return PopupMenuButton<String>(
-        key: const ValueKey('profile-menu'),
-        tooltip: s.t('profileMenu'),
-        position: PopupMenuPosition.under,
-        constraints: const BoxConstraints(minWidth: 300, maxWidth: 340),
-        onSelected: open,
-        itemBuilder: (_) => [
-          const PopupMenuItem<String>(enabled: false, child: _AccountSummary()),
-          const PopupMenuDivider(),
-          PopupMenuItem(
-            value: '/account',
-            child: _MenuLabel(Icons.person_outline_rounded, s.t('account')),
-          ),
-          PopupMenuItem(
-            value: '/settings',
-            child: _MenuLabel(Icons.settings_outlined, s.t('settings')),
-          ),
-        ],
-        icon: avatar,
-      );
-    }
-    return IconButton(
-      key: const ValueKey('profile-menu'),
-      tooltip: s.t('profileMenu'),
-      icon: avatar,
-      onPressed: () async {
-        final path = await showModalBottomSheet<String>(
-          context: context,
-          useSafeArea: true,
-          isScrollControlled: true,
-          builder: (sheetContext) => SafeArea(
-            top: false,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: _AccountSummary(),
-                  ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.person_outline_rounded),
-                    title: Text(s.t('account')),
-                    onTap: () => Navigator.pop(sheetContext, '/account'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.settings_outlined),
-                    title: Text(s.t('settings')),
-                    onTap: () => Navigator.pop(sheetContext, '/settings'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-        if (path != null) open(path);
-      },
-    );
-  }
-}
-
-class _AccountSummary extends ConsumerWidget {
-  const _AccountSummary();
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = context.strings;
-    final profile = ref.watch(authProvider).profile;
-    final sync = ref.watch(syncProvider);
-    final guest = profile == null || profile.isGuest;
-    final status = guest
-        ? 'guestLocal'
-        : sync.busy
-        ? 'syncing'
-        : sync.lastSuccess != null && sync.error == null
-        ? 'synced'
-        : 'syncPending';
-    return SizedBox(
-      width: double.infinity,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            profile?.nickname ?? s.t('guest'),
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: AppSpacing.tight),
-          Text(
-            s.t(guest ? 'guest' : 'registeredPlayer'),
-            style: Theme.of(context).textTheme.labelMedium,
-          ),
-          const SizedBox(height: AppSpacing.tight),
-          Text(
-            s.t(status),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MenuLabel extends StatelessWidget {
-  const _MenuLabel(this.icon, this.label);
-  final IconData icon;
-  final String label;
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Icon(icon),
-      const SizedBox(width: 14),
-      Expanded(child: Text(label)),
-    ],
   );
 }

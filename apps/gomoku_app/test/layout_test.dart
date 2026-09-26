@@ -26,7 +26,7 @@ void main() {
     (const Size(840, 800), 'en', 1.0, ThemeMode.dark),
   ]) {
     testWidgets(
-      'two tabs and personal pages at $size $language scale $scale $theme',
+      'adaptive navigation and personal pages at $size $language scale $scale $theme',
       (tester) async {
         final app = await pumpGomoku(
           tester,
@@ -35,23 +35,39 @@ void main() {
           scale: scale,
           theme: theme,
         );
-        expect(find.byType(Tab), findsNWidgets(2));
-        expect(find.byType(NavigationBar), findsNothing);
-        expect(find.byType(NavigationRail), findsNothing);
+        final wide = size.width >= 840;
+        expect(
+          find.byType(NavigationBar),
+          wide ? findsNothing : findsOneWidget,
+        );
+        expect(
+          find.byType(NavigationRail),
+          wide ? findsOneWidget : findsNothing,
+        );
+        final labels = language == 'zh'
+            ? ['对弈', '联机', '棋谱', '我的']
+            : ['Play', 'Online', 'Library', 'Me'];
+        for (final label in labels) {
+          expect(
+            wide ? find.text(label) : find.byTooltip(label),
+            findsOneWidget,
+            reason: label,
+          );
+        }
+        expect(find.text(language == 'zh' ? '对弈' : 'Play'), findsOneWidget);
+        expect(find.text(language == 'zh' ? '棋谱' : 'Library'), findsOneWidget);
         expect(tester.takeException(), isNull);
-        await tester.tap(find.byKey(const ValueKey('profile-menu')));
-        await tester.pumpAndSettle();
-        expect(find.text(language == 'zh' ? '账户' : 'Account'), findsOneWidget);
-        await tester.tap(find.text(language == 'zh' ? '设置' : 'Settings'));
-        await tester.pumpAndSettle();
-        expect(find.byType(TabBar), findsNothing);
+        await openRoute(tester, app, '/me');
         expect(
           find.text(language == 'zh' ? '你的配色' : 'Your palette'),
           findsOneWidget,
         );
         expect(tester.takeException(), isNull);
         await openRoute(tester, app, '/account');
-        expect(tester.takeException(), isNull);
+        expect(
+          find.text(language == 'zh' ? '你的配色' : 'Your palette'),
+          findsOneWidget,
+        );
         await openRoute(tester, app, '/join/ABC234');
         expect(find.widgetWithText(TextFormField, 'ABC234'), findsOneWidget);
         expect(tester.takeException(), isNull);
@@ -59,15 +75,14 @@ void main() {
     );
   }
 
-  testWidgets('theme choice persists and back restores the library tab', (
+  testWidgets('theme choice persists across the me and library tabs', (
     tester,
   ) async {
     final app = await pumpGomoku(tester);
-    await tester.tap(find.widgetWithText(Tab, 'Library'));
+    await tester.tap(find.byTooltip('Library'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('profile-menu')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Settings'));
+    expect(app.router.routeInformationProvider.value.uri.path, '/history');
+    await tester.tap(find.byTooltip('Me'));
     await tester.pumpAndSettle();
     final appearance = find.widgetWithText(ListTile, 'Appearance');
     await tester.ensureVisible(appearance);
@@ -77,7 +92,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(app.container.read(settingsProvider).theme, ThemeMode.dark);
     expect(jsonDecode(app.preferences.getString('settings')!)['theme'], 'dark');
-    await tester.tap(find.byTooltip('Back'));
+    await tester.tap(find.byTooltip('Library'));
     await tester.pumpAndSettle();
     expect(app.router.routeInformationProvider.value.uri.path, '/history');
     expect(tester.takeException(), isNull);
@@ -98,7 +113,7 @@ void main() {
           ),
       ],
     );
-    await tester.tap(find.widgetWithText(Tab, 'Library'));
+    await tester.tap(find.byTooltip('Library'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ChoiceChip, 'With friends'));
     await tester.pumpAndSettle();
@@ -110,9 +125,9 @@ void main() {
         .first;
     final offset = tester.state<ScrollableState>(scrollable).position.pixels;
     expect(offset, greaterThan(100));
-    await tester.tap(find.widgetWithText(Tab, 'Play'));
+    await tester.tap(find.byTooltip('Play'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(Tab, 'Library'));
+    await tester.tap(find.byTooltip('Library'));
     await tester.pumpAndSettle();
     expect(
       tester.state<ScrollableState>(scrollable).position.pixels,
@@ -149,7 +164,7 @@ void main() {
       expect(bounds.bottom, lessThanOrEqualTo(size.height));
       expect(action.bottom, lessThanOrEqualTo(size.height));
       expect(action.right, lessThanOrEqualTo(size.width));
-      expect(find.byType(TabBar), findsNothing);
+      expect(find.byType(NavigationBar), findsNothing);
       await tester.tapAt(tester.getCenter(board));
       await tester.pumpAndSettle();
       expect(tester.getRect(board), bounds);

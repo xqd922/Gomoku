@@ -101,6 +101,8 @@ class AppStrings {
     'appName': ('五子棋', 'Gomoku'),
     'play': ('对弈', 'Play'),
     'history': ('棋谱', 'Library'),
+    'tabOnline': ('联机', 'Online'),
+    'tabMe': ('我的', 'Me'),
     'settings': ('设置', 'Settings'),
     'account': ('账户', 'Account'),
     'hello': ('落子之间，遇见乐趣。', 'A little focus. A good connection.'),

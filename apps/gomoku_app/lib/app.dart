@@ -12,13 +12,12 @@ import 'l10n/strings.dart';
 import 'state/app_state.dart';
 import 'state/online.dart';
 import 'state/settings.dart';
-import 'ui/pages/account_page.dart';
 import 'ui/pages/history_page.dart';
 import 'ui/pages/home_page.dart';
 import 'ui/pages/lobby_page.dart';
 import 'ui/pages/local_page.dart';
+import 'ui/pages/me_page.dart';
 import 'ui/pages/online_page.dart';
-import 'ui/pages/settings_page.dart';
 import 'ui/shell.dart';
 
 class GomokuApp extends ConsumerStatefulWidget {
@@ -42,19 +41,26 @@ class _GomokuAppState extends ConsumerState<GomokuApp>
           ),
           StatefulShellBranch(
             routes: [
+              GoRoute(path: '/lobby', builder: (_, _) => const LobbyPage()),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
               GoRoute(path: '/history', builder: (_, _) => const HistoryPage()),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/me',
+                builder: (_, state) =>
+                    MePage(returnTo: state.uri.queryParameters['returnTo']),
+              ),
             ],
           ),
         ],
       ),
       GoRoute(path: '/local', builder: (_, _) => const LocalPage()),
-      GoRoute(
-        path: '/lobby',
-        builder: (context, _) => SectionScaffold(
-          title: context.strings.t('friendMatch'),
-          child: const LobbyPage(),
-        ),
-      ),
       GoRoute(
         path: '/join/:code',
         builder: (context, state) => SectionScaffold(
@@ -79,20 +85,8 @@ class _GomokuAppState extends ConsumerState<GomokuApp>
           recordId: state.pathParameters['id']!,
         ),
       ),
-      GoRoute(
-        path: '/account',
-        builder: (context, state) => SectionScaffold(
-          title: context.strings.t('account'),
-          child: AccountPage(returnTo: state.uri.queryParameters['returnTo']),
-        ),
-      ),
-      GoRoute(
-        path: '/settings',
-        builder: (context, _) => SectionScaffold(
-          title: context.strings.t('settings'),
-          child: const SettingsPage(),
-        ),
-      ),
+      GoRoute(path: '/account', redirect: (_, _) => '/me'),
+      GoRoute(path: '/settings', redirect: (_, _) => '/me'),
     ],
     errorBuilder: (context, state) => Scaffold(
       body: Center(

@@ -25,14 +25,11 @@ void main() {
         .uri
         .path;
     await openRoute(tester, app, '/history');
-    await tester.tap(find.byTooltip('Account and settings'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
-    expect(currentPath(), '/settings');
-    await tester.tap(find.byTooltip('Back'));
-    await tester.pumpAndSettle();
-    expect(currentPath(), '/history');
+    await openRoute(tester, app, '/me');
+    expect(currentPath(), '/me');
+    expect(find.byType(NavigationRail), findsOneWidget);
+    await openRoute(tester, app, '/account');
+    expect(currentPath(), '/me');
     await openRoute(tester, app, '/join/ABC234');
     expect(currentPath(), '/join/ABC234');
     expect(find.text('ABC234'), findsOneWidget);

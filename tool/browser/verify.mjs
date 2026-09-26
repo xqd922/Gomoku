@@ -130,7 +130,6 @@ try {
   const a = await boot(desktop);
   assert.equal(await a.evaluate(() => crossOriginIsolated), true);
   await a.getByRole("button", { name: /^好友对弈 / }).waitFor();
-  assert.equal(await a.getByRole("tab").count(), 2);
   await capture(a, "home-desktop.png");
   await a.getByRole("button", { name: /^好友对弈 / }).click();
   await a.waitForURL("**/lobby");
@@ -169,6 +168,9 @@ try {
   await a.getByRole("group", { name: "五子棋棋盘", exact: true }).waitFor();
   await b.getByRole("group", { name: "五子棋棋盘", exact: true }).waitFor();
   await b.getByRole("button", { name: "返回", exact: true }).click();
+  // Back on the compact home the bottom bar exposes its four destinations.
+  await until(async () => (await b.getByRole("tab").count()) === 4,
+    "Bottom navigation destinations are not accessible");
   await b.getByRole("button", { name: "返回房间", exact: true }).click();
   await b.getByRole("group", { name: "五子棋棋盘", exact: true }).waitFor();
   assert.equal(await b.getByRole("tab").count(), 0);
@@ -207,7 +209,14 @@ try {
     "A just-finished game did not open in replay");
   await capture(b, "replay-phone.png");
   await a.getByRole("button", { name: "返回", exact: true }).click();
-  await a.getByRole("tab", { name: "棋谱", exact: true }).click();
+  const libraryTab = a.getByRole("tab", { name: "棋谱", exact: true });
+  if (await libraryTab.count()) {
+    await libraryTab.click();
+  } else {
+    // Flutter web does not expose rail destinations to the a11y tree; the
+    // URL bar is the equivalent navigation path on desktop.
+    await navigate(a, "/history");
+  }
   await a.getByRole("button", { name: /黑棋获胜/ }).first().waitFor();
   // Navigate through the app while its final asynchronous database write
   // completes, then reload to independently verify that the record is durable.
@@ -264,8 +273,7 @@ try {
   await localContext.setOffline(false);
   passed("Drift multi-tab updates and offline reload with preserved game");
 
-  await cloud.getByRole("button", { name: "账户与设置", exact: true }).click();
-  await cloud.getByRole("menuitem", { name: "设置", exact: true }).click();
+  await navigate(cloud, "/me");
   await cloud.getByRole("button", { name: /^显示模式 / }).click();
   await cloud.getByRole("radio", { name: "深色", exact: true }).click();
   await capture(cloud, "settings-dark.png");
