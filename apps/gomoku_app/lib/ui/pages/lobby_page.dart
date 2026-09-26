@@ -10,10 +10,11 @@ import '../../l10n/strings.dart';
 import '../../state/app_state.dart';
 import '../../state/online.dart';
 import '../../state/settings.dart';
-import '../widgets/common.dart';
-import '../widgets/enter.dart';
-import '../widgets/press.dart';
+import '../kit/card.dart';
+import '../kit/scaffold.dart';
 
+/// The online tab: room setup as cards under a floating toolbar, waiting
+/// rooms as one-tap rows.
 class LobbyPage extends ConsumerStatefulWidget {
   const LobbyPage({super.key, this.initialCode = ''});
   final String initialCode;
@@ -122,201 +123,217 @@ class _LobbyPageState extends ConsumerState<LobbyPage> {
     final capabilities = ref.watch(serviceConfigProvider);
     final config = capabilities.asData?.value;
     if (config == null) {
-      return PageFrame(
-        maxWidth: AppLayout.reading,
-        children: [
-          PageHeading(title: s.t('lobbyTitle'), subtitle: s.t('lobbyBody')),
-          if (widget.initialCode.isNotEmpty)
-            Text('${s.t('roomCode')}: ${_code.text}'),
-          const SizedBox(height: 20),
-          InlineNotice(
-            message: s.t(
-              capabilities.hasError ? 'connectionUnavailable' : 'connecting',
+      return KitScaffold(
+        title: s.t('tabOnline'),
+        child: KitPageBody(
+          maxWidth: AppLayout.reading,
+          children: [
+            if (widget.initialCode.isNotEmpty)
+              Text('${s.t('roomCode')}: ${_code.text}'),
+            KitNotice(
+              message: s.t(
+                capabilities.hasError ? 'connectionUnavailable' : 'connecting',
+              ),
+              action: TextButton(
+                onPressed: () => ref.invalidate(serviceConfigProvider),
+                child: Text(s.t('retry')),
+              ),
             ),
-            action: TextButton(
-              onPressed: () => ref.invalidate(serviceConfigProvider),
-              child: Text(s.t('retry')),
-            ),
-          ),
-        ],
+          ],
+        ),
       );
     }
-    return PageFrame(
-      maxWidth: AppLayout.reading,
-      children: [
-        PageHeading(title: s.t('lobbyTitle'), subtitle: s.t('lobbyBody')),
-        if (active != null) ...[
-          InlineNotice(
-            message: s.error('active_room'),
-            action: FilledButton.tonal(
-              onPressed: () =>
-                  context.pushReplacement('/room/${active.roomId}'),
-              child: Text(s.t('returnRoom')),
+    return KitScaffold(
+      title: s.t('tabOnline'),
+      child: KitPageBody(
+        maxWidth: AppLayout.reading,
+        children: [
+          if (active != null)
+            KitNotice(
+              message: s.error('active_room'),
+              action: FilledButton.tonal(
+                onPressed: () =>
+                    context.pushReplacement('/room/${active.roomId}'),
+                child: Text(s.t('returnRoom')),
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-        ],
-        if (health.hasError || health.asData?.value == false) ...[
-          InlineNotice(
-            message: s.t('connectionUnavailable'),
-            icon: Icons.wifi_off_rounded,
-            action: TextButton(
-              onPressed: () => ref.invalidate(backendHealthProvider),
-              child: Text(s.t('retry')),
+          if (health.hasError || health.asData?.value == false)
+            KitNotice(
+              message: s.t('connectionUnavailable'),
+              icon: Icons.wifi_off_rounded,
+              action: TextButton(
+                onPressed: () => ref.invalidate(backendHealthProvider),
+                child: Text(s.t('retry')),
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-        ],
-        SegmentedButton<bool>(
-          segments: [
-            ButtonSegment(value: false, label: Text(s.t('createRoom'))),
-            ButtonSegment(value: true, label: Text(s.t('joinRoom'))),
+          if (openRooms != null && openRooms.isNotEmpty) ...[
+            Text(
+              s.t('openRoomsTitle'),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: colors.primary,
+              ),
+            ),
+            for (final room in openRooms)
+              KitCard(
+                margin: const EdgeInsets.only(top: AppSpacing.tight),
+                child: ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.center,
+                    decoration: ShapeDecoration(
+                      color: colors.primary.withValues(alpha: .12),
+                      shape: AppShapes.thumb,
+                    ),
+                    child: Text(
+                      room.hostName.characters.first.toUpperCase(),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: colors.primary,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    s.t('openRoomsBody', {'name': room.hostName}),
+                  ),
+                  trailing: FilledButton.tonal(
+                    onPressed: _busy ? null : () => _joinOpen(room),
+                    child: Text(s.t('join')),
+                  ),
+                  onTap: _busy ? null : () => _joinOpen(room),
+                ),
+              ),
           ],
-          selected: {_joining},
-          showSelectedIcon: false,
-          onSelectionChanged: _busy
-              ? null
-              : (value) => setState(() {
-                  _joining = value.single;
-                  _error = null;
-                  _errorField = null;
-                }),
-        ),
-        const SizedBox(height: 20),
-        if (openRooms != null && openRooms.isNotEmpty) ...[
-          Text(
-            s.t('openRoomsTitle'),
-            style: Theme.of(context).textTheme.labelLarge
-                ?.copyWith(color: colors.primary),
-          ),
-          const SizedBox(height: 12),
-          for (final (index, room) in openRooms.indexed)
-            StaggeredEnter(
-              delay: enterStagger(index),
-              child: Pressable(
-                onTap: _busy ? null : () => _joinOpen(room),
-                child: Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    leading: const Icon(Icons.person_outline_rounded),
-                    title: Text(
-                      s.t('openRoomsBody', {'name': room.hostName}),
-                    ),
-                    trailing: FilledButton.tonal(
-                      onPressed: _busy ? null : () => _joinOpen(room),
-                      child: Text(s.t('join')),
-                    ),
+          KitSection(
+            title: s.t('roomSetup'),
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.section),
+                child: Form(
+                  key: _form,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SegmentedButton<bool>(
+                        segments: [
+                          ButtonSegment(
+                            value: false,
+                            label: Text(s.t('createRoom')),
+                          ),
+                          ButtonSegment(
+                            value: true,
+                            label: Text(s.t('joinRoom')),
+                          ),
+                        ],
+                        selected: {_joining},
+                        showSelectedIcon: false,
+                        onSelectionChanged: _busy
+                            ? null
+                            : (value) => setState(() {
+                                _joining = value.single;
+                                _error = null;
+                                _errorField = null;
+                              }),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        s.t(_joining ? 'joinRoomBody' : 'createRoomBody'),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        key: const ValueKey('room-nickname'),
+                        controller: _nickname,
+                        maxLength: 24,
+                        enabled: !_busy && active == null,
+                        textInputAction: _joining
+                            ? TextInputAction.next
+                            : TextInputAction.done,
+                        decoration: InputDecoration(
+                          labelText: s.t('nickname'),
+                          counterText: '',
+                          prefixIcon: const Icon(Icons.person_outline_rounded),
+                          errorText: _errorField == 'nickname' ? _error : null,
+                        ),
+                        onChanged: (_) {
+                          if (_errorField == 'nickname') {
+                            setState(() => _errorField = null);
+                          }
+                        },
+                        validator: (value) =>
+                            value != null &&
+                                value.trim().isNotEmpty &&
+                                value.trim().runes.length <= 24
+                            ? null
+                            : s.error('invalid_nickname'),
+                        onFieldSubmitted: (_) {
+                          if (!_joining) _start();
+                        },
+                      ),
+                      if (_joining) ...[
+                        const SizedBox(height: 18),
+                        TextFormField(
+                          key: const ValueKey('join-room-code'),
+                          controller: _code,
+                          maxLength: 6,
+                          enabled: !_busy && active == null,
+                          textCapitalization: TextCapitalization.characters,
+                          textInputAction: TextInputAction.done,
+                          autocorrect: false,
+                          decoration: InputDecoration(
+                            labelText: s.t('roomCode'),
+                            counterText: '',
+                            prefixIcon: const Icon(Icons.tag_rounded),
+                            errorText: _errorField == 'code' ? _error : null,
+                          ),
+                          onChanged: (_) {
+                            if (_errorField == 'code') {
+                              setState(() => _errorField = null);
+                            }
+                          },
+                          validator: (value) =>
+                              RegExp(r'^[a-zA-Z0-9]{6}$')
+                                  .hasMatch(value?.trim() ?? '')
+                              ? null
+                              : s.error('invalid_room_code'),
+                          onFieldSubmitted: (_) => _start(),
+                        ),
+                      ],
+                      if (_errorField == 'form' && _error != null) ...[
+                        const SizedBox(height: 18),
+                        KitNotice(message: _error!, error: true),
+                      ],
+                      const SizedBox(height: 24),
+                      FilledButton.icon(
+                        key: ValueKey(_joining ? 'join-room' : 'create-room'),
+                        onPressed: _busy || active != null ? null : _start,
+                        icon: _busy
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Icon(
+                                _joining
+                                    ? Icons.arrow_forward_rounded
+                                    : Icons.add_rounded,
+                              ),
+                        label: Text(s.t(_joining ? 'join' : 'createRoom')),
+                      ),
+                    ],
                   ),
                 ),
               ),
+            ],
+          ),
+          Text(
+            s.t('guestNotice'),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colors.onSurfaceVariant,
             ),
-          const SizedBox(height: 4),
+          ),
         ],
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.section),
-          decoration: ShapeDecoration(
-            color: colors.secondaryContainer,
-            shape: AppShapes.feature,
-          ),
-          child: Form(
-            key: _form,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  s.t(_joining ? 'joinRoomBody' : 'createRoomBody'),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 24),
-                TextFormField(
-                  key: const ValueKey('room-nickname'),
-                  controller: _nickname,
-                  maxLength: 24,
-                  enabled: !_busy && active == null,
-                  textInputAction: _joining
-                      ? TextInputAction.next
-                      : TextInputAction.done,
-                  decoration: InputDecoration(
-                    labelText: s.t('nickname'),
-                    counterText: '',
-                    prefixIcon: const Icon(Icons.person_outline_rounded),
-                    errorText: _errorField == 'nickname' ? _error : null,
-                  ),
-                  onChanged: (_) {
-                    if (_errorField == 'nickname') {
-                      setState(() => _errorField = null);
-                    }
-                  },
-                  validator: (value) =>
-                      value != null &&
-                          value.trim().isNotEmpty &&
-                          value.trim().runes.length <= 24
-                      ? null
-                      : s.error('invalid_nickname'),
-                  onFieldSubmitted: (_) {
-                    if (!_joining) _start();
-                  },
-                ),
-                if (_joining) ...[
-                  const SizedBox(height: 18),
-                  TextFormField(
-                    key: const ValueKey('join-room-code'),
-                    controller: _code,
-                    maxLength: 6,
-                    enabled: !_busy && active == null,
-                    textCapitalization: TextCapitalization.characters,
-                    textInputAction: TextInputAction.done,
-                    autocorrect: false,
-                    decoration: InputDecoration(
-                      labelText: s.t('roomCode'),
-                      counterText: '',
-                      prefixIcon: const Icon(Icons.tag_rounded),
-                      errorText: _errorField == 'code' ? _error : null,
-                    ),
-                    onChanged: (_) {
-                      if (_errorField == 'code') {
-                        setState(() => _errorField = null);
-                      }
-                    },
-                    validator: (value) =>
-                        RegExp(r'^[a-zA-Z0-9]{6}$')
-                            .hasMatch(value?.trim() ?? '')
-                        ? null
-                        : s.error('invalid_room_code'),
-                    onFieldSubmitted: (_) => _start(),
-                  ),
-                ],
-                if (_errorField == 'form' && _error != null) ...[
-                  const SizedBox(height: 18),
-                  InlineNotice(message: _error!, error: true),
-                ],
-                const SizedBox(height: 24),
-                FilledButton.icon(
-                  key: ValueKey(_joining ? 'join-room' : 'create-room'),
-                  onPressed: _busy || active != null ? null : _start,
-                  icon: _busy
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          _joining
-                              ? Icons.arrow_forward_rounded
-                              : Icons.add_rounded,
-                        ),
-                  label: Text(s.t(_joining ? 'join' : 'createRoom')),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          s.t('guestNotice'),
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: colors.onSurfaceVariant),
-        ),
-      ],
+      ),
     );
   }
 }

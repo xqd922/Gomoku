@@ -50,12 +50,12 @@ void main() {
         for (final label in labels) {
           expect(
             wide ? find.text(label) : find.byTooltip(label),
-            findsOneWidget,
+            wide ? findsWidgets : findsOneWidget,
             reason: label,
           );
         }
-        expect(find.text(language == 'zh' ? '对弈' : 'Play'), findsOneWidget);
-        expect(find.text(language == 'zh' ? '棋谱' : 'Library'), findsOneWidget);
+        expect(find.text(language == 'zh' ? '对弈' : 'Play'), findsWidgets);
+        expect(find.text(language == 'zh' ? '棋谱' : 'Library'), findsWidgets);
         expect(tester.takeException(), isNull);
         await openRoute(tester, app, '/me');
         expect(

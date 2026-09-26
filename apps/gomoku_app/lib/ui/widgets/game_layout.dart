@@ -8,11 +8,14 @@ import '../../design/motion.dart';
 import '../../design/shape.dart';
 import '../../design/tokens.dart';
 import '../../l10n/strings.dart';
-import '../shell.dart';
+import '../kit/popup.dart';
+import '../kit/scaffold.dart';
 import 'board.dart';
 import 'common.dart';
 
-/// Fits the playing surface using both axes. Text and controls never scale down.
+/// Fits the playing surface using both axes. Text and controls never scale
+/// down. The chrome is the kit's floating toolbar; the menu travels as
+/// declarative items and opens with the anchor-morph popup.
 class GameScaffold extends StatelessWidget {
   const GameScaffold({
     super.key,
@@ -21,19 +24,20 @@ class GameScaffold extends StatelessWidget {
     required this.status,
     required this.controls,
     this.details,
-    this.actions = const [],
+    this.menuItems = const [],
     this.fallback = '/',
   });
   final String title, fallback;
   final Widget board, status, controls;
   final Widget? details;
-  final List<Widget> actions;
+  final List<KitMenuItem> menuItems;
 
   @override
-  Widget build(BuildContext context) => SectionScaffold(
+  Widget build(BuildContext context) => KitScaffold(
     title: title,
-    actions: actions,
+    showBack: true,
     fallback: fallback,
+    menuItems: menuItems,
     child: LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
@@ -99,7 +103,9 @@ class GameScaffold extends StatelessWidget {
                             child: status,
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                            ),
                             child: SizedBox.square(
                               dimension: math.min(width - 24, AppLayout.board),
                               child: board,
@@ -333,8 +339,9 @@ class PlayerStrip extends StatelessWidget {
                 liveRegion: true,
                 child: Text(
                   label,
-                  style: Theme.of(context).textTheme.titleSmall
-                      ?.copyWith(color: colors.primary),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: colors.primary,
+                  ),
                 ),
               ),
             ),
@@ -390,8 +397,9 @@ class _ResultMomentState extends ConsumerState<ResultMoment> {
               child: Text(
                 widget.label,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall
-                    ?.copyWith(color: colors.onTertiaryContainer),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: colors.onTertiaryContainer,
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.content),

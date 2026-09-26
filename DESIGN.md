@@ -157,6 +157,10 @@ Every corner uses a **continuous superellipse** (`RoundedSuperellipseBorder`): t
 
 ## Components
 
+- **Floating toolbar (page chrome):** every screen carries a rounded floating toolbar - title, up to three icon actions, an overflow menu, and an optional in-bar search field - while content scrolls beneath it. Pushed pages add a back action; game menus travel as declarative items.
+- **Card dashboard:** the play tab composes one loud primary-container start card plus fixed stat/shortcut tiles (icon well, value, caption) in a responsive wrap; dashboard tiles shrink their content to fit at large text scales.
+- **Anchor-morph menus:** overflow and game menus grow out of their trigger on a decelerate curve (position, size and corner radius interpolate from the anchor), support one submenu level inside the same card, and mark destructive items in the error color.
+- **Responsive sheet dispatch:** pickers and forms travel through one entry point - a drag-handle bottom sheet on compact screens, a right-edge side panel on wide ones, and a scale-fade dialog for confirmations.
 - **Primary button (filled):** stadium shape, minimum height 56px, primary fill, icon + label, disabled at reduced opacity. The home banner uses primaryContainer with onPrimaryContainer text; the filled primary button on that banner is the single loudest action.
 - **Secondary buttons (outlined / tonal):** stadium shape, height 52px, outline variant or secondary container fill.
 - **Text buttons / icon buttons:** minimum 48×48 touch target.

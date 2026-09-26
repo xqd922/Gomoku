@@ -17,7 +17,11 @@ import '../../l10n/strings.dart';
 import '../../state/app_state.dart';
 import '../../state/online.dart';
 import '../../state/settings.dart';
-import '../shell.dart';
+
+import '../kit/card.dart';
+import '../kit/popup.dart';
+import '../kit/scaffold.dart';
+import '../kit/sheet.dart';
 import '../widgets/board.dart';
 import '../widgets/common.dart';
 import '../widgets/enter.dart';
@@ -155,13 +159,14 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
           !auth.resolving && !auth.hasSession && auth.profile == null;
       final error =
           _error ?? (needsLogin ? const ApiFailure('login_required') : null);
-      return SectionScaffold(
+      return KitScaffold(
         title: s.t('friendMatch'),
+        showBack: true,
         child: error == null
             ? const Center(child: CircularProgressIndicator())
-            : PageFrame(
+            : KitPageBody(
                 children: [
-                  InlineNotice(
+                  KitNotice(
                     message: s.error(errorCode(error)),
                     error: true,
                     action: TextButton(
@@ -207,7 +212,7 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
         ? s.t('waitingSeat')
         : s.t(myTurn ? 'yourTurn' : 'theirTurn');
     final reconnecting = !online.connected && !closed
-        ? InlineNotice(
+        ? KitNotice(
             message: s.t('reconnecting'),
             icon: Icons.wifi_off_rounded,
             action: TextButton(
@@ -217,68 +222,68 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
           )
         : null;
 
-    final menu = PopupMenuButton<String>(
-      tooltip: s.t('gameOptions'),
-      onSelected: (action) async {
-        switch (action) {
-          case 'settings':
-            await showGameSettings(context);
-          case 'room':
-            await showModalBottomSheet<void>(
-              context: context,
-              useSafeArea: true,
-              isScrollControlled: true,
-              constraints: const BoxConstraints(maxWidth: AppLayout.reading),
-              builder: (context) => SafeArea(
-                top: false,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                  child: _roomInfo(room),
-                ),
-              ),
-            );
-          case 'resign':
-            if (await confirmAction(
-              context,
-              s.t('resignTitle'),
-              s.t('resignBody'),
-              confirmLabel: s.t('resign'),
-            )) {
-              await _send(RoomAction.resign);
-            }
-          case 'leave':
-            await _leave();
-        }
-      },
-      itemBuilder: (_) => [
-        PopupMenuItem(value: 'room', child: Text(s.t('roomDetails'))),
-        PopupMenuItem(value: 'settings', child: Text(s.t('gameSettings'))),
-        if (playing || room.status == RoomStatus.paused)
-          PopupMenuItem(
-            value: 'resign',
-            enabled: canSend,
-            child: Text(s.t('resign')),
-          ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: 'leave',
-          enabled: !online.busy,
-          child: Text(s.t(closed ? 'returnHome' : 'leaveRoom')),
-        ),
-      ],
+    Future<void> openRoomInfo() => showKitSheet<void>(
+      context: context,
+      title: s.t('roomDetails'),
+      builder: (sheetContext) => _roomInfo(room),
     );
+    final menuItems = [
+      KitMenuItem(
+        label: s.t('roomDetails'),
+        icon: Icons.info_outline_rounded,
+        onTap: openRoomInfo,
+      ),
+      KitMenuItem(
+        label: s.t('gameSettings'),
+        icon: Icons.tune_rounded,
+        onTap: () async {
+          if (context.mounted) await showGameSettings(context);
+        },
+      ),
+      if (playing || room.status == RoomStatus.paused)
+        KitMenuItem(
+          label: s.t('resign'),
+          icon: Icons.flag_rounded,
+          danger: true,
+          onTap: canSend
+              ? () async {
+                  if (await confirmAction(
+                    context,
+                    s.t('resignTitle'),
+                    s.t('resignBody'),
+                    confirmLabel: s.t('resign'),
+                  )) {
+                    await _send(RoomAction.resign);
+                  }
+                }
+              : null,
+        ),
+      KitMenuItem(
+        label: s.t(closed ? 'returnHome' : 'leaveRoom'),
+        icon: Icons.exit_to_app_rounded,
+        onTap: online.busy ? null : _leave,
+      ),
+    ];
 
     Widget page;
     if (waiting) {
-      page = SectionScaffold(
+      page = KitScaffold(
         title: s.t('friendMatch'),
-        actions: [menu],
-        child: PageFrame(
+        showBack: true,
+        menuItems: menuItems,
+        child: KitPageBody(
           maxWidth: AppLayout.reading,
           children: [
-            PageHeading(
-              title: s.t('inviteTitle'),
-              subtitle: s.t('waitingBody'),
+            Text(
+              s.t('inviteTitle'),
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: AppSpacing.tight),
+            Text(
+              s.t('waitingBody'),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
             ),
             if (reconnecting != null) ...[
               reconnecting,
@@ -334,7 +339,7 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
             const SizedBox(height: 20),
             StaggeredEnter(
               delay: const Duration(milliseconds: 60),
-              child: SettingsGroup(
+              child: KitSection(
                 title: s.t('readyCaption'),
                 children: [
                   _ReadySeat(
@@ -372,12 +377,13 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
         ),
       );
     } else if (closed && !game.isOver) {
-      page = SectionScaffold(
+      page = KitScaffold(
         title: s.t('friendMatch'),
-        child: PageFrame(
+        showBack: true,
+        menuItems: menuItems,
+        child: KitPageBody(
           children: [
-            InlineNotice(message: s.t('closedRoom')),
-            const SizedBox(height: 16),
+            KitNotice(message: s.t('closedRoom')),
             FilledButton(
               onPressed: () => context.go('/'),
               child: Text(s.t('returnHome')),
@@ -416,7 +422,7 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
           ],
           if (playing && room.undoRequestedBy != null) ...[
             const SizedBox(height: 12),
-            InlineNotice(
+            KitNotice(
               icon: Icons.undo_rounded,
               message: s.t(
                 room.undoRequestedBy == player ? 'undoWaiting' : 'undoIncoming',
@@ -447,7 +453,7 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
 
       page = GameScaffold(
         title: s.t('friendMatch'),
-        actions: [menu],
+        menuItems: menuItems,
         board: GameBoard(
           key: _boardKey,
           game: game,
@@ -583,7 +589,7 @@ class _DisconnectNoticeState extends State<_DisconnectNotice> {
       widget.deadline.difference(widget.serverTime).inSeconds -
           DateTime.now().difference(_received).inSeconds,
     );
-    return InlineNotice(
+    return KitNotice(
       icon: Icons.hourglass_top_rounded,
       message: context.strings.t('disconnectBody', {'seconds': seconds}),
     );

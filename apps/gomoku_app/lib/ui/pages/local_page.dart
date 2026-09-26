@@ -6,6 +6,8 @@ import 'package:gomoku_core/gomoku_core.dart';
 import '../../l10n/strings.dart';
 import '../../state/app_state.dart';
 import '../../state/settings.dart';
+import '../kit/popup.dart';
+import '../kit/sheet.dart';
 import '../shell.dart';
 import '../widgets/board.dart';
 import '../widgets/common.dart';
@@ -105,39 +107,38 @@ class _LocalPageState extends ConsumerState<LocalPage> {
         : s.t(game.turn == Stone.black ? 'blackTurn' : 'whiteTurn');
     return GameScaffold(
       title: s.t('localMatch'),
-      actions: [
-        PopupMenuButton<String>(
-          tooltip: s.t('gameOptions'),
-          onSelected: (action) async {
-            if (action == 'new') await _restart();
-            if (action == 'settings' && context.mounted) {
-              await showGameSettings(context);
-            }
-            if (action == 'rules' && context.mounted) {
-              await showDialog<void>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text(s.t('rulesTitle')),
-                  content: Text(s.t('rulesBody')),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(s.t('confirm')),
-                    ),
-                  ],
-                ),
-              );
-            }
+      menuItems: [
+        KitMenuItem(
+          label: s.t('newGame'),
+          icon: Icons.add_rounded,
+          onTap: _starting || _undoing ? null : _restart,
+        ),
+        KitMenuItem(
+          label: s.t('gameSettings'),
+          icon: Icons.tune_rounded,
+          onTap: () async {
+            if (context.mounted) await showGameSettings(context);
           },
-          itemBuilder: (_) => [
-            PopupMenuItem(
-              value: 'new',
-              enabled: !_starting && !_undoing,
-              child: Text(s.t('newGame')),
-            ),
-            PopupMenuItem(value: 'settings', child: Text(s.t('gameSettings'))),
-            PopupMenuItem(value: 'rules', child: Text(s.t('rules'))),
-          ],
+        ),
+        KitMenuItem(
+          label: s.t('rules'),
+          icon: Icons.menu_book_outlined,
+          onTap: () async {
+            if (!context.mounted) return;
+            await showKitDialog<void>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text(s.t('rulesTitle')),
+                content: Text(s.t('rulesBody')),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(s.t('confirm')),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ],
       board: GameBoard(

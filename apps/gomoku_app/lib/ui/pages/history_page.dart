@@ -7,14 +7,21 @@ import 'package:gomoku_core/gomoku_core.dart';
 
 import '../../design/tokens.dart';
 import '../../l10n/strings.dart';
+
+import 'package:go_router/go_router.dart';
+
 import '../../state/app_state.dart';
 import '../../state/settings.dart';
+import '../kit/card.dart';
+import '../kit/scaffold.dart';
+import '../kit/states.dart';
 import '../shell.dart';
 import '../widgets/board.dart';
 import '../widgets/common.dart';
-import '../widgets/enter.dart';
 import '../widgets/game_layout.dart';
 
+/// The library tab: floating toolbar with in-bar search, filter chips, and
+/// date-grouped record cards.
 class HistoryPage extends ConsumerStatefulWidget {
   const HistoryPage({super.key});
   @override
@@ -23,6 +30,7 @@ class HistoryPage extends ConsumerStatefulWidget {
 
 class _HistoryPageState extends ConsumerState<HistoryPage> {
   String _filter = 'all';
+  String _query = '';
   @override
   Widget build(BuildContext context) {
     final s = context.strings;
@@ -31,12 +39,17 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     final auth = ref.watch(authProvider);
     final games = ref.watch(gamesProvider);
     final signedIn = auth.profile != null && !auth.profile!.isGuest;
+    final query = _query.toLowerCase();
     final records =
         (games.asData?.value ?? <GameRecord>[])
             .where(
               (r) =>
                   r.game.isOver &&
-                  (_filter == 'all' || r.source.name == _filter),
+                  (_filter == 'all' || r.source.name == _filter) &&
+                  (query.isEmpty ||
+                      r.blackName.toLowerCase().contains(query) ||
+                      r.whiteName.toLowerCase().contains(query) ||
+                      resultLabel(r.game, s).toLowerCase().contains(query)),
             )
             .toList()
           ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
@@ -50,39 +63,41 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
       }
       entries.add(record);
     }
-    Widget frame(Widget child) => Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 880),
-        child: SizedBox(width: double.infinity, child: child),
-      ),
-    );
     final inset = AppLayout.pageInset(MediaQuery.sizeOf(context).width);
-    return CustomScrollView(
-      key: const PageStorageKey('library-scroll'),
-      slivers: [
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(inset, 24, inset, 8),
-          sliver: SliverToBoxAdapter(
-            child: frame(
-              Column(
+    return KitScaffold(
+      title: s.t('history'),
+      searchable: true,
+      searchHint: s.t('searchGamesHint'),
+      onSearch: (value) => setState(() => _query = value),
+      actions: [
+        if (signedIn)
+          KitToolbarAction(
+            icon: sync.busy ? Icons.hourglass_top_rounded : Icons.sync_rounded,
+            tooltip: s.t('sync'),
+            onPressed: sync.busy
+                ? null
+                : () => ref.read(syncProvider.notifier).sync(),
+          ),
+      ],
+      child: CustomScrollView(
+        key: const PageStorageKey('library-scroll'),
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              inset,
+              AppSpacing.content,
+              inset,
+              AppSpacing.tight,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  PageHeading(
-                    title: s.t('libraryTitle'),
-                    action: signedIn
-                        ? IconButton.filledTonal(
-                            tooltip: s.t('sync'),
-                            onPressed: sync.busy
-                                ? null
-                                : () => ref.read(syncProvider.notifier).sync(),
-                            icon: Icon(
-                              sync.busy
-                                  ? Icons.hourglass_top_rounded
-                                  : Icons.sync_rounded,
-                            ),
-                          )
-                        : null,
+                  Text(
+                    s.t('libraryTitle'),
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
+                  const SizedBox(height: AppSpacing.tight),
                   Text(
                     s.t(
                       !signedIn
@@ -93,13 +108,14 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                           ? 'synced'
                           : 'syncPending',
                     ),
-                    style: Theme.of(context).textTheme.bodyMedium
-                        ?.copyWith(color: colors.onSurfaceVariant),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.content),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: AppSpacing.tight,
+                    runSpacing: AppSpacing.tight,
                     children: [
                       for (final (value, label) in [
                         ('all', 'allGames'),
@@ -115,7 +131,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                   ),
                   const SizedBox(height: AppSpacing.content),
                   if (signedIn && sync.error != null) ...[
-                    InlineNotice(
+                    KitNotice(
                       message: s.error(sync.error!),
                       error: true,
                       action: TextButton(
@@ -125,71 +141,101 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                         child: Text(s.t('retry')),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.tight),
                   ],
                   if (games.hasError)
-                    InlineNotice(
+                    KitNotice(
                       message: s.error('storage_unavailable'),
                       error: true,
                       action: TextButton(
                         onPressed: () => ref.invalidate(gamesProvider),
                         child: Text(s.t('retry')),
                       ),
-                    )
-                  else if (games.isLoading)
-                    const Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (records.isEmpty)
-                    _filter == 'all'
-                        ? const EmptyGames()
-                        : InlineNotice(
-                            message: s.t('filterEmpty'),
-                            action: TextButton(
-                              onPressed: () => setState(() => _filter = 'all'),
-                              child: Text(s.t('allGames')),
-                            ),
-                          ),
+                    ),
                 ],
               ),
             ),
           ),
-        ),
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(inset, 0, inset, 32),
-          sliver: SliverList.builder(
-            itemCount: entries.length,
-            itemBuilder: (context, index) {
-              final item = entries[index];
-              return frame(
-                item is String
-                    ? Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.tight,
-                          AppSpacing.section,
-                          AppSpacing.tight,
-                          AppSpacing.content,
-                        ),
-                        child: Text(
-                          item,
-                          style: Theme.of(context).textTheme.labelLarge
-                              ?.copyWith(color: colors.onSurfaceVariant),
-                        ),
-                      )
-                    : Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: StaggeredEnter(
-                          child: RecordTile(record: item as GameRecord),
-                        ),
-                      ),
-              );
-            },
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(inset, 0, inset, AppSpacing.page),
+            sliver: games.isLoading
+                ? SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < 3; i++) ...[
+                          if (i > 0) const SizedBox(height: AppSpacing.tight),
+                          const KitSkeleton(height: 84, radius: AppShape.menu),
+                        ],
+                      ],
+                    ),
+                  )
+                : SliverList.builder(
+                    itemCount: records.isEmpty ? 1 : entries.length,
+                    itemBuilder: (context, index) {
+                      if (records.isEmpty) {
+                        return _filter == 'all' || query.isNotEmpty
+                            ? KitEmptyState(
+                                title: s.t(
+                                  query.isNotEmpty || _filter != 'all'
+                                      ? 'noFilterResult'
+                                      : 'libraryEmpty',
+                                ),
+                                body: query.isNotEmpty || _filter != 'all'
+                                    ? null
+                                    : s.t('emptyHistoryBody'),
+                                icon: Icons.menu_book_outlined,
+                                action: FilledButton.tonalIcon(
+                                  onPressed: () => context.go('/'),
+                                  icon: const Icon(Icons.add_rounded),
+                                  label: Text(s.t('startPlaying')),
+                                ),
+                              )
+                            : KitNotice(
+                                message: s.t('filterEmpty'),
+                                action: TextButton(
+                                  onPressed: () =>
+                                      setState(() => _filter = 'all'),
+                                  child: Text(s.t('allGames')),
+                                ),
+                              );
+                      }
+                      final item = entries[index];
+                      return frame(
+                        item is String
+                            ? Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  AppSpacing.tight,
+                                  AppSpacing.section,
+                                  AppSpacing.tight,
+                                  AppSpacing.content,
+                                ),
+                                child: Text(
+                                  item,
+                                  style: Theme.of(context).textTheme.labelLarge
+                                      ?.copyWith(
+                                        color: colors.onSurfaceVariant,
+                                      ),
+                                ),
+                              )
+                            : Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: RecordTile(record: item as GameRecord),
+                              ),
+                      );
+                    },
+                  ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
+
+  Widget frame(Widget child) => Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 880),
+      child: SizedBox(width: double.infinity, child: child),
+    ),
+  );
 }
 
 class ReplayPage extends ConsumerStatefulWidget {

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../design/tokens.dart';
 import '../../l10n/strings.dart';
 import '../../state/settings.dart';
+import '../kit/card.dart';
+import '../kit/sheet.dart';
 import '../widgets/common.dart';
 
 /// The playing-preferences group is shared by the Me tab and the in-game
@@ -14,7 +16,7 @@ class PlayingPreferences extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.strings;
     final settings = ref.watch(settingsProvider);
-    return SettingsGroup(
+    return KitSection(
       title: s.t('playingSection'),
       children: [
         for (final (key, subtitle, icon, value, apply)
@@ -49,12 +51,12 @@ class PlayingPreferences extends ConsumerWidget {
                   (v) => settings.copyWith(haptics: v),
                 ),
             ])
-          SwitchListTile(
-            secondary: Icon(icon),
-            title: Text(s.t(key)),
-            subtitle: subtitle == null ? null : Text(s.t(subtitle)),
+          KitListTile.toggle(
+            icon: icon,
+            title: s.t(key),
+            subtitle: subtitle == null ? null : s.t(subtitle),
             value: value,
-            onChanged: (v) async {
+            onValueChanged: (v) async {
               try {
                 await ref.read(settingsProvider.notifier).update(apply(v));
               } catch (error) {
@@ -67,17 +69,8 @@ class PlayingPreferences extends ConsumerWidget {
   }
 }
 
-Future<void> showGameSettings(BuildContext context) =>
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      constraints: const BoxConstraints(maxWidth: AppLayout.reading),
-      builder: (context) => const SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
-          child: PlayingPreferences(),
-        ),
-      ),
-    );
+Future<void> showGameSettings(BuildContext context) => showKitSheet<void>(
+  context: context,
+  title: context.strings.t('gameSettings'),
+  builder: (context) => const PlayingPreferences(),
+);
