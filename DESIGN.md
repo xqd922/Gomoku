@@ -48,15 +48,19 @@ tokens:
       radius: "{rounded.feature}"
     chip:
       radius: "{rounded.thumb}"
+    navigation:
+      compact: "bottom bar, 4 destinations"
+      expanded: "side rail, 4 destinations"
+      indicator: "superellipse pill"
 ---
 
 # Design System: Gomoku
 
 ## Overview
 
-Gomoku is a calm, tactile board-game surface wrapped in Material 3 Expressive chrome. The atmosphere is **"evening study"**: warm paper tones meet a single confident violet seed (#7560C7), with generous feature-scale rounding (28–32px) and a stone board that behaves like a physical object — fixed warm colors, soft drop shadows, and a spring-settle drop animation. Density is balanced (5/10): roomy on phones, tighter information panels on wide screens. Motion is fluid but restrained (6/10): short 180–320ms transitions, one expressive ease-out-back moment per move, and everything honors the system reduce-motion setting.
+Gomoku is a calm, tactile board-game surface wrapped in Material 3 Expressive chrome. The atmosphere is **"evening study"**: warm paper tones meet a single confident violet seed (#7560C7), with generous feature-scale rounding (28–32px) and a stone board that behaves like a physical object — fixed warm colors, soft drop shadows, and a spring-settle drop animation. Density is balanced (5/10): roomy on phones, tighter information panels on wide screens. Motion is fluid but spring-driven (6/10): continuous-corner shapes everywhere, press feedback that compresses on a spring, staggered entrances, shared-axis page transitions, and everything honors the system reduce-motion setting.
 
-The design system is implemented in `apps/gomoku_app/lib/design/` — `theme.dart` builds both brightness schemes, `tokens.dart` holds spacing/shape/layout/motion constants. This document is the source of truth those files express; when code and this document disagree, fix the code.
+The design system is implemented in `apps/gomoku_app/lib/design/` — `theme.dart` builds both brightness schemes, `tokens.dart` holds spacing/shape/layout/motion constants, `motion.dart` holds the spring presets and curves, and `shape.dart` holds the superellipse shape language. This document is the source of truth those files express; when code and this document disagree, fix the code.
 
 ## Colors
 
@@ -139,7 +143,9 @@ Single family: **NotoSansSC** for both CJK and Latin (offline-bundled, no web fo
 
 ## Layout
 
-Breakpoints: compact 600, expanded 840. Page inset: 16 / 24 / 32 by width; content max-width 1160; reading pages (account, lobby forms) cap at 680; the board caps at 688. Vertical page rhythm uses the spacing scale (8/16/24/32). Phones stack single-column always; wide screens pair the board with a details panel. Fixed action areas on phones keep primary controls reachable without scrolling. Horizontal overflow at any viewport is a critical failure.
+**Navigation is adaptive**: below 840px a bottom navigation bar carries the four destinations (对局 Play, 联机 Online, 棋谱 Library, 我的 Me); at 840px and above it becomes a left navigation rail so wide windows keep the content — not the chrome — as the protagonist. The four destinations are the app's top level; account, settings, and about live inside 我的. Game surfaces (local game, online room, replay) are pushed full-screen routes and never show the navigation shell.
+
+Breakpoints: compact 600, expanded 840. Page inset: 16 / 24 / 32 by width; content max-width 1160; reading pages cap at 680; the board caps at 688. Vertical page rhythm uses the spacing scale (8/16/24/32). Phones stack single-column always; wide screens pair the board with a details panel. Fixed action areas on phones keep primary controls reachable without scrolling. Horizontal overflow at any viewport is a critical failure.
 
 ## Elevation & Depth
 
@@ -147,7 +153,7 @@ Elevation is expressed through **surface color, not shadows**: all chrome sits a
 
 ## Shapes
 
-Rounding scale, largest to smallest: feature 32 (dialogs, bottom sheets, home banner), card 28 (cards, player strips, settings swatches), menu 24 (pop-up menus, notices, record tiles), field 20 (inputs, snackbars, shortcut icon wells), thumb 14 (chips, small previews), joined 6 (reserved for tightly joined controls). Primary buttons are stadium-shaped (full pill). Corner radii are never mixed arbitrarily within one component group.
+Every corner uses a **continuous superellipse** (`RoundedSuperellipseBorder`): the radii below are unchanged, but corners read softer and more expressive than plain circular ones. Rounding scale, largest to smallest: feature 32 (dialogs, bottom sheets, home banner), card 28 (cards, player strips, settings swatches), menu 24 (pop-up menus, notices, record tiles), field 20 (inputs, snackbars, shortcut icon wells), thumb 14 (chips, small previews), joined 6 (reserved for tightly joined controls). Primary buttons are stadium-shaped (full pill); navigation indicators are superellipse pills. Corner radii are never mixed arbitrarily within one component group, and plain circular borders never appear where a token exists.
 
 ## Components
 
@@ -161,13 +167,22 @@ Rounding scale, largest to smallest: feature 32 (dialogs, bottom sheets, home ba
 - **Snackbars:** floating, 20px radius, used for all error feedback (never blocking dialogs for recoverable errors).
 - **Notices (inline):** secondaryContainer at rest, errorContainer for failures, 24px radius, icon + message + optional right-aligned action, live-region semantics.
 - **Chips / status pills:** thumb radius, container colors from the scheme, w600 labels.
+- **Navigation bar / rail:** surface-container fill, no elevation, four destinations with outlined icons that swap to their filled pair when selected. The active destination sits in a secondary-container superellipse pill indicator. Destinations are always labeled.
 - **Account avatar:** 40px circle; guests get surfaceContainerHighest with a 1px outlineVariant ring, signed-in users get tertiaryContainer with the first character of the nickname.
 - **Loading:** brief spinners are acceptable for sub-second fetches; anything longer must show skeleton or composed empty states. Empty states are composed (stone trio illustration + explanation + action), never bare text.
 - **Board interactions:** touch pre-select then confirm (configurable), mouse hover preview, keyboard cursor with Enter/Space placement, Escape clears, screen-reader per-point actions. The winning line is highlighted with an accent underline wash at 23% alpha.
 
 ## Motion & Interaction
 
-Feedback 180ms, page transitions 320ms, theme change 280ms. Stone placement uses easeOutBack over 230ms (scale settle). A five-in-a-row win triggers the single loud moment in the game: the winning stones pulse outward one after another along the line (~900ms, staggered 90ms), the accent line wash fades in with them, and a medium haptic fires — all suppressed by the reduce-motion setting. The controls area grows and shrinks with an eased 280ms size change so the board settles instead of jumping; when motion is disabled the area changes size instantly. All motion collapses to zero when `MediaQuery.disableAnimationsOf` or the in-app reduce-motion setting is active. Animate implicit only (transform/opacity equivalents in Flutter); never block input on animation.
+Motion runs on two layers: **durations** (fast 150ms, feedback 180ms, mid 220ms, transition 320ms, settle 420ms) and **springs** (`AppSprings`/`SpringCurve` in `motion.dart` — a spring feel with deterministic timing that always lands exactly on target). State swaps and theme changes use `easeInOutCubicEmphasized`; entrances use `emphasizedDecelerate`.
+
+- **Press feedback:** tappable cards and key buttons compress to 96% on a spring while pressed and release with an elastic settle — a paint-only transform, so layout and hit testing observe the surface at rest.
+- **Entrances:** page sections and first-screen cards fade in while sliding up 24px; list tiles cascade in 30ms steps for the first items (long lists enter without waiting); empty states stagger illustration → title → body → action at 60ms steps.
+- **Tab navigation:** switching destinations plays a 220ms fade-and-slide on the incoming branch and fires a selection haptic; the bottom bar's filled/outline icon pair swaps with the selection.
+- **Page transitions:** every pushed route uses the horizontal shared-axis transition (320ms) on all platforms.
+- **Dialogs:** scale-and-fade in over a 32% scrim (240ms).
+- **Board:** stone placement settles on the settle spring over 400ms. A five-in-a-row win is the single loud moment: the accent wash grows along the winning line (~400ms) while the winning stones pulse outward one after another (90ms stagger) with a medium haptic. The pre-selected ghost stone breathes gently while it waits for confirmation.
+- All motion collapses to zero when `MediaQuery.disableAnimationsOf` or the in-app reduce-motion setting is active — via `AppMotion.duration` for timing and explicit settled states elsewhere. Animate implicit only (transform/opacity equivalents in Flutter); never block input on animation.
 
 ## Accessibility
 
