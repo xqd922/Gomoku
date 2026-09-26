@@ -31,8 +31,11 @@ abstract final class AppLayout {
 }
 
 abstract final class AppMotion {
+  static const fast = Duration(milliseconds: 150);
   static const feedback = Duration(milliseconds: 180);
+  static const mid = Duration(milliseconds: 220);
   static const transition = Duration(milliseconds: 320);
+  static const settle = Duration(milliseconds: 420);
   static Duration duration(BuildContext context, Duration duration) =>
       MediaQuery.disableAnimationsOf(context) ? Duration.zero : duration;
 }

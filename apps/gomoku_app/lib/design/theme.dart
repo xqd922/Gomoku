@@ -1,6 +1,28 @@
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 
+import 'shape.dart';
 import 'tokens.dart';
+
+/// Horizontal shared-axis page transition on every platform: pushed pages
+/// arrive as the next step of one continuous surface (320ms route default).
+class _SharedXTransitionsBuilder extends PageTransitionsBuilder {
+  const _SharedXTransitionsBuilder();
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) => SharedAxisTransition(
+    animation: animation,
+    secondaryAnimation: secondaryAnimation,
+    transitionType: SharedAxisTransitionType.horizontal,
+    fillColor: Theme.of(context).colorScheme.surface,
+    child: child,
+  );
+}
 
 abstract final class AppTheme {
   static ThemeData build(
@@ -79,142 +101,166 @@ abstract final class AppTheme {
         letterSpacing: chinese ? 0 : .1,
       ),
     );
-    return base.copyWith(
-      textTheme: text,
-      appBarTheme: AppBarTheme(
-        backgroundColor: colors.surface,
-        foregroundColor: colors.onSurface,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        titleTextStyle: text.titleLarge,
-      ),
-      tabBarTheme: TabBarThemeData(
-        labelStyle: text.titleSmall,
-        unselectedLabelStyle: text.titleSmall,
-        labelColor: colors.primary,
-        unselectedLabelColor: colors.onSurfaceVariant,
-        dividerColor: colors.outlineVariant.withValues(alpha: .45),
-        indicatorSize: TabBarIndicatorSize.label,
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(64, 56),
-          shape: const StadiumBorder(),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          textStyle: text.labelLarge,
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(64, 52),
-          shape: const StadiumBorder(),
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-          side: BorderSide(color: colors.outline),
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          minimumSize: const Size(48, 48),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        ),
-      ),
-      iconButtonTheme: IconButtonThemeData(
-        style: IconButton.styleFrom(
-          minimumSize: const Size(48, 48),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: colors.surfaceContainerHighest,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.content,
-          vertical: AppSpacing.content,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.field),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.field),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.field),
-          borderSide: BorderSide(color: colors.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.field),
-          borderSide: BorderSide(color: colors.error),
-        ),
-        errorMaxLines: 3,
-      ),
-      cardTheme: CardThemeData(
-        color: colors.surfaceContainerLow,
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppShape.card),
-        ),
-      ),
-      chipTheme: base.chipTheme.copyWith(
-        side: BorderSide.none,
-        backgroundColor: colors.surfaceContainerLow,
-        selectedColor: colors.secondaryContainer,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppShape.thumb),
-        ),
-        labelStyle: text.labelLarge,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.content,
-          vertical: AppSpacing.tight,
-        ),
-      ),
-      listTileTheme: ListTileThemeData(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.content,
-          vertical: AppSpacing.tight,
-        ),
-        iconColor: colors.onSurfaceVariant,
-        titleTextStyle: text.titleMedium,
-        subtitleTextStyle: text.bodyMedium?.copyWith(
-          color: colors.onSurfaceVariant,
-        ),
-        minTileHeight: 64,
-      ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: colors.surfaceContainerHigh,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppShape.feature),
-        ),
-      ),
-      bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: colors.surfaceContainerLow,
-        modalBackgroundColor: colors.surfaceContainerLow,
-        showDragHandle: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(AppShape.feature),
+    return base
+        .copyWith(
+          textTheme: text,
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {
+              TargetPlatform.android: _SharedXTransitionsBuilder(),
+              TargetPlatform.iOS: _SharedXTransitionsBuilder(),
+              TargetPlatform.macOS: _SharedXTransitionsBuilder(),
+              TargetPlatform.linux: _SharedXTransitionsBuilder(),
+              TargetPlatform.windows: _SharedXTransitionsBuilder(),
+            },
           ),
-        ),
-      ),
-      popupMenuTheme: PopupMenuThemeData(
-        color: colors.surfaceContainerHigh,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppShape.menu),
-        ),
-      ),
-      snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppShape.field),
-        ),
-      ),
-      dividerTheme: DividerThemeData(
-        color: colors.outlineVariant.withValues(alpha: .55),
-        thickness: 1,
-      ),
-    );
+          navigationBarTheme: NavigationBarThemeData(
+            height: 68,
+            elevation: 0,
+            backgroundColor: colors.surfaceContainer,
+            surfaceTintColor: Colors.transparent,
+            indicatorColor: colors.secondaryContainer,
+            labelTextStyle: WidgetStatePropertyAll(text.labelMedium),
+          ),
+          navigationRailTheme: NavigationRailThemeData(
+            backgroundColor: colors.surface,
+            indicatorColor: colors.secondaryContainer,
+            groupAlignment: -1,
+            selectedLabelTextStyle: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelTextStyle: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          appBarTheme: AppBarTheme(
+            backgroundColor: colors.surface,
+            foregroundColor: colors.onSurface,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            centerTitle: false,
+            titleTextStyle: text.titleLarge,
+          ),
+          filledButtonTheme: FilledButtonThemeData(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(64, 56),
+              shape: const StadiumBorder(),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              textStyle: text.labelLarge,
+            ),
+          ),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(64, 52),
+              shape: const StadiumBorder(),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+              side: BorderSide(color: colors.outline),
+            ),
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              minimumSize: const Size(48, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          iconButtonTheme: IconButtonThemeData(
+            style: IconButton.styleFrom(
+              minimumSize: const Size(48, 48),
+            ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: colors.surfaceContainerHighest,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.content,
+              vertical: AppSpacing.content,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppShape.field),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppShape.field),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppShape.field),
+              borderSide: BorderSide(color: colors.primary, width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppShape.field),
+              borderSide: BorderSide(color: colors.error),
+            ),
+            errorMaxLines: 3,
+          ),
+          cardTheme: CardThemeData(
+            color: colors.surfaceContainerLow,
+            elevation: 0,
+            margin: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppShape.card),
+            ),
+          ),
+          chipTheme: base.chipTheme.copyWith(
+            side: BorderSide.none,
+            backgroundColor: colors.surfaceContainerLow,
+            selectedColor: colors.secondaryContainer,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppShape.thumb),
+            ),
+            labelStyle: text.labelLarge,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.content,
+              vertical: AppSpacing.tight,
+            ),
+          ),
+          listTileTheme: ListTileThemeData(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.content,
+              vertical: AppSpacing.tight,
+            ),
+            iconColor: colors.onSurfaceVariant,
+            titleTextStyle: text.titleMedium,
+            subtitleTextStyle: text.bodyMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+            minTileHeight: 64,
+          ),
+          dialogTheme: DialogThemeData(
+            backgroundColor: colors.surfaceContainerHigh,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppShape.feature),
+            ),
+          ),
+          bottomSheetTheme: BottomSheetThemeData(
+            backgroundColor: colors.surfaceContainerLow,
+            modalBackgroundColor: colors.surfaceContainerLow,
+            showDragHandle: true,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(AppShape.feature),
+              ),
+            ),
+          ),
+          popupMenuTheme: PopupMenuThemeData(
+            color: colors.surfaceContainerHigh,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppShape.menu),
+            ),
+          ),
+          snackBarTheme: SnackBarThemeData(
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppShape.field),
+            ),
+          ),
+          dividerTheme: DividerThemeData(
+            color: colors.outlineVariant.withValues(alpha: .55),
+            thickness: 1,
+          ),
+        )
+        .withAppShapes;
   }
 }
