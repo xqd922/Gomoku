@@ -1,0 +1,41 @@
+{
+  "version": "1.5.0+10500",
+  "releaseDecision": {
+    "authorizedBy": "user",
+    "date": "2026-09-26",
+    "instruction": "用户在界面重构（底部导航、我的页、超椭圆与弹簧动效）完成并通过全部自动验证后，要求推送并发版。构建由 v1.5.0 标签流水线执行；真机验收沿用既有豁免；本版本无协议与数据库变更，生产服务端可不升级，升级后仅版本号变为 1.5.0。",
+    "waivedChecks": ["online", "capacity60Minutes", "androidManual", "windowsRuntime"]
+  },
+  "builds": {
+    "status": "passed",
+    "evidence": "tool/check.ps1 全套通过：dart format 门禁、dart analyze --fatal-infos 无问题、gomoku_core 12 项测试、gomoku_app 56 项测试（含 layout_test 11 组视口×语言×字号×主题矩阵、新增 design_motion_test 弹簧/按压/入场用例）。根锁文件与 infra/server.pubspec.lock 经 tool/check_server_lock.dart 核对一致（新增 animations 依赖后按 docs/DEPLOYMENT.md 在 WSL Docker 中重新生成）。无协议变更，无数据库迁移。六端客户端、Debian 12 服务端由 v1.5.0 标签流水线执行，全部作业成功后才由发布作业放行。上述本地结果是自动检查，不是真机验收，也不能代替尚未跑完的标签流水线。"
+  },
+  "webRuntime": {
+    "status": "passed",
+    "evidence": "tool/dev.ps1 启动 Docker 服务（Postgres/Redis/Mailpit）并以 flutter build web --release 构建后，tool/browser/verify.mjs 全部 9 个场景通过、页面零运行时异常：深链接/前进后退、房间创建加入与重载、HttpOnly 会话属性、双端完整对局含申请悔棋与胜利线广播、断线暂停与恢复续弈、逐步复盘、Mailpit 邮箱注册与游客棋谱合并、第二设备登录、Drift 多标签与离线重载、深色/英文/横屏适配。已知限制：Flutter Web 未把 NavigationRail 目的地暴露给无障碍树（NavigationBar 正常暴露 tablist/tab），浏览器场景改用 URL 导航覆盖桌面路径；键盘焦点在 Web 端对侧栏的可达性待真机复核。"
+  },
+  "online": {
+    "status": "waived",
+    "evidence": "生产站点可继续运行 v1.4.1 服务端：本版本无新增接口、无裁定变更，服务端仅版本号默认值变为 1.5.0。若升级镜像，/health 的版本号应变为 1.5.0；步骤与回滚方式见 docs/releases/v1.5.0.md。"
+  },
+  "capacity60Minutes": {
+    "status": "waived",
+    "evidence": "本版本无新增迁移、无表结构变更，房间与棋谱裁定路径未改动。60 分钟容量验收本轮未执行。"
+  },
+  "backupRestore": {
+    "status": "passed",
+    "evidence": "2026-09-12T13:57Z 生产库转储恢复演练通过（SHA256 69614d3b3f17616aa880855157b1d177543bc839aa0dfd95760b70b71fac989b）；每次 install 前服务端自动执行并校验 pg_dump 备份。v1.5.0 不新增迁移、不改变表结构。"
+  },
+  "existingServices": {
+    "status": "passed",
+    "evidence": "v1.2.2 生产部署报告确认五个既有服务 PID 全部未变、磁盘余量充足、上一版可回滚（artifacts/production/deployment-v122.json）。v1.5.0 沿用同一部署方案，不触碰网关与代理配置，Caddy 路由无变更。"
+  },
+  "androidManual": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 真机验收与后续版本的豁免记录。本轮为界面骨架与动效改版，已有布局、对局流程与新增动效测试覆盖，真机回归待补；versionCode 10500 递增，可直接覆盖安装。"
+  },
+  "windowsRuntime": {
+    "status": "waived",
+    "evidence": "沿用 v1.2.0 记录：RC2 通过 Windows 11 实机启动、数据保留与完整输入路径。本轮改动为 Flutter 界面层（含桌面侧边导航栏），Windows 实机复核待补。"
+  }
+}

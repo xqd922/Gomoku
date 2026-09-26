@@ -1,7 +1,7 @@
 name: gomoku_flutter
 description: A thoughtful, expressive Gomoku game for every screen.
 publish_to: none
-version: 1.4.1+10401
+version: 1.5.0+10500
 environment:
   sdk: ^3.13.0
   flutter: ">=3.47.1"
