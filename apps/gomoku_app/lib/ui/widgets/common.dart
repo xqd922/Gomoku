@@ -1,11 +1,15 @@
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gomoku_core/gomoku_core.dart';
 
 import '../../data/api.dart';
 import '../../design/board_palette.dart';
+import '../../design/shape.dart';
 import '../../design/tokens.dart';
 import '../../l10n/strings.dart';
+import 'enter.dart';
+import 'press.dart';
 
 class PageFrame extends StatelessWidget {
   const PageFrame({
@@ -177,58 +181,61 @@ class RecordTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.strings;
     final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: colors.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(AppShape.menu),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppShape.menu),
-        onTap: () => context.push('/history/${record.id}'),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.content),
-          child: Row(
-            children: [
-              ExcludeSemantics(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppShape.thumb),
-                  child: CustomPaint(
-                    size: const Size.square(64),
-                    painter: _RecordPreview(record.game, colors),
+    return Pressable(
+      onTap: () => context.push('/history/${record.id}'),
+      child: Material(
+        color: colors.surfaceContainerLow,
+        shape: AppShapes.menu,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => context.push('/history/${record.id}'),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.content),
+            child: Row(
+              children: [
+                ExcludeSemantics(
+                  child: ClipRSuperellipse(
+                    borderRadius: BorderRadius.circular(AppShape.thumb),
+                    child: CustomPaint(
+                      size: const Size.square(64),
+                      painter: _RecordPreview(record.game, colors),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      resultLabel(record.game, s),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.tight),
-                    Text(
-                      s.t('players', {
-                        'black': record.blackName,
-                        'white': record.whiteName,
-                      }),
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.tight),
-                    Text(
-                      '${s.t(record.source == RecordSource.local ? 'localMatch' : 'friendMatch')} · ${s.t('moves', {'n': record.game.moves.length})} · ${record.updatedAt.toLocal().hour.toString().padLeft(2, '0')}:${record.updatedAt.toLocal().minute.toString().padLeft(2, '0')}',
-                      style: Theme.of(context).textTheme.bodySmall
-                          ?.copyWith(color: colors.onSurfaceVariant),
-                    ),
-                  ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        resultLabel(record.game, s),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.tight),
+                      Text(
+                        s.t('players', {
+                          'black': record.blackName,
+                          'white': record.whiteName,
+                        }),
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.tight),
+                      Text(
+                        '${s.t(record.source == RecordSource.local ? 'localMatch' : 'friendMatch')} · ${s.t('moves', {'n': record.game.moves.length})} · ${record.updatedAt.toLocal().hour.toString().padLeft(2, '0')}:${record.updatedAt.toLocal().minute.toString().padLeft(2, '0')}',
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: colors.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: colors.onSurfaceVariant,
-              ),
-            ],
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: colors.onSurfaceVariant,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -246,40 +253,52 @@ class EmptyGames extends StatelessWidget {
         horizontal: AppSpacing.section,
         vertical: AppSpacing.page,
       ),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: colors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(AppShape.card),
+        shape: AppShapes.card,
       ),
       child: Column(
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              StoneDisc(stone: Stone.black, size: 22),
-              SizedBox(width: 8),
-              StoneDisc(stone: Stone.white, size: 22),
-              SizedBox(width: 8),
-              StoneDisc(stone: Stone.black, size: 22),
-            ],
+          StaggeredEnter(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                StoneDisc(stone: Stone.black, size: 22),
+                SizedBox(width: 8),
+                StoneDisc(stone: Stone.white, size: 22),
+                SizedBox(width: 8),
+                StoneDisc(stone: Stone.black, size: 22),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
-          Text(
-            context.strings.t('libraryEmpty'),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleSmall,
+          StaggeredEnter(
+            delay: const Duration(milliseconds: 60),
+            child: Text(
+              context.strings.t('libraryEmpty'),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
           ),
           const SizedBox(height: AppSpacing.tight),
-          Text(
-            context.strings.t('emptyHistoryBody'),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall
-                ?.copyWith(color: colors.onSurfaceVariant),
+          StaggeredEnter(
+            delay: const Duration(milliseconds: 120),
+            child: Text(
+              context.strings.t('emptyHistoryBody'),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
           ),
           const SizedBox(height: AppSpacing.content),
-          FilledButton.tonalIcon(
-            onPressed: () => context.go('/'),
-            icon: const Icon(Icons.add_rounded),
-            label: Text(context.strings.t('startPlaying')),
+          StaggeredEnter(
+            delay: const Duration(milliseconds: 180),
+            child: FilledButton.tonalIcon(
+              onPressed: () => context.go('/'),
+              icon: const Icon(Icons.add_rounded),
+              label: Text(context.strings.t('startPlaying')),
+            ),
           ),
         ],
       ),
@@ -348,7 +367,7 @@ class SettingsGroup extends StatelessWidget {
         Material(
           color: colors.surfaceContainerLow,
           clipBehavior: Clip.antiAlias,
-          borderRadius: BorderRadius.circular(AppShape.card),
+          shape: AppShapes.card,
           child: Column(
             children: [
               for (var i = 0; i < children.length; i++) ...[
@@ -390,9 +409,9 @@ class InlineNotice extends StatelessWidget {
       liveRegion: true,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.content),
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           color: error ? colors.errorContainer : colors.secondaryContainer,
-          borderRadius: BorderRadius.circular(AppShape.menu),
+          shape: AppShapes.menu,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -421,6 +440,30 @@ class InlineNotice extends StatelessWidget {
   }
 }
 
+Future<T?> showAppDialog<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool barrierDismissible = true,
+}) {
+  final duration = AppMotion.duration(
+    context,
+    const Duration(milliseconds: 240),
+  );
+  return showGeneralDialog<T>(
+    context: context,
+    barrierDismissible: barrierDismissible,
+    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+    barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: .32),
+    transitionDuration: duration,
+    pageBuilder: (dialogContext, animation, secondaryAnimation) =>
+        builder(dialogContext),
+    transitionBuilder: (context, animation, secondaryAnimation, child) =>
+        duration <= Duration.zero
+        ? child
+        : FadeScaleTransition(animation: animation, child: child),
+  );
+}
+
 Future<T?> showChoice<T>(
   BuildContext context, {
   required String title,
@@ -441,7 +484,7 @@ Future<T?> showChoice<T>(
     ),
   );
   if (MediaQuery.sizeOf(context).width >= AppLayout.compact) {
-    return showDialog<T>(
+    return showAppDialog(
       context: context,
       builder: (sheetContext) => AlertDialog(
         title: Text(title),
@@ -489,7 +532,7 @@ Future<bool> confirmAction(
   String body, {
   String? confirmLabel,
 }) async =>
-    await showDialog<bool>(
+    await showAppDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),

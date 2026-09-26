@@ -10,6 +10,8 @@ import 'package:gomoku_client/gomoku_client.dart';
 import 'package:gomoku_core/gomoku_core.dart';
 
 import '../../data/api.dart';
+import '../../design/motion.dart';
+import '../../design/shape.dart';
 import '../../design/tokens.dart';
 import '../../l10n/strings.dart';
 import '../../state/app_state.dart';
@@ -18,6 +20,7 @@ import '../../state/settings.dart';
 import '../shell.dart';
 import '../widgets/board.dart';
 import '../widgets/common.dart';
+import '../widgets/enter.dart';
 import '../widgets/game_layout.dart';
 import 'settings_page.dart';
 
@@ -168,7 +171,7 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
                   ),
                   if (needsLogin)
                     FilledButton.icon(
-                      onPressed: () => context.go('/account?returnTo=%2Flobby'),
+                      onPressed: () => context.go('/me?returnTo=%2Flobby'),
                       icon: const Icon(Icons.login_rounded),
                       label: Text(s.t('login')),
                     ),
@@ -265,8 +268,9 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
       ],
     );
 
+    Widget page;
     if (waiting) {
-      return SectionScaffold(
+      page = SectionScaffold(
         title: s.t('friendMatch'),
         actions: [menu],
         child: PageFrame(
@@ -280,88 +284,95 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
               reconnecting,
               const SizedBox(height: 16),
             ],
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.section),
-              decoration: BoxDecoration(
-                color: colors.primaryContainer,
-                borderRadius: BorderRadius.circular(AppShape.feature),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    s.t('roomCode'),
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                  const SizedBox(height: 10),
-                  SelectableText(
-                    room.code,
-                    semanticsLabel:
-                        '${s.t('roomCode')}: ${room.code.split('').join(' ')}',
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      color: colors.onPrimaryContainer,
-                      letterSpacing: 4,
+            StaggeredEnter(
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.section),
+                decoration: ShapeDecoration(
+                  color: colors.primaryContainer,
+                  shape: AppShapes.feature,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      s.t('roomCode'),
+                      style: Theme.of(context).textTheme.labelLarge,
                     ),
+                    const SizedBox(height: 10),
+                    SelectableText(
+                      room.code,
+                      semanticsLabel:
+                          '${s.t('roomCode')}: ${room.code.split('').join(' ')}',
+                      style: Theme.of(context).textTheme.displayMedium
+                          ?.copyWith(
+                            color: colors.onPrimaryContainer,
+                            letterSpacing: 4,
+                          ),
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FilledButton.tonalIcon(
+                          onPressed: () => _copy(room.code),
+                          icon: const Icon(Icons.copy_rounded),
+                          label: Text(s.t('shareCode')),
+                        ),
+                        TextButton.icon(
+                          onPressed: () =>
+                              _copy('${Api.webUrl}/join/${room.code}'),
+                          icon: const Icon(Icons.link_rounded),
+                          label: Text(s.t('shareLink')),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            StaggeredEnter(
+              delay: const Duration(milliseconds: 60),
+              child: SettingsGroup(
+                title: s.t('readyCaption'),
+                children: [
+                  _ReadySeat(
+                    name: room.hostName,
+                    stone: hostBlack ? Stone.black : Stone.white,
+                    mine: isHost,
+                    online: room.hostConnected,
+                    ready: room.hostReady,
                   ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      FilledButton.tonalIcon(
-                        onPressed: () => _copy(room.code),
-                        icon: const Icon(Icons.copy_rounded),
-                        label: Text(s.t('shareCode')),
-                      ),
-                      TextButton.icon(
-                        onPressed: () =>
-                            _copy('${Api.webUrl}/join/${room.code}'),
-                        icon: const Icon(Icons.link_rounded),
-                        label: Text(s.t('shareLink')),
-                      ),
-                    ],
+                  _ReadySeat(
+                    name: room.guestName ?? s.t('waitingSeat'),
+                    stone: hostBlack ? Stone.white : Stone.black,
+                    mine: !isHost,
+                    online: room.guestConnected,
+                    ready: room.guestReady,
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-            SettingsGroup(
-              title: s.t('readyCaption'),
-              children: [
-                _ReadySeat(
-                  name: room.hostName,
-                  stone: hostBlack ? Stone.black : Stone.white,
-                  mine: isHost,
-                  online: room.hostConnected,
-                  ready: room.hostReady,
+            StaggeredEnter(
+              delay: const Duration(milliseconds: 120),
+              child: FilledButton.icon(
+                key: const ValueKey('ready-room'),
+                onPressed: canSend && !myReady
+                    ? () => _send(RoomAction.ready)
+                    : null,
+                icon: Icon(
+                  myReady ? Icons.check_rounded : Icons.play_arrow_rounded,
                 ),
-                _ReadySeat(
-                  name: room.guestName ?? s.t('waitingSeat'),
-                  stone: hostBlack ? Stone.white : Stone.black,
-                  mine: !isHost,
-                  online: room.guestConnected,
-                  ready: room.guestReady,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              key: const ValueKey('ready-room'),
-              onPressed: canSend && !myReady
-                  ? () => _send(RoomAction.ready)
-                  : null,
-              icon: Icon(
-                myReady ? Icons.check_rounded : Icons.play_arrow_rounded,
+                label: Text(s.t(myReady ? 'isReady' : 'ready')),
               ),
-              label: Text(s.t(myReady ? 'isReady' : 'ready')),
             ),
           ],
         ),
       );
-    }
-
-    if (closed && !game.isOver) {
-      return SectionScaffold(
+    } else if (closed && !game.isOver) {
+      page = SectionScaffold(
         title: s.t('friendMatch'),
         child: PageFrame(
           children: [
@@ -374,112 +385,133 @@ class _OnlinePageState extends ConsumerState<OnlinePage> {
           ],
         ),
       );
-    }
+    } else {
+      final status = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PlayerStrip(
+            blackName: hostBlack
+                ? room.hostName
+                : room.guestName ?? s.t('white'),
+            whiteName: hostBlack
+                ? room.guestName ?? s.t('white')
+                : room.hostName,
+            blackOnline: hostBlack ? room.hostConnected : room.guestConnected,
+            whiteOnline: hostBlack ? room.guestConnected : room.hostConnected,
+            label: label,
+            moves: game.moves.length,
+            activeStone: playing ? game.turn : null,
+          ),
+          if (reconnecting != null) ...[
+            const SizedBox(height: 12),
+            reconnecting,
+          ],
+          if (room.status == RoomStatus.paused &&
+              room.resumeDeadline != null) ...[
+            const SizedBox(height: 12),
+            _DisconnectNotice(
+              deadline: room.resumeDeadline!,
+              serverTime: room.serverTime,
+            ),
+          ],
+          if (playing && room.undoRequestedBy != null) ...[
+            const SizedBox(height: 12),
+            InlineNotice(
+              icon: Icons.undo_rounded,
+              message: s.t(
+                room.undoRequestedBy == player ? 'undoWaiting' : 'undoIncoming',
+              ),
+              action: room.undoRequestedBy == player
+                  ? null
+                  : Wrap(
+                      spacing: 8,
+                      children: [
+                        TextButton(
+                          onPressed: canSend
+                              ? () => _send(RoomAction.rejectUndo)
+                              : null,
+                          child: Text(s.t('decline')),
+                        ),
+                        FilledButton.tonal(
+                          onPressed: canSend
+                              ? () => _send(RoomAction.acceptUndo)
+                              : null,
+                          child: Text(s.t('accept')),
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ],
+      );
 
-    final status = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        PlayerStrip(
-          blackName: hostBlack ? room.hostName : room.guestName ?? s.t('white'),
-          whiteName: hostBlack ? room.guestName ?? s.t('white') : room.hostName,
-          blackOnline: hostBlack ? room.hostConnected : room.guestConnected,
-          whiteOnline: hostBlack ? room.guestConnected : room.hostConnected,
-          label: label,
-          moves: game.moves.length,
-          activeStone: playing ? game.turn : null,
+      page = GameScaffold(
+        title: s.t('friendMatch'),
+        actions: [menu],
+        board: GameBoard(
+          key: _boardKey,
+          game: game,
+          settings: ref.watch(settingsProvider),
+          interaction: _interaction,
+          showControls: false,
+          enabled: canSend && myTurn && room.undoRequestedBy == null,
+          onMove: (row, col) => ref
+              .read(onlineProvider.notifier)
+              .send(RoomAction.move, row: row, col: col),
         ),
-        if (reconnecting != null) ...[const SizedBox(height: 12), reconnecting],
-        if (room.status == RoomStatus.paused &&
-            room.resumeDeadline != null) ...[
-          const SizedBox(height: 12),
-          _DisconnectNotice(
-            deadline: room.resumeDeadline!,
-            serverTime: room.serverTime,
-          ),
-        ],
-        if (playing && room.undoRequestedBy != null) ...[
-          const SizedBox(height: 12),
-          InlineNotice(
-            icon: Icons.undo_rounded,
-            message: s.t(
-              room.undoRequestedBy == player ? 'undoWaiting' : 'undoIncoming',
-            ),
-            action: room.undoRequestedBy == player
-                ? null
-                : Wrap(
-                    spacing: 8,
-                    children: [
-                      TextButton(
-                        onPressed: canSend
-                            ? () => _send(RoomAction.rejectUndo)
-                            : null,
-                        child: Text(s.t('decline')),
-                      ),
-                      FilledButton.tonal(
-                        onPressed: canSend
-                            ? () => _send(RoomAction.acceptUndo)
-                            : null,
-                        child: Text(s.t('accept')),
-                      ),
-                    ],
+        status: status,
+        controls: game.isOver
+            ? ResultMoment(
+                key: ValueKey(room.gameId),
+                gameId: room.gameId,
+                label: resultLabel(game, s),
+                child: EndGameActions(
+                  primaryLabel: s.t(
+                    closed
+                        ? 'returnHome'
+                        : myReady
+                        ? 'rematchWaiting'
+                        : 'rematch',
                   ),
-          ),
-        ],
-      ],
-    );
-
-    return GameScaffold(
-      title: s.t('friendMatch'),
-      actions: [menu],
-      board: GameBoard(
-        key: _boardKey,
-        game: game,
-        settings: ref.watch(settingsProvider),
-        interaction: _interaction,
-        showControls: false,
-        enabled: canSend && myTurn && room.undoRequestedBy == null,
-        onMove: (row, col) => ref
-            .read(onlineProvider.notifier)
-            .send(RoomAction.move, row: row, col: col),
-      ),
-      status: status,
-      controls: game.isOver
-          ? ResultMoment(
-              key: ValueKey(room.gameId),
-              gameId: room.gameId,
-              label: resultLabel(game, s),
-              child: EndGameActions(
-                primaryLabel: s.t(
-                  closed
-                      ? 'returnHome'
-                      : myReady
-                      ? 'rematchWaiting'
-                      : 'rematch',
+                  onPrimary: closed
+                      ? () => context.go('/')
+                      : finished && canSend && !myReady
+                      ? () => _send(RoomAction.rematch)
+                      : null,
+                  onReplay: () => context.push('/history/${room.gameId}'),
                 ),
-                onPrimary: closed
-                    ? () => context.go('/')
-                    : finished && canSend && !myReady
-                    ? () => _send(RoomAction.rematch)
-                    : null,
-                onReplay: () => context.push('/history/${room.gameId}'),
+              )
+            : MoveControls(
+                interaction: _interaction,
+                message: !canSend || !myTurn ? label : null,
+                undo: IconButton.filledTonal(
+                  tooltip: s.t('undoRequest'),
+                  onPressed:
+                      playing &&
+                          canSend &&
+                          room.undoRequestedBy == null &&
+                          game.moves.any((move) => move.stone == myStone)
+                      ? () => _send(RoomAction.requestUndo)
+                      : null,
+                  icon: const Icon(Icons.undo_rounded),
+                ),
               ),
-            )
-          : MoveControls(
-              interaction: _interaction,
-              message: !canSend || !myTurn ? label : null,
-              undo: IconButton.filledTonal(
-                tooltip: s.t('undoRequest'),
-                onPressed:
-                    playing &&
-                        canSend &&
-                        room.undoRequestedBy == null &&
-                        game.moves.any((move) => move.stone == myStone)
-                    ? () => _send(RoomAction.requestUndo)
-                    : null,
-                icon: const Icon(Icons.undo_rounded),
-              ),
-            ),
-      details: _roomInfo(room),
+        details: _roomInfo(room),
+      );
+    }
+    return AnimatedSwitcher(
+      duration: AppMotion.duration(context, AppMotion.mid),
+      switchInCurve: AppCurves.decelerate,
+      child: KeyedSubtree(
+        key: ValueKey(
+          waiting
+              ? 'waiting'
+              : closed && !game.isOver
+              ? 'closed'
+              : 'board',
+        ),
+        child: page,
+      ),
     );
   }
 }

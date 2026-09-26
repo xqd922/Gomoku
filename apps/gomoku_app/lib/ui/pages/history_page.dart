@@ -12,6 +12,7 @@ import '../../state/settings.dart';
 import '../shell.dart';
 import '../widgets/board.dart';
 import '../widgets/common.dart';
+import '../widgets/enter.dart';
 import '../widgets/game_layout.dart';
 
 class HistoryPage extends ConsumerStatefulWidget {
@@ -178,7 +179,9 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                       )
                     : Padding(
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: RecordTile(record: item as GameRecord),
+                        child: StaggeredEnter(
+                          child: RecordTile(record: item as GameRecord),
+                        ),
                       ),
               );
             },

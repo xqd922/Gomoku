@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gomoku_core/gomoku_core.dart';
 
+import '../../design/motion.dart';
+import '../../design/shape.dart';
 import '../../design/tokens.dart';
 import '../../l10n/strings.dart';
 import '../shell.dart';
@@ -137,16 +139,16 @@ class GameScaffold extends StatelessWidget {
                 },
               ),
             ),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerLow,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppShape.card),
-                ),
+            ClipRSuperellipse(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppShape.card),
               ),
-              child: _AnimatedControls(child: controls),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
+                child: _AnimatedControls(child: controls),
+              ),
             ),
           ],
         );
@@ -170,7 +172,7 @@ class _AnimatedControls extends StatelessWidget {
     if (duration <= Duration.zero) return child;
     return AnimatedSize(
       duration: duration,
-      curve: Curves.easeOutCubic,
+      curve: AppCurves.decelerate,
       alignment: Alignment.topCenter,
       child: child,
     );
@@ -273,16 +275,18 @@ class PlayerStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     Widget player(String name, Stone stone, bool? online) => Expanded(
-      child: Container(
+      child: AnimatedContainer(
+        duration: AppMotion.duration(context, AppMotion.mid),
+        curve: AppCurves.emphasized,
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.content,
           vertical: AppSpacing.tight,
         ),
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           color: activeStone == stone
               ? colors.secondaryContainer
               : colors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(AppShape.card),
+          shape: AppShapes.card,
         ),
         child: Row(
           children: [
@@ -368,15 +372,15 @@ class _ResultMomentState extends ConsumerState<ResultMoment> {
     final colors = Theme.of(context).colorScheme;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: _animate ? .92 : 1, end: 1),
-      duration: AppMotion.duration(context, const Duration(milliseconds: 420)),
-      curve: Curves.easeOutBack,
+      duration: AppMotion.duration(context, AppMotion.settle),
+      curve: AppCurves.settle,
       builder: (context, value, child) =>
           Transform.scale(scale: value, child: child),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.content),
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           color: colors.tertiaryContainer,
-          borderRadius: BorderRadius.circular(AppShape.card),
+          shape: AppShapes.card,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

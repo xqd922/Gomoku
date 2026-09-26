@@ -4,12 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:gomoku_client/gomoku_client.dart';
 
 import '../../data/api.dart';
+import '../../design/shape.dart';
 import '../../design/tokens.dart';
 import '../../l10n/strings.dart';
 import '../../state/app_state.dart';
 import '../../state/online.dart';
 import '../../state/settings.dart';
 import '../widgets/common.dart';
+import '../widgets/enter.dart';
+import '../widgets/press.dart';
 
 class LobbyPage extends ConsumerStatefulWidget {
   const LobbyPage({super.key, this.initialCode = ''});
@@ -187,15 +190,23 @@ class _LobbyPageState extends ConsumerState<LobbyPage> {
                 ?.copyWith(color: colors.primary),
           ),
           const SizedBox(height: 12),
-          for (final room in openRooms)
-            Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                leading: const Icon(Icons.person_outline_rounded),
-                title: Text(s.t('openRoomsBody', {'name': room.hostName})),
-                trailing: FilledButton.tonal(
-                  onPressed: _busy ? null : () => _joinOpen(room),
-                  child: Text(s.t('join')),
+          for (final (index, room) in openRooms.indexed)
+            StaggeredEnter(
+              delay: enterStagger(index),
+              child: Pressable(
+                onTap: _busy ? null : () => _joinOpen(room),
+                child: Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    leading: const Icon(Icons.person_outline_rounded),
+                    title: Text(
+                      s.t('openRoomsBody', {'name': room.hostName}),
+                    ),
+                    trailing: FilledButton.tonal(
+                      onPressed: _busy ? null : () => _joinOpen(room),
+                      child: Text(s.t('join')),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -203,9 +214,9 @@ class _LobbyPageState extends ConsumerState<LobbyPage> {
         ],
         Container(
           padding: const EdgeInsets.all(AppSpacing.section),
-          decoration: BoxDecoration(
+          decoration: ShapeDecoration(
             color: colors.secondaryContainer,
-            borderRadius: BorderRadius.circular(AppShape.feature),
+            shape: AppShapes.feature,
           ),
           child: Form(
             key: _form,

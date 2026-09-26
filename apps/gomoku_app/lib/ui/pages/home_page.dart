@@ -4,11 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:gomoku_client/gomoku_client.dart';
 import 'package:gomoku_core/gomoku_core.dart';
 
+import '../../design/shape.dart';
 import '../../design/tokens.dart';
 import '../../l10n/strings.dart';
 import '../../state/app_state.dart';
 import '../../state/online.dart';
 import '../widgets/common.dart';
+import '../widgets/enter.dart';
+import '../widgets/press.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -59,114 +62,141 @@ class _HomePageState extends ConsumerState<HomePage> {
     return PageFrame(
       scrollKey: const PageStorageKey('play-scroll'),
       children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth >= AppLayout.compact;
-            return Container(
-              padding: EdgeInsets.all(
-                wide ? AppSpacing.page : AppSpacing.section,
-              ),
-              decoration: BoxDecoration(
-                color: colors.primaryContainer,
-                borderRadius: BorderRadius.circular(AppShape.feature),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              s.t(resume ? 'resumeTitle' : 'homeTitle'),
-                              style:
-                                  (wide
-                                          ? Theme.of(context)
-                                                .textTheme
-                                                .headlineLarge
-                                          : Theme.of(context)
-                                                .textTheme
-                                                .headlineMedium)
-                                      ?.copyWith(
-                                        color: colors.onPrimaryContainer,
-                                      ),
-                            ),
-                            const SizedBox(height: AppSpacing.tight),
-                            Text(
-                              s.t(resume ? 'resumeCaption' : 'homeCaption'),
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(color: colors.onPrimaryContainer),
-                            ),
-                          ],
+        StaggeredEnter(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= AppLayout.compact;
+              return Container(
+                padding: EdgeInsets.all(
+                  wide ? AppSpacing.page : AppSpacing.section,
+                ),
+                decoration: ShapeDecoration(
+                  color: colors.primaryContainer,
+                  shape: AppShapes.feature,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                s.t(resume ? 'resumeTitle' : 'homeTitle'),
+                                style:
+                                    (wide
+                                            ? Theme.of(context)
+                                                  .textTheme
+                                                  .headlineLarge
+                                            : Theme.of(context)
+                                                  .textTheme
+                                                  .headlineMedium)
+                                        ?.copyWith(
+                                          color: colors.onPrimaryContainer,
+                                        ),
+                              ),
+                              const SizedBox(height: AppSpacing.tight),
+                              Text(
+                                s.t(resume ? 'resumeCaption' : 'homeCaption'),
+                                style: Theme.of(context).textTheme.bodyLarge
+                                    ?.copyWith(
+                                      color: colors.onPrimaryContainer,
+                                    ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      if (wide) ...[
-                        const SizedBox(width: AppSpacing.section),
-                        const ExcludeSemantics(child: _PlayArtwork()),
+                        if (wide) ...[
+                          const SizedBox(width: AppSpacing.section),
+                          const ExcludeSemantics(child: _PlayArtwork()),
+                        ],
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.section),
-                  Wrap(
-                    spacing: AppSpacing.content,
-                    runSpacing: AppSpacing.content,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      FilledButton.icon(
-                        key: const ValueKey('start-game'),
-                        onPressed: _starting
-                            ? null
-                            : () {
-                                if (active != null) {
-                                  context.push('/room/${active.roomId}');
-                                } else {
-                                  _local();
-                                }
-                              },
-                        icon: Icon(
-                          _starting
-                              ? Icons.hourglass_top_rounded
-                              : Icons.play_arrow_rounded,
+                    ),
+                    const SizedBox(height: AppSpacing.section),
+                    Wrap(
+                      spacing: AppSpacing.content,
+                      runSpacing: AppSpacing.content,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        FilledButton.icon(
+                          key: const ValueKey('start-game'),
+                          onPressed: _starting
+                              ? null
+                              : () {
+                                  if (active != null) {
+                                    context.push('/room/${active.roomId}');
+                                  } else {
+                                    _local();
+                                  }
+                                },
+                          icon: AnimatedSwitcher(
+                            duration: AppMotion.duration(
+                              context,
+                              AppMotion.fast,
+                            ),
+                            transitionBuilder: (child, animation) =>
+                                FadeTransition(
+                                  opacity: animation,
+                                  child: ScaleTransition(
+                                    scale: animation,
+                                    child: child,
+                                  ),
+                                ),
+                            child: Icon(
+                              key: ValueKey(_starting),
+                              _starting
+                                  ? Icons.hourglass_top_rounded
+                                  : Icons.play_arrow_rounded,
+                            ),
+                          ),
+                          label: Text(s.t(primaryLabel)),
                         ),
-                        label: Text(s.t(primaryLabel)),
-                      ),
-                      Text(
-                        active != null
-                            ? '${s.t('round', {'n': active.round})} · ${active.code}'
-                            : unfinished != null
-                            ? s.t('moves', {'n': unfinished.game.moves.length})
-                            : s.t('rules'),
-                        style: Theme.of(context).textTheme.labelLarge
-                            ?.copyWith(color: colors.onPrimaryContainer),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
+                        Text(
+                          active != null
+                              ? '${s.t('round', {'n': active.round})} · ${active.code}'
+                              : unfinished != null
+                              ? s.t('moves', {
+                                  'n': unfinished.game.moves.length,
+                                })
+                              : s.t('rules'),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(color: colors.onPrimaryContainer),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
         const SizedBox(height: AppSpacing.content),
         LayoutBuilder(
           builder: (context, constraints) {
-            final friend = _PlayShortcut(
-              title: s.t('playOnline'),
-              subtitle: s.t('onlineShort'),
-              icon: Icons.people_alt_outlined,
-              color: colors.secondaryContainer,
-              foreground: colors.onSecondaryContainer,
-              onTap: () => context.push('/lobby'),
+            final friend = StaggeredEnter(
+              delay: enterStagger(1),
+              child: _PlayShortcut(
+                title: s.t('playOnline'),
+                subtitle: s.t('onlineShort'),
+                icon: Icons.people_alt_outlined,
+                color: colors.secondaryContainer,
+                foreground: colors.onSecondaryContainer,
+                onTap: () => context.go('/lobby'),
+              ),
             );
-            final local = _PlayShortcut(
-              title: s.t(unfinished != null ? 'alsoLocal' : 'localPlay'),
-              subtitle: s.t('localShort'),
-              icon: Icons.grid_4x4_rounded,
-              color: colors.tertiaryContainer,
-              foreground: colors.onTertiaryContainer,
-              onTap: _starting ? null : _local,
+            final local = StaggeredEnter(
+              delay: enterStagger(2),
+              child: _PlayShortcut(
+                title: s.t(unfinished != null ? 'alsoLocal' : 'localPlay'),
+                subtitle: s.t('localShort'),
+                icon: Icons.grid_4x4_rounded,
+                color: colors.tertiaryContainer,
+                foreground: colors.onTertiaryContainer,
+                onTap: _starting ? null : _local,
+              ),
             );
             if (active == null && unfinished == null) return friend;
             if (constraints.maxWidth < AppLayout.compact) {
@@ -207,48 +237,53 @@ class _PlayShortcut extends StatelessWidget {
   final Color color, foreground;
   final VoidCallback? onTap;
   @override
-  Widget build(BuildContext context) => Material(
-    color: color,
-    borderRadius: BorderRadius.circular(AppShape.card),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(AppShape.card),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.section),
-        child: Row(
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: foreground.withValues(alpha: .12),
+  Widget build(BuildContext context) => Pressable(
+    onTap: onTap,
+    child: Material(
+      color: color,
+      shape: AppShapes.card,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.section),
+          child: Row(
+            children: [
+              ClipRSuperellipse(
                 borderRadius: BorderRadius.circular(AppShape.field),
-              ),
-              child: SizedBox.square(
-                dimension: 48,
-                child: Icon(icon, color: foreground),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.content),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(color: foreground),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: foreground.withValues(alpha: .12),
                   ),
-                  const SizedBox(height: AppSpacing.tight),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium
-                        ?.copyWith(color: foreground),
+                  child: SizedBox.square(
+                    dimension: 48,
+                    child: Icon(icon, color: foreground),
                   ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.tight),
-            Icon(Icons.arrow_forward_rounded, color: foreground),
-          ],
+              const SizedBox(width: AppSpacing.content),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(color: foreground),
+                    ),
+                    const SizedBox(height: AppSpacing.tight),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(color: foreground),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.tight),
+              Icon(Icons.arrow_forward_rounded, color: foreground),
+            ],
+          ),
         ),
       ),
     ),
