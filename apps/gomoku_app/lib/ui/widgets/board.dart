@@ -9,6 +9,7 @@ import 'package:gomoku_core/gomoku_core.dart';
 
 import '../../l10n/strings.dart';
 import '../../design/board_palette.dart';
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../state/settings.dart';
 import 'common.dart';
@@ -116,13 +117,19 @@ class _GameBoardState extends State<GameBoard> with TickerProviderStateMixin {
   final _audio = AudioPlayer();
   late final AnimationController _animation = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 230),
+    duration: const Duration(milliseconds: 400),
     value: 1,
   );
   late final AnimationController _celebration = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 900),
     value: 1,
+  );
+
+  /// Breathes the pre-selected ghost stone while it waits for confirmation.
+  late final AnimationController _breath = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
   );
   BoardPoint? _selected;
   BoardPoint? _hover;
@@ -171,6 +178,21 @@ class _GameBoardState extends State<GameBoard> with TickerProviderStateMixin {
       widget.onMove != null;
   double _padding(Size size) => size.width < 400 ? 22 : 30;
 
+  /// The ghost stone breathes only while an explicit selection waits for
+  /// confirmation; hover previews stay still.
+  void _syncBreath() {
+    final enabled =
+        _selected != null &&
+        !widget.readOnly &&
+        !(widget.settings.reduceMotion ||
+            MediaQuery.maybeOf(context)?.disableAnimations == true);
+    if (enabled && !_breath.isAnimating) {
+      _breath.repeat(reverse: true);
+    } else if (!enabled && _breath.isAnimating) {
+      _breath.stop();
+    }
+  }
+
   @override
   void didUpdateWidget(GameBoard old) {
     super.didUpdateWidget(old);
@@ -214,6 +236,7 @@ class _GameBoardState extends State<GameBoard> with TickerProviderStateMixin {
     _focus.dispose();
     _animation.dispose();
     _celebration.dispose();
+    _breath.dispose();
     _audio.dispose();
     super.dispose();
   }
@@ -333,6 +356,7 @@ class _GameBoardState extends State<GameBoard> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     _publish(deferred: true);
+    _syncBreath();
     final colors = Theme.of(context).colorScheme;
     final strings = context.strings;
     return Column(
@@ -375,12 +399,13 @@ class _GameBoardState extends State<GameBoard> with TickerProviderStateMixin {
                       _paintSize = Size.square(constraints.maxWidth);
                       return Semantics(
                         label: strings.t('board'),
-                        child: ClipRRect(
+                        child: ClipRSuperellipse(
                           borderRadius: BorderRadius.circular(AppShape.card),
                           child: AnimatedBuilder(
                             animation: Listenable.merge([
                               _animation,
                               _celebration,
+                              _breath,
                             ]),
                             builder: (context, _) => CustomPaint(
                               key: const ValueKey('game-board'),
@@ -404,10 +429,11 @@ class _GameBoardState extends State<GameBoard> with TickerProviderStateMixin {
                                 showNumbers:
                                     widget.settings.moveNumbers ||
                                     widget.readOnly,
-                                progress: Curves.easeOutBack.transform(
+                                progress: AppCurves.settle.transform(
                                   _animation.value,
                                 ),
                                 celebration: _celebration.value,
+                                breath: _breath.value,
                                 strings: strings,
                                 onSelect: _canPlay
                                     ? (point) =>
@@ -488,6 +514,7 @@ class _BoardPainter extends CustomPainter {
     required this.showNumbers,
     required this.progress,
     required this.celebration,
+    required this.breath,
     required this.strings,
     this.onSelect,
   });
@@ -496,7 +523,7 @@ class _BoardPainter extends CustomPainter {
   final Color accent, background, gridColor, labelColor;
   final BoardPoint? selected, hover, cursor;
   final bool showNumbers;
-  final double progress, celebration;
+  final double progress, celebration, breath;
   final AppStrings strings;
   final void Function(BoardPoint)? onSelect;
 
@@ -548,11 +575,16 @@ class _BoardPainter extends CustomPainter {
     }
     final line = game.result?.winningLine;
     if (line != null && line.length >= 5) {
+      final t = celebration.clamp(0, 1);
+      // The accent wash grows along the winning line, then the stones pulse.
+      final grow = Curves.easeOutCubic.transform(math.min(1, t / .45));
+      final start = _offset(line.first, step);
+      final end = Offset.lerp(start, _offset(line.last, step), grow)!;
       canvas.drawLine(
-        _offset(line.first, step),
-        _offset(line.last, step),
+        start,
+        end,
         Paint()
-          ..color = accent.withValues(alpha: .23 * celebration.clamp(0, 1))
+          ..color = accent.withValues(alpha: .23 * t)
           ..strokeWidth = step * .8
           ..strokeCap = StrokeCap.round,
       );
@@ -607,16 +639,18 @@ class _BoardPainter extends CustomPainter {
     }
     final preview = selected ?? hover;
     if (preview != null && game.at(preview.row, preview.col) == null) {
+      final selectedBreathes = preview == selected && breath > 0;
+      final breathe = selectedBreathes ? math.sin(breath * math.pi) : 0.0;
       final point = _offset(preview, step);
       canvas.drawCircle(
         point,
-        step * .40,
+        step * .40 * (1 + .02 * breathe),
         Paint()
           ..color =
               (game.turn == Stone.black
                       ? BoardPalette.stoneBlack
                       : Colors.white)
-                  .withValues(alpha: .35),
+                  .withValues(alpha: .35 + .06 * breathe),
       );
       canvas.drawCircle(
         point,
